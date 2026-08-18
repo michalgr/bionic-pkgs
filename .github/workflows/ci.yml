@@ -44,6 +44,9 @@ jobs:
           - os: macos-latest
             system: aarch64-darwin
 
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,7 +59,7 @@ jobs:
 
       - name: Setup Cachix (if secret configured)
         uses: cachix/cachix-action@v15
-        if: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
+        if: env.CACHIX_AUTH_TOKEN != ''
         with:
           name: bionic-pkgs
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
