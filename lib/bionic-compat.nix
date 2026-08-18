@@ -81,7 +81,14 @@ final: prev: {
 
   # Ensure Linux kernel headers build cleanly across all build hosts (including Darwin / macOS)
   makeLinuxHeaders = args:
-    (prev.makeLinuxHeaders args).overrideAttrs (_old: {
+    (prev.makeLinuxHeaders args).overrideAttrs (old: {
+      postPatch = (old.postPatch or "") + ''
+        # Disable building x86 kernel relocs utility during header generation on non-ELF/Darwin hosts
+        if [ -f arch/x86/Makefile ]; then
+          substituteInPlace arch/x86/Makefile \
+            --replace-warn '$(Q)$(MAKE) $(build)=arch/x86/tools relocs' 'true' || true
+        fi
+      '';
       buildPhase = ''
         make headers $makeFlags
       '';
