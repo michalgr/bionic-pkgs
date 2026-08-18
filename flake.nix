@@ -40,6 +40,12 @@
           hostPkgs = pkgs;
         };
 
+        # Automated checks for CI and `nix flake check`
+        checks = bionicLib.generateChecks {
+          inherit targetMatrix;
+          hostPkgs = pkgs;
+        };
+
         # Development environment
         devShells.default = pkgs.mkShell {
           name = "bionic-pkgs-dev";

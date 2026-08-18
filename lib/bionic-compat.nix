@@ -98,7 +98,7 @@ final: prev: {
         local dir="''${!output:-}"
         if [ -n "$dir" ] && [ -d "$dir" ]; then
           find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
-            if [ -f "$elf" ] && [ "$(head -c 4 "$elf" 2>/dev/null)" = $'\x7fELF' ]; then
+            if [ -f "$elf" ] && [ "$(od -An -N4 -tx1 "$elf" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
               chmod +w "$elf" 2>/dev/null || true
               ${final.buildPackages.patchelf}/bin/patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$elf" 2>/dev/null || true
             fi

@@ -9,7 +9,7 @@ This document outlines the phased development roadmap for `bionic-pkgs`.
 - [x] Implement `flake.nix` with multi-target (`aarch64-android`, `x86_64-android`) matrix generators across standard hosts (`aarch64-linux`, `x86_64-linux`, `aarch64-darwin`).
 - [x] Setup Nixpkgs cross-compilation baseline wrappers and Bionic shim overlay (`lib/bionic-compat.nix`).
 - [x] Implement ADB deployment helpers (`nix run .#push-<pkg>`) with staging directory creation and launcher scripts.
-- [ ] Configure GitHub Actions workflow for CI matrix building.
+- [x] Configure GitHub Actions workflow for CI matrix building.
 
 ---
 

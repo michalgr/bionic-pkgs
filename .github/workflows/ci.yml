@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  flake-check:
+    name: Flake Schema & Purity Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Check Flake Schema & Lockfile
+        run: nix flake check --no-build --all-systems
+
+  matrix-build:
+    name: Build & Verify (${{ matrix.os }})
+    needs: flake-check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+          - os: macos-latest
+            system: aarch64-darwin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Setup Cachix (if secret configured)
+        uses: cachix/cachix-action@v15
+        if: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
+        with:
+          name: bionic-pkgs
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Run Flake Checks & Automated ELF Verifications
+        run: nix flake check --print-build-logs
+
+      - name: Verify ADB Push Apps Evaluation
+        run: |
+          nix eval .#apps.${{ matrix.system }} --apply builtins.attrNames
