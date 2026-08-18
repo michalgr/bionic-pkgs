@@ -23,11 +23,11 @@ Welcome AI Agent! You are working on `bionic-pkgs`, a Nix Flake project designed
 Before declaring any package complete or bug fixed:
 1. Cross-compile the target package derivation using Nix:
    ```bash
-   # Inferred host (evaluates packages.${system}.<target>.<pkg>):
+   # Inferred host (evaluates legacyPackages.${system}.<target>.<pkg>):
    nix build .#<target>.<pkg>
 
    # Or explicit host and target:
-   nix build .#packages.<host>.<target>.<pkg>
+   nix build .#legacyPackages.<host>.<target>.<pkg>
    ```
 2. Verify ELF file properties using `file` and `llvm-readelf`:
    - **ELF Architecture**: `ARM aarch64`, `ARM` (32-bit), `x86-64`, or `Intel 80386`.

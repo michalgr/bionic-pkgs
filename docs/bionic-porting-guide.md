@@ -8,7 +8,7 @@ Cross-compiling C/C++ applications for Android's **Bionic libc** differs signifi
 
 1. **Combined `libc.so` (No `libpthread`, `librt`, `libutil`, `libresolv`, `libcrypt`)**:
    - In Bionic, POSIX threads (`pthread_*`), real-time timers (`clock_gettime`), dynamic loading (`dlopen`), and standard utilities are compiled directly into `libc.so`. (`libdl.so` and `libm.so` exist as stub libraries on device).
-   - **Fix**: Strip `-lpthread -lrt -lutil -lresolv -lcrypt -lnsl` from `LDFLAGS` and build configurations.
+   - **Fix**: Strip `-lpthread -lrt -lutil -lresolv -lcrypt -lnsl` from `LDFLAGS` and build configurations, or provide GNU linker script stubs (`INPUT(-lc)`) inside `bionic.out/lib`.
 
 2. **Missing or Non-Standard POSIX APIs**:
    - **No Thread Cancellation**: `pthread_cancel()`, `pthread_testcancel()`, and `pthread_setcancelstate()` do **not** exist in Bionic. Multithreaded software must use atomic flags or signal handling for cooperative termination.
@@ -27,6 +27,14 @@ Cross-compiling C/C++ applications for Android's **Bionic libc** differs signifi
    - Android 15+ (API 35+) mandates **16 KB ELF memory page alignment** for all native binaries and shared libraries on ARM64.
    - Linkers must be passed `-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384` so that `PT_LOAD` segments align to `0x4000` boundaries, enabling smooth loading across both 4 KB and 16 KB kernels.
 
+5. **C++ Standard Library (STL) Architecture (LLVM `libc++` from Source vs NDK Prebuilts)**:
+   - `bionic-pkgs` compiles LLVM's `libc++` and `libc++abi` directly from source against Bionic libc, rather than using Google's prebuilt NDK `libc++_shared.so` / `libc++_static.a`.
+   - **Rationale**:
+     - Eliminates opaque prebuilt binary blobs from the build chain.
+     - Unlocks complete C++20, C++23, and C++26 standard library features matching the compiler.
+     - Enforces 16 KB page alignment and consistent security hardening modes (`_LIBCPP_HARDENING_MODE`).
+     - Integrates with `llvm-libunwind` built directly from source.
+
 ---
 
 ## 2. API Levels & Target ABIs
@@ -35,7 +43,7 @@ Android NDK and Bionic APIs are tied to the **Android API Level** (e.g., API 34 
 
 In `bionic-pkgs`:
 - **Default API Level**: `34` (Android 14+).
-- **Supported Target ABIs** (We support all 4 standard Android ABIs):
+- **Supported Target ABIs**:
   - `aarch64-android` (`arm64-v8a` / `aarch64-linux-android` — Primary)
   - `x86_64-android` (`x86_64` / `x86_64-linux-android`)
   - `armv7a-android` (`armeabi-v7a` / `armv7a-linux-androideabi`)
@@ -44,6 +52,16 @@ In `bionic-pkgs`:
 ---
 
 ## 3. Standard Patch Patterns in Nix
+
+### Standalone Compatibility Package (`pkgs/libs/bionic-compat`)
+Rather than mutating upstream Bionic sysroot derivations in-place, `bionic-pkgs` employs a dedicated `bionic-compat` package providing:
+1. **GNU Linker Script Shims**: Provides `INPUT(-lc)` stubs for `libpthread.so`, `libpthread.a`, `librt.so`, `librt.a`, `libutil.so`, `libutil.a`, `libresolv.so`, `libresolv.a`, `libcrypt.so`, `libcrypt.a`.
+2. **Header Shims via `#include_next`**: Wraps Bionic headers cleanly without in-place mutation:
+   - `<netinet/in.h>`: Injects `typedef uint32_t in_addr_t;`.
+   - `<arpa/inet.h>`: Guarantees `<netinet/in.h>` is parsed before Bionic's `<arpa/inet.h>`.
+   - `<asm/stat.h>`: Uses `#pragma push_macro("__unused")` / `#undef __unused` to prevent macro collisions with Bionic `<sys/cdefs.h>`.
+
+Injected automatically into the cross-compiler wrapper via `-isystem ${bionic-compat}/include` and `-L${bionic-compat}/lib`.
 
 ### Stripping Unneeded System Libraries (`-lpthread`, `-lrt`, `-lutil`)
 When Autotools or CMake scripts try to link `-lpthread` or `-lrt`:
@@ -71,24 +89,21 @@ Android binaries locate their dynamic linker at:
 - `/system/bin/linker64` (64-bit targets: `aarch64-android`, `x86_64-android`)
 - `/system/bin/linker` (32-bit targets: `armv7a-android`, `i686-android`)
 
-In `lib/bionic-compat.nix`, `postFixup` ensures target ELF binaries have the correct interpreter and relative runpaths:
+In `lib/bionic-compat.nix`, `bionicFixupHook` automatically ensures target ELF binaries have relative runpaths for device portability:
 ```nix
-postFixup = ''
-  if [ -d "$out/bin" ]; then
-    for bin in "$out/bin"/*; do
-      if [ -f "$bin" ] && [ ! -L "$bin" ]; then
-        # Set dynamic linker interpreter based on target platform bitness:
-        ${if stdenv.targetPlatform.is64bit then ''
-          patchelf --set-interpreter /system/bin/linker64 "$bin" || true
-        '' else ''
-          patchelf --set-interpreter /system/bin/linker "$bin" || true
-        ''}
-        # Replace host Nix store RPATHs with relative runpaths for device portability:
-        patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$bin" || true
-      fi
-    done
-  fi
-'';
+bionicFixup() {
+  for output in "''${outputs[@]:-out}"; do
+    local dir="''${!output:-}"
+    if [ -n "$dir" ] && [ -d "$dir" ]; then
+      find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
+        if [ -f "$elf" ] && [ "$(head -c 4 "$elf" 2>/dev/null)" = $'\x7fELF' ]; then
+          chmod +w "$elf" 2>/dev/null || true
+          patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$elf" 2>/dev/null || true
+        fi
+      done
+    fi
+  done
+}
 ```
 
 ---
@@ -129,7 +144,27 @@ long page_size = sysconf(_SC_PAGESIZE);
 
 ---
 
-## 5. Testing & Verifying Cross-Compiled Binaries
+## 5. Case Studies & Package Solutions
+
+### Case Study 1: `strace`
+`strace` is our baseline canary package demonstrating userspace system call tracing on Android.
+
+1. **Unwind Implementation (`nongnu-libunwind` vs LLVM / Android)**:
+   - `pkgs.libunwind` (nongnu-libunwind) fails to compile against Bionic because its coredump/procfs handlers require glibc's `struct elf_prstatus` which is absent from Android's `<sys/procfs.h>`.
+   - **Resolution**: Disable `nongnu-libunwind` and `elfutils` debuginfod in `pkgs/diagnostics/strace/default.nix`.
+2. **Native Build Machine Code Generator (`CC_FOR_BUILD`)**:
+   - `strace` compiles native build-time generator tools (`ioctlsort0`, `ioctlsort1`) during cross-compilation.
+   - **Resolution**: Add `depsBuildBuild = [ buildPackages.stdenv.cc ];` so the build machine compiler and linker are cleanly available during the build phase.
+3. **Missing `in_addr_t` in Bionic `<netinet/in.h>`**:
+   - Bionic NDK headers define `in_port_t` in `<netinet/in.h>` but omit `typedef uint32_t in_addr_t;` (which is in kernel `<linux/in.h>`).
+   - **Resolution**: Layer `<netinet/in.h>`, `<arpa/inet.h>`, and `<sys/types.h>` shims in `pkgs/libs/bionic-compat` using `#include_next` to define `in_addr_t` transparently.
+4. **Macro Collisions with `__unused` in `<sys/cdefs.h>`**:
+   - Bionic defines `#define __unused __attribute__((__unused__))` in `<sys/cdefs.h>`. When Linux UAPI headers like `<asm/stat.h>` declare fields named `__unused`, compilation fails with syntax errors.
+   - **Resolution**: Wrap `<asm/stat.h>` in `pkgs/libs/bionic-compat` with `#pragma push_macro("__unused")` / `#undef __unused` / `#include_next <asm/stat.h>` / `#pragma pop_macro("__unused")`.
+
+---
+
+## 6. Testing & Verifying Cross-Compiled Binaries
 
 1. **Verify ELF Header, Linker & 16 KB Page Alignment**:
    ```bash
@@ -148,10 +183,11 @@ long page_size = sysconf(_SC_PAGESIZE);
 
 3. **Execute via ADB on Android Device / Emulator**:
    ```bash
-   # Push binary to standard executable staging directory
-   adb push result/bin/strace /data/local/tmp/
-   adb shell chmod +x /data/local/tmp/strace
+   # Use the automated flake push app:
+   nix run .#push-strace
 
-   # Execute on device
+   # Or manual transfer:
+   adb push result/bin/strace /data/local/tmp/
+   adb shell chmod 755 /data/local/tmp/strace
    adb shell /data/local/tmp/strace -V
    ```

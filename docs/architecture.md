@@ -23,7 +23,7 @@ By leveraging **Nix Flakes**, `bionic-pkgs` turns cross-compilation into pure fu
 ## 2. Platform Matrix
 
 ### Supported Host Architectures (`buildPlatform` / `hostPlatform`)
-Host outputs are generated dynamically via `flake-utils.lib.eachDefaultSystem`:
+Host outputs are generated dynamically via `flake-utils.lib.eachSystem bionicLib.supportedSystems`:
 | Host Flake System ID | Architecture | OS | Typical Hardware / Environments |
 | :--- | :--- | :--- | :--- |
 | `aarch64-linux` | ARM64 (64-bit) | Linux | Docker/Podman/OrbStack/Lima containers on Apple Silicon Macs, AWS Graviton, Asahi Linux, Raspberry Pi 4/5 |
@@ -64,8 +64,14 @@ Host outputs are generated dynamically via `flake-utils.lib.eachDefaultSystem`:
 ### Toolchain Details & Sysroot Provenance
 - **Bionic Headers & Sysroot**: In Nixpkgs, target Android sysroots hermetically package the official Bionic libc headers, CRT startup files, and kernel headers derived from Android platform sysroots.
 - **Host-Native Cross-Compilers**: Nix compiles LLVM/Clang directly for the host platform (`aarch64-linux`, `aarch64-darwin`, `x86_64-linux`), eliminating reliance on Google's prebuilt host binaries.
-- **No `ndk-build` Needed**: Standard Unix build systems (Autotools, CMake, Meson, Makefiles) build directly through Nix cross-stdenv. We do not use `ndk-build` or legacy Android build scripts.
-- **Android Platform Libraries**: When packages require Android-specific logging or system stubs (e.g. `liblog`, `android/log.h`), they link directly against the hermetic sysroot libraries provided by the cross-stdenv.
+- **C++ Standard Library (STL) Implementation**:
+  - `bionic-pkgs` does **not** use the standard prebuilt Google NDK `libc++_shared.so` or `libc++_static.a` binaries.
+  - Instead, `bionic-pkgs` compiles LLVM's modern `libc++` and `libc++abi` directly from source against Bionic libc with native ELF TLS (`-fno-emulated-tls`).
+  - **Why this approach?**:
+    1. **Hermeticity & Reproducibility**: Builds the entire C++ standard library deterministically from source matching the exact LLVM version used by the cross-compiler.
+    2. **Modern C++ Standards**: Unlocks complete C++20, C++23, and C++26 language and library features without being restricted by NDK release cadence.
+    3. **16 KB Memory Page Alignment**: Ensures `libc++.so` and all C++ runtime objects are linked with `-z max-page-size=16384` for Android 15+ 16 KB kernel compatibility.
+    4. **Hardening & Unwinding**: Leverages LLVM's modern unwinder (`llvm-libunwind`) built from source and enables configurable standard library hardening modes (`_LIBCPP_HARDENING_MODE`).
 
 ---
 
@@ -76,73 +82,47 @@ Packages are organized in `pkgs/` by functional category:
 ```
 bionic-pkgs/
 ├── flake.nix
-├── flake.lock
-├── README.md
-├── docs/
-│   ├── architecture.md
-│   ├── roadmap.md
-│   └── bionic-porting-guide.md
-├── .agents/
-│   └── AGENTS.md
 ├── lib/
-│   ├── default.nix            # Flake utility functions & matrix generators
-│   └── bionic-compat.nix       # Bionic patch sets, CFLAGS, and shim hooks
-└── pkgs/
-    ├── diagnostics/           # Deep debugging & system tracers
-    │   ├── strace/
-    │   ├── gdb/
-    │   └── lldb/
-    ├── tracing/               # BPF and dynamic kernel tracing
-    │   ├── bpftrace/
-    │   ├── bcc/
-    │   └── libbpf/
-    ├── reversing/             # Reverse engineering & binary analysis
-    │   ├── radare2/
-    │   └── rizin/
-    ├── runtime/               # Portable language runtimes
-    │   └── python3/           # Python 3 with ctypes (libffi) support
-    ├── core/                  # Core Unix CLI utilities
-    │   ├── htop/
-    │   ├── zstd/
-    │   ├── curl/
-    │   └── socat/
-    └── libs/                  # Shared library dependencies
-        ├── libffi/
-        ├── ncurses/
-        ├── readline/
-        ├── openssl/
-        ├── elfutils/
-        └── zlib/
+│   ├── default.nix
+│   └── bionic-compat.nix
+├── pkgs/
+│   ├── default.nix
+│   ├── diagnostics/     # Debuggers, syscall monitors, crash dump tools (strace, gdb, lldb)
+│   ├── tracing/         # eBPF tools, kernel probes, performance analyzers (bcc, bpftrace)
+│   ├── reversing/       # Disassemblers, binary analysis tools (radare2, rizin)
+│   ├── runtime/         # Interpreters, language engines (python3)
+│   ├── core/            # Core system utilities (tree, file, tmux, bash)
+│   └── libs/            # Shared libraries, polyfills (bionic-compat, libffi, elfutils, libbpf)
 ```
 
 ---
 
-## 5. Nix Flake Schema & Output Structure
+## 5. Matrix Generation & Flake Architecture
 
-Outputs are generated using `flake-utils.lib.eachDefaultSystem`, producing target cross-compilation matrix packages, dev shells, and ADB apps per host:
+The repository dynamically maps package definitions across the matrix:
 
 ```nix
 {
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-  };
-
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system: {
-      # Target matrix packages per host system: packages.${system}.${targetKey}.${packageName}
-      # Shorthand CLI: nix build .#${targetKey}.${packageName}
-      # Explicit CLI:  nix build .#packages.${system}.${targetKey}.${packageName}
+    flake-utils.lib.eachSystem bionicLib.supportedSystems (system: {
+      # Flat packages per host system: packages.${system}.${pkgName} and packages.${system}.${targetName}-${pkgName}
+      # Shorthand CLI: nix build .#${packageName}
+      # Explicit CLI:  nix build .#${targetName}-${packageName}
       packages = { ... };
 
-      # Development Shells configured with cross compilers and ADB tools:
-      # CLI: nix develop .#${targetKey}
-      devShells = { ... };
+      # Hierarchical package matrix: legacyPackages.${system}.${targetName}.${packageName}
+      # Shorthand CLI: nix build .#${targetName}.${packageName}
+      # Explicit CLI:  nix build .#legacyPackages.${system}.${targetName}.${packageName}
+      legacyPackages = { ... };
 
       # ADB Push helpers (pushes binaries + runtime library closures):
-      # Shorthand CLI: nix run .#${targetKey}.${packageName}.push
-      # Explicit CLI:  nix run .#apps.${system}.${targetKey}.${packageName}.push
+      # Shorthand CLI: nix run .#push-${packageName}
+      # Explicit CLI:  nix run .#push-${targetName}-${packageName}
       apps = { ... };
+
+      # Development Shells configured with cross compilers and ADB tools:
+      # CLI: nix develop
+      devShells = { ... };
     });
 }
 ```
@@ -151,7 +131,7 @@ Outputs are generated using `flake-utils.lib.eachDefaultSystem`, producing targe
 
 ## 6. ADB Push & Execution Integration
 
-To make testing binaries on Android hardware or emulators frictionless, every executable package derivation generates a corresponding **Nix App**: `.#${target}.${pkg}.push`.
+To make testing binaries on Android hardware or emulators frictionless, every executable package derivation generates corresponding **Nix Apps**: `.#push-${pkg}` (for default `aarch64-android`) and `.#push-${target}-${pkg}`.
 
 ### Android Execution Environment & Permissions
 - **Staging Directory (`/data/local/tmp/bionic-pkgs/<pkg>/`)**:

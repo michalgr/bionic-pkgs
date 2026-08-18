@@ -4,22 +4,23 @@ This document outlines the phased development roadmap for `bionic-pkgs`.
 
 ---
 
-## 🎯 Phase 1: Core Infrastructure & Flake Matrix (Current)
+## 🎯 Phase 1: Core Infrastructure & Flake Matrix (Completed)
 - [x] Initial architectural design & document suite.
-- [ ] Implement `flake.nix` using `flake-utils.lib.eachDefaultSystem` and multi-target (`aarch64-android`, `x86_64-android`, `armv7a-android`, `i686-android`) matrix generators.
-- [ ] Setup Nixpkgs cross-compilation baseline wrappers and Bionic shim overlay (`lib/bionic-compat.nix`).
+- [x] Implement `flake.nix` with multi-target (`aarch64-android`, `x86_64-android`) matrix generators across standard hosts (`aarch64-linux`, `x86_64-linux`, `aarch64-darwin`).
+- [x] Setup Nixpkgs cross-compilation baseline wrappers and Bionic shim overlay (`lib/bionic-compat.nix`).
+- [x] Implement ADB deployment helpers (`nix run .#push-<pkg>`) with staging directory creation and launcher scripts.
 - [ ] Configure GitHub Actions workflow for CI matrix building.
 
 ---
 
 ## 🛠 Phase 2: Initial Core Tooling (Diagnostics, Reversing & Python)
-Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-v8a`):
+Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-v8a`) and `x86_64-android`:
+- [x] **`pkgs/diagnostics/` (System Diagnostics & Tracing)**:
+  - [x] `pkgs/diagnostics/strace`: Full syscall decoding, MPERS support, and verified live on Android 14+ devices.
 - [ ] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
   - `pkgs/runtime/python3`: Standalone CLI runtime for Android.
   - `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
   - Supporting libraries: `pkgs/libs/zlib`, `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
-- [ ] **`pkgs/diagnostics/` (System Diagnostics & Tracing)**:
-  - `pkgs/diagnostics/strace`: Full syscall decoding and signal inspection on Android kernels.
 - [ ] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - `pkgs/reversing/radare2`: Standalone binary analysis framework.
   - `pkgs/reversing/rizin`: Reverse engineering suite and command-line disassembler.
@@ -39,8 +40,8 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 
 ---
 
-## ⚡ Phase 4: Multi-Target ABI Expansion & Extended Tools
-- [ ] Extend package matrix compilation to all target ABIs: `x86_64-android`, `armv7a-android`, `i686-android`.
+## ⚡ Phase 4: Extended Tools & Legacy 32-bit ABI Support
+- [ ] Legacy 32-bit Android ABI support (`armv7a-android`, `i686-android`) via custom Bionic sysroot bootstrap.
 - [ ] Port additional diagnostic & networking utilities:
   - `pkgs/diagnostics/tcpdump`
   - `pkgs/diagnostics/lsof`
@@ -50,7 +51,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 ---
 
 ## 🤖 Phase 5: Developer Experience, ADB Automation & Caching
-- [ ] Implement `nix run .#<target>.<pkg>.push` (and `.#apps.<system>.<target>.<pkg>.push`) ADB push helpers with runtime dependency closure synchronization.
-- [ ] `devShells` featuring cross-compilers, ADB binaries, and environment variables.
+- [x] Implement `nix run .#push-<pkg>` (and `.#push-<target>-<pkg>`) ADB push helpers with runtime dependency closure synchronization and launcher wrapper.
+- [x] `devShells` featuring cross-compilers, ADB binaries, and environment variables.
 - [ ] Automated integration test suite running on Android emulators in CI.
 - [ ] Enable Cachix binary cache substituters for prebuilt package distribution.
