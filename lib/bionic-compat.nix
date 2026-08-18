@@ -79,6 +79,14 @@ in
 final: prev: {
   bionic-compat = final.callPackage ../pkgs/libs/bionic-compat { };
 
+  # Ensure Linux kernel headers build cleanly across all build hosts (including Darwin / macOS)
+  makeLinuxHeaders = args:
+    (prev.makeLinuxHeaders args).overrideAttrs (_old: {
+      buildPhase = ''
+        make headers $makeFlags
+      '';
+    });
+
   llvmPackages = prev.llvmPackages.overrideScope (lfinal: lprev: fixLlvmPackages lfinal lprev final);
   llvmPackages_21 = prev.llvmPackages_21.overrideScope (lfinal: lprev: fixLlvmPackages lfinal lprev final);
 
