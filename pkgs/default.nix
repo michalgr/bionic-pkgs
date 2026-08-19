@@ -8,22 +8,16 @@ let
     # Core Compatibility Libraries & Shims
     bionic-compat = targetPkgs.callPackage ./libs/bionic-compat { };
     android-headers = targetPkgs.callPackage ./libs/android-headers { };
-    libffi = targetPkgs.callPackage ./libs/libffi {
-      inherit (targetPkgs) bionicFixupHook;
-      inherit (self) bionic-compat;
-    };
+    libffi = targetPkgs.callPackage ./libs/libffi { };
 
     # Diagnostics & System Tracing
-    strace = targetPkgs.callPackage ./diagnostics/strace {
-      inherit (targetPkgs) bionicFixupHook;
-      inherit (self) bionic-compat;
-    };
+    strace = targetPkgs.callPackage ./diagnostics/strace { };
 
     # Runtime Environments & Interpreters
     python3 = targetPkgs.callPackage ./runtime/python3 {
-      inherit (targetPkgs) bionicFixupHook;
-      inherit (self) bionic-compat libffi android-headers;
+      inherit (self) libffi android-headers;
     };
   };
 in
 self
+

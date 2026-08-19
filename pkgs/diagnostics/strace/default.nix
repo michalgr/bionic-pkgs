@@ -7,8 +7,6 @@
   fetchurl,
   perl,
   buildPackages,
-  bionicFixupHook,
-  bionic-compat ? null,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -29,11 +27,8 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   nativeBuildInputs = [
-    perl            # Used by strace build scripts to generate syscall tables and headers
-    bionicFixupHook # Rewrites ELF dynamic RUNPATH to relative origin paths ($ORIGIN/../lib:$ORIGIN/lib)
+    perl # Used by strace build scripts to generate syscall tables and headers
   ];
-
-  buildInputs = lib.optional (bionic-compat != null) bionic-compat;
 
   # Bionic Porting Notes & Dependency Exclusions:
   # 1. nongnu-libunwind (pkgs.libunwind): Omitted because its coredump/procfs handlers
