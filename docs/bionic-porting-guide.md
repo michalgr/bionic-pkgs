@@ -63,6 +63,10 @@ Rather than mutating upstream Bionic sysroot derivations in-place, `bionic-pkgs`
 
 Injected automatically into the cross-compiler wrapper via `-isystem ${bionic-compat}/include` and `-L${bionic-compat}/lib`.
 
+### Official Android NDK Platform Headers (`pkgs/libs/android-headers`)
+Nixpkgs's `bionic-prebuilt` derivation only fetches core `platform/bionic` libc headers, omitting public Android NDK platform headers that reside in separate AOSP components (`platform/system/logging`, etc.).
+We provide `pkgs/libs/android-headers` to unpack Google's official NDK sysroot headers (`<android/log.h>`, `<android/trace.h>`, `<android/sync.h>`, `<android/native_window.h>`, etc.). Packages that use Android NDK platform APIs should declare `android-headers` explicitly in their `buildInputs`.
+
 ### Stripping Unneeded System Libraries (`-lpthread`, `-lrt`, `-lutil`)
 When Autotools or CMake scripts try to link `-lpthread` or `-lrt`:
 ```nix
@@ -161,6 +165,25 @@ long page_size = sysconf(_SC_PAGESIZE);
 4. **Macro Collisions with `__unused` in `<sys/cdefs.h>`**:
    - Bionic defines `#define __unused __attribute__((__unused__))` in `<sys/cdefs.h>`. When Linux UAPI headers like `<asm/stat.h>` declare fields named `__unused`, compilation fails with syntax errors.
    - **Resolution**: Wrap `<asm/stat.h>` in `pkgs/libs/bionic-compat` with `#pragma push_macro("__unused")` / `#undef __unused` / `#include_next <asm/stat.h>` / `#pragma pop_macro("__unused")`.
+
+### Case Study 2: `python3` & `libffi` (Minimalistic Standalone Runtime)
+Python 3 on Android provides a standalone CLI scripting runtime and C interoperability via `ctypes`.
+
+1. **Minimalistic Dependency Architecture**:
+   - Upstream Linux Python distributions pull heavy dependency graphs (Tcl/Tk, ncurses, readline, sqlite, gdbm, dbm, OpenSSL, libxcrypt, etc.).
+   - For an efficient, portable Android runtime, optional modules are disabled (`--without-readline`, `--without-curses`, `--without-sqlite3`, `--without-gdbm`, `--without-dbm`, `--without-tkinter`, `--disable-test-modules`).
+   - Hash algorithm support (`_hashlib` / `hashlib`) is fulfilled without OpenSSL via `--with-builtin-hashlib-hashes=md5,sha1,sha2,sha3,blake2` which compiles internal C implementations (HACL*).
+   - Only `libffi` is retained as an external dependency to power `_ctypes` for native C library interaction.
+2. **Cross-Compilation via `--with-build-python`**:
+   - CPython 3.11+ cross-compilation requires a native host Python interpreter matching the target major and minor version (e.g., `buildPackages.python313`).
+3. **Android System Logging (`<android/log.h>` & `liblog.so`)**:
+   - Python's lifecycle initialization on Android includes `<android/log.h>` for `__android_log_write()`.
+   - **Resolution**: `<android/log.h>` is provided by the standalone `pkgs/libs/android-headers` package and included in `buildInputs`, linking cleanly against Bionic's system `liblog.so`.
+4. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
+   - Pass `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions.
+   - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
+5. **Runtime Standard Library Resolution (`PYTHONHOME`)**:
+   - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"` and `export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"`.
 
 ---
 

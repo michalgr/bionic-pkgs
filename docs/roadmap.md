@@ -17,10 +17,11 @@ This document outlines the phased development roadmap for `bionic-pkgs`.
 Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-v8a`) and `x86_64-android`:
 - [x] **`pkgs/diagnostics/` (System Diagnostics & Tracing)**:
   - [x] `pkgs/diagnostics/strace`: Full syscall decoding, MPERS support, and verified live on Android 14+ devices.
-- [ ] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
-  - `pkgs/runtime/python3`: Standalone CLI runtime for Android.
-  - `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
-  - Supporting libraries: `pkgs/libs/zlib`, `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
+- [x] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
+  - [x] `pkgs/runtime/python3`: Standalone minimalistic CLI runtime for Android.
+  - [x] `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
+  - [x] `pkgs/libs/android-headers`: Official Google Android NDK platform headers (`log.h`, `trace.h`, `sync.h`, etc.).
+  - [ ] Supporting optional libraries: `pkgs/libs/zlib`, `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
 - [ ] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - `pkgs/reversing/radare2`: Standalone binary analysis framework.
   - `pkgs/reversing/rizin`: Reverse engineering suite and command-line disassembler.

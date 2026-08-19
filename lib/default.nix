@@ -72,46 +72,33 @@ let
         }
 
         echo "==> Creating remote directory structure on device..."
-        run_adb shell "mkdir -p $DEST_DIR/bin $DEST_DIR/lib"
+        run_adb shell "rm -rf $DEST_DIR && mkdir -p $DEST_DIR/bin $DEST_DIR/lib"
 
-        echo "==> Pushing binaries..."
-        if [ -d "${pkg}/bin" ]; then
-          bin_files=("${pkg}"/bin/*)
-          if [ ''${#bin_files[@]} -gt 0 ]; then
-            for f in "''${bin_files[@]}"; do
-              if [ -f "$f" ]; then
-                run_adb push "$f" "$DEST_DIR/bin/"
-              fi
-            done
-            run_adb shell "chmod 755 $DEST_DIR/bin/* 2>/dev/null || true"
-          fi
-        fi
+        echo "==> Staging package tree and runtime closure dependencies..."
+        STAGE_TAR=$(mktemp "/tmp/bionic_push_${pkgName}_XXXXXX.tar")
+        tar -ch --hard-dereference --mode=u+rwX -cf "$STAGE_TAR" -C "${pkg}" .
 
-        echo "==> Pushing shared libraries and closure..."
-        if [ -d "${pkg}/lib" ]; then
-          lib_files=("${pkg}"/lib/*)
-          if [ ''${#lib_files[@]} -gt 0 ]; then
-            for f in "''${lib_files[@]}"; do
-              if [ -f "$f" ]; then
-                run_adb push "$f" "$DEST_DIR/lib/"
-              fi
-            done
-          fi
-        fi
-
-        # Push dynamic library dependencies from closure if present
+        # Include shared libraries from target architecture dependencies in closure (excluding libc stubs)
         closure_paths=$(nix-store -qR "${pkg}" 2>/dev/null || true)
         if [ -n "$closure_paths" ]; then
           for req in $closure_paths; do
             if [ "$req" != "${pkg}" ] && [ -d "$req/lib" ]; then
-              for f in "$req"/lib/*.so*; do
-                if [ -f "$f" ]; then
-                  run_adb push "$f" "$DEST_DIR/lib/" 2>/dev/null || true
-                fi
-              done
+              case "$req" in
+                *bionic-compat*|*bionic-prebuilt*|*bionic-*)
+                  # Skip build-time libc linker script stubs
+                  ;;
+                *"${targetName}"*|*"-android-"*|*"-android"*)
+                  tar -h --hard-dereference --mode=u+rwX -rf "$STAGE_TAR" -C "$req" lib
+                  ;;
+              esac
             fi
           done
         fi
+
+        echo "==> Pushing package archive to device..."
+        run_adb push "$STAGE_TAR" "$DEST_DIR/stage.tar"
+        run_adb shell "tar -xf $DEST_DIR/stage.tar -C $DEST_DIR && rm -f $DEST_DIR/stage.tar && chmod 755 $DEST_DIR/bin/* 2>/dev/null || true"
+        rm -f "$STAGE_TAR"
 
         # Deploy launcher wrapper script with LD_LIBRARY_PATH support
         LAUNCHER=$(mktemp "/tmp/bionic_run_${pkgName}_XXXXXX.sh")
@@ -119,6 +106,12 @@ let
 #!/system/bin/sh
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"
+for py_dir in "$SCRIPT_DIR"/lib/python3.*; do
+  if [ -d "$py_dir" ]; then
+    export PYTHONHOME="$SCRIPT_DIR"
+    break
+  fi
+done
 if [ -x "$SCRIPT_DIR/bin/${binName}" ]; then
   exec "$SCRIPT_DIR/bin/${binName}" "$@"
 else
@@ -159,8 +152,12 @@ EOF
   # Helper to determine if a package is a runnable application
   isRunnableApp = pkg:
     lib.isDerivation pkg &&
-    ((pkg ? meta && pkg.meta ? mainProgram) ||
-     (pkg ? pname && pkg.pname != "bionic-compat"));
+    (pkg ? meta && pkg.meta ? mainProgram);
+
+  # Helper to determine if a package can be verified for ELF properties (excluding header/shim-only packages)
+  isCheckablePkg = pkg:
+    lib.isDerivation pkg &&
+    (pkg ? pname && pkg.pname != "bionic-compat" && pkg.pname != "android-headers");
 
   # Automatically generates flat package outputs from targetMatrix
   generatePackages = { targetMatrix, defaultTarget ? "aarch64-android" }:
@@ -356,7 +353,7 @@ EOF
         let pkgsForTarget = targetMatrix.${targetName};
         in lib.concatMap (pkgName:
           let pkg = pkgsForTarget.${pkgName};
-          in lib.optional (isRunnableApp pkg) {
+          in lib.optional (isCheckablePkg pkg) {
             name = "check-elf-${targetName}-${pkgName}";
             value = mkElfCheck {
               inherit hostPkgs targetName pkgName pkg;
