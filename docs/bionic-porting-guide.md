@@ -79,14 +79,12 @@ postPatch = ''
 '';
 ```
 
-### Enforcing PIE (`-fPIE -pie`) and 16 KB Page Alignment (`-z max-page-size=16384`)
-Nixpkgs cross-stdenv or `bionic-compat` hooks inject these flags into derivation environments:
-```nix
-# In derivation:
-hardeningEnable = [ "pie" ];
-NIX_CFLAGS_COMPILE = "-fPIE";
-NIX_LDFLAGS = "-pie -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384";
-```
+### Enforcing PIE (`-fPIE -pie`), TLS (`-fno-emulated-tls`), and 16 KB Page Alignment (`-z max-page-size=16384`)
+Rather than requiring every derivation to set repetitive compilation flags manually, `lib/bionic-compat.nix` defines canonical `bionicFlags` and injects `bionicFixupHook` globally into `stdenv.extraNativeBuildInputs`.
+
+All target derivations built with `stdenv.mkDerivation` automatically receive:
+- **`NIX_CFLAGS_COMPILE`**: `-isystem ${bionic-compat}/include -isystem ${bionic.dev}/include -fno-emulated-tls -D__BIONIC_NO_PAGE_SIZE_MACRO`
+- **`NIX_LDFLAGS`**: `-L${bionic-compat}/lib -L${bionic.out}/lib -z max-page-size=16384 -z common-page-size=16384`
 
 ### Dynamic Linker Path (`/system/bin/linker64` / `/system/bin/linker`) & `$ORIGIN` RPATH
 Android binaries locate their dynamic linker at:
@@ -96,11 +94,11 @@ Android binaries locate their dynamic linker at:
 In `lib/bionic-compat.nix`, `bionicFixupHook` automatically ensures target ELF binaries have relative runpaths for device portability:
 ```nix
 bionicFixup() {
-  for output in "''${outputs[@]:-out}"; do
+  for output in ''${outputs:-out}; do
     local dir="''${!output:-}"
     if [ -n "$dir" ] && [ -d "$dir" ]; then
       find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
-        if [ -f "$elf" ] && [ "$(head -c 4 "$elf" 2>/dev/null)" = $'\x7fELF' ]; then
+        if [ -f "$elf" ] && [ "$(od -An -N4 -tx1 "$elf" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
           chmod +w "$elf" 2>/dev/null || true
           patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$elf" 2>/dev/null || true
         fi
@@ -180,7 +178,7 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    - Python's lifecycle initialization on Android includes `<android/log.h>` for `__android_log_write()`.
    - **Resolution**: `<android/log.h>` is provided by the standalone `pkgs/libs/android-headers` package and included in `buildInputs`, linking cleanly against Bionic's system `liblog.so`.
 4. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
-   - Pass `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions.
+   - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
    - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
 5. **Runtime Standard Library Resolution (`PYTHONHOME`)**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"` and `export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"`.

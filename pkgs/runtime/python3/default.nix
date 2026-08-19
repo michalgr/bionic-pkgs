@@ -9,8 +9,6 @@
   pkg-config,
   libffi,
   android-headers,
-  bionicFixupHook,
-  bionic-compat ? null,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -24,11 +22,8 @@ stdenv.mkDerivation (finalAttrs: {
 
   # Native tooling for build machine:
   # 1. pkg-config: Finds target libffi for _ctypes extension module.
-  # 2. bionicFixupHook: Enforces 16 KB page alignment, relative RUNPATH ($ORIGIN/../lib:$ORIGIN/lib),
-  #    and prioritizes Bionic compatibility headers and shims.
   nativeBuildInputs = [
     pkg-config
-    bionicFixupHook
   ];
 
   # Host C compiler available during build to compile native generators if needed
@@ -36,11 +31,11 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
-  # Minimalistic dependency set: libffi (for ctypes), android-headers (<android/log.h>), and bionic-compat
+  # Minimalistic dependency set: libffi (for ctypes) and android-headers (<android/log.h>)
   buildInputs = [
     libffi
     android-headers
-  ] ++ lib.optional (bionic-compat != null) bionic-compat;
+  ];
 
   # Bionic Porting Notes & Dependency Exclusions:
   # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.13).
@@ -69,10 +64,8 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   # Android Bionic environment:
-  # - __BIONIC_NO_PAGE_SIZE_MACRO: Ensures dynamic page size handling for 16 KB alignment.
   # - -lm: Bionic libm math library linkage.
   env = {
-    NIX_CFLAGS_COMPILE = "-D__BIONIC_NO_PAGE_SIZE_MACRO";
     NIX_LDFLAGS = "-lm";
   };
 

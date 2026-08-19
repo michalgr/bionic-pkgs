@@ -1,10 +1,10 @@
 # lib/bionic-compat.nix
-# Bionic libc compatibility overlay and stdenv patches for Android targets.
+# Bionic libc compatibility overlay, compilation flags, and stdenv patches for Android targets.
 
 { lib }:
 
 let
-  fixLlvmPackages = lfinal: lprev: final: {
+  fixLlvmPackages = { bionicFlags, final }: lfinal: lprev: {
     compiler-rt-no-libc = lprev.compiler-rt-no-libc.overrideAttrs (old: {
       buildInputs = (old.buildInputs or [ ]) ++ [
         final.bionic.dev
@@ -12,8 +12,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " -isystem ${final.bionic-compat}/include -isystem ${final.bionic.dev}/include -fno-emulated-tls";
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " -L${final.bionic-compat}/lib -L${final.bionic.out}/lib";
+        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       postInstall = ''
         mkdir -p $out/lib
@@ -35,8 +35,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " -isystem ${final.bionic-compat}/include -isystem ${final.bionic.dev}/include -fno-emulated-tls";
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " -L${final.bionic-compat}/lib -L${final.bionic.out}/lib";
+        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
@@ -55,28 +55,43 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " -isystem ${final.bionic-compat}/include -isystem ${final.bionic.dev}/include -fno-emulated-tls";
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " -L${final.bionic-compat}/lib -L${final.bionic.out}/lib";
+        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
       ];
     });
-
-    clang = lprev.clang.override (old: {
-      extraBuildCommands = (old.extraBuildCommands or "") + ''
-        if [ -f "$out/nix-support/libc-cflags" ]; then
-          substituteInPlace "$out/nix-support/libc-cflags" --replace-warn "-idirafter" "-isystem"
-          sed -i '1s,^,-isystem ${final.bionic-compat}/include ,' "$out/nix-support/libc-cflags"
-        fi
-        # Enforce native ELF TLS and 16 KB page alignment for all derivations
-        echo "-fno-emulated-tls" >> "$out/nix-support/cc-cflags"
-        echo "-L${final.bionic-compat}/lib -z max-page-size=16384 -z common-page-size=16384" >> "$out/nix-support/cc-ldflags"
-      '';
-    });
   };
 in
-final: prev: {
+final: prev:
+let
+  # Canonical compilation and linker flags for Android Bionic targets
+  bionicFlags = {
+    cflags = [
+      # Priority header search paths for Bionic compat shims and Bionic libc headers
+      "-isystem ${final.bionic-compat}/include"
+      "-isystem ${final.bionic.dev}/include"
+      # Enforce native ELF Thread-Local Storage (TLS) instead of emulated TLS
+      "-fno-emulated-tls"
+      # Modern Android (Android 15+) dynamic page size support
+      "-D__BIONIC_NO_PAGE_SIZE_MACRO"
+    ];
+    ldflags = [
+      # Library search paths for GNU Linker Script shims and Bionic libc
+      "-L${final.bionic-compat}/lib"
+      "-L${final.bionic.out}/lib"
+      # Android 15+ 16 KB memory page alignment for ELF LOAD segments
+      "-z" "max-page-size=16384"
+      "-z" "common-page-size=16384"
+    ];
+    cflagsString = lib.concatStringsSep " " bionicFlags.cflags;
+    ldflagsString = lib.concatStringsSep " " bionicFlags.ldflags;
+  };
+in
+{
+  inherit bionicFlags;
+
   bionic-compat = final.callPackage ../pkgs/libs/bionic-compat { };
 
   # Ensure Linux kernel headers build cleanly across all build hosts (including Darwin / macOS)
@@ -94,22 +109,20 @@ final: prev: {
       '';
     });
 
-  llvmPackages = prev.llvmPackages.overrideScope (lfinal: lprev: fixLlvmPackages lfinal lprev final);
-  llvmPackages_21 = prev.llvmPackages_21.overrideScope (lfinal: lprev: fixLlvmPackages lfinal lprev final);
+  llvmPackages = prev.llvmPackages.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
+  llvmPackages_21 = prev.llvmPackages_21.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
 
-  # Setup hook that ensures Bionic header priority, 16 KB page alignment, and rewrites ELF RUNPATH
+  # Setup hook that injects Bionic compiler/linker flags, header priority, and rewrites ELF RUNPATH
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
     propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
-    bionicPreConfigure() {
-      export NIX_CFLAGS_COMPILE="-isystem ${final.bionic-compat}/include -isystem ${final.bionic.dev}/include -fno-emulated-tls ''${NIX_CFLAGS_COMPILE:-}"
-      export NIX_LDFLAGS="-L${final.bionic-compat}/lib -z max-page-size=16384 -z common-page-size=16384 ''${NIX_LDFLAGS:-}"
-    }
-    preConfigureHooks+=(bionicPreConfigure)
+    # Export canonical compilation and linker flags into environment at setup hook source time
+    export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
+    export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
 
     bionicFixup() {
-      for output in "''${outputs[@]:-out}"; do
+      for output in ''${outputs:-out}; do
         local dir="''${!output:-}"
         if [ -n "$dir" ] && [ -d "$dir" ]; then
           find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
@@ -123,4 +136,9 @@ final: prev: {
     }
     postFixupHooks+=(bionicFixup)
   '');
+
+  # Automatically equip target stdenv with Bionic flags, compatibility shims, and postFixup RPATH hook
+  stdenv = prev.stdenv.override (old: {
+    extraNativeBuildInputs = (old.extraNativeBuildInputs or [ ]) ++ [ final.bionicFixupHook ];
+  });
 }

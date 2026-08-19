@@ -5,8 +5,6 @@
   lib,
   stdenv,
   fetchurl,
-  bionicFixupHook,
-  bionic-compat ? null,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -17,12 +15,6 @@ stdenv.mkDerivation (finalAttrs: {
     url = "https://github.com/libffi/libffi/releases/download/v${finalAttrs.version}/libffi-${finalAttrs.version}.tar.gz";
     hash = "sha256-1emmY43b0lE921RRjrZ+S75vpwe8wBwQ9iEvCgiNgZ0=";
   };
-
-  nativeBuildInputs = [
-    bionicFixupHook
-  ];
-
-  buildInputs = lib.optional (bionic-compat != null) bionic-compat;
 
   configureFlags = [
     "--enable-shared"
