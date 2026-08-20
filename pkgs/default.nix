@@ -7,15 +7,18 @@ let
   self = {
     # Core Compatibility Libraries & Shims
     bionic-compat = targetPkgs.callPackage ./libs/bionic-compat { };
-    android-headers = targetPkgs.callPackage ./libs/android-headers { };
+    android-prebuilts = targetPkgs.callPackage ./libs/android-prebuilts { };
     libffi = targetPkgs.callPackage ./libs/libffi { };
+    elfutils = targetPkgs.callPackage ./libs/elfutils {
+      inherit (self) android-prebuilts;
+    };
 
     # Diagnostics & System Tracing
     strace = targetPkgs.callPackage ./diagnostics/strace { };
 
     # Runtime Environments & Interpreters
     python3 = targetPkgs.callPackage ./runtime/python3 {
-      inherit (self) libffi android-headers;
+      inherit (self) libffi android-prebuilts;
     };
   };
 in

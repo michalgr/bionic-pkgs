@@ -8,7 +8,7 @@
   buildPackages,
   pkg-config,
   libffi,
-  android-headers,
+  android-prebuilts,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -31,10 +31,10 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
-  # Minimalistic dependency set: libffi (for ctypes) and android-headers (<android/log.h>)
+  # Minimalistic dependency set: libffi (for ctypes) and android-prebuilts (<android/log.h>)
   buildInputs = [
     libffi
-    android-headers
+    android-prebuilts
   ];
 
   # Bionic Porting Notes & Dependency Exclusions:
@@ -44,7 +44,7 @@ stdenv.mkDerivation (finalAttrs: {
   #    gdbm, dbm, tkinter, idle, test modules) are disabled to produce a fast, standalone runtime.
   # 4. Built-in hashes (--with-builtin-hashlib-hashes): Uses internal HACL* C implementations
   #    so hashlib works without requiring OpenSSL.
-  # 5. Native Android logging: Uses <android/log.h> from android-headers and links system liblog.so.
+  # 5. Native Android logging: Uses <android/log.h> and liblog.so from android-prebuilts.
   configureFlags = [
     "--with-build-python=${buildPackages.python313}/bin/python3.13"
     "--enable-shared"
