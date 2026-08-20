@@ -20,8 +20,9 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 - [x] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
   - [x] `pkgs/runtime/python3`: Standalone minimalistic CLI runtime for Android.
   - [x] `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
-  - [x] `pkgs/libs/android-headers`: Official Google Android NDK platform headers (`log.h`, `trace.h`, `sync.h`, etc.).
-  - [ ] Supporting optional libraries: `pkgs/libs/zlib`, `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
+  - [x] `pkgs/libs/android-prebuilts`: Official Google Android NDK platform headers (`log.h`, `trace.h`, `zlib.h`, `jni.h`) and platform library stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
+  - [ ] Supporting optional libraries: `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
+  - [x] `pkgs/libs/elfutils`: Minimalistic ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, etc.) and DWARF debugging (`libdw`, `libasm`) suite.
 - [ ] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - `pkgs/reversing/radare2`: Standalone binary analysis framework.
   - `pkgs/reversing/rizin`: Reverse engineering suite and command-line disassembler.
@@ -34,7 +35,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 - [ ] **`pkgs/tracing/` & Kernel Diagnostics**:
   - `pkgs/tracing/bcc`: BPF Compiler Collection.
   - `pkgs/tracing/bpftrace`: High-level kernel dynamic tracing language and runtime.
-  - `pkgs/tracing/libbpf` & `pkgs/libs/elfutils`: Core BPF object loader and ELF inspection libraries.
+  - `pkgs/tracing/libbpf`: Core BPF object loader library.
 - [ ] **`pkgs/diagnostics/` (Debuggers)**:
   - `pkgs/diagnostics/gdb`: GDB & `gdbserver` cross-compiled for Bionic.
   - `pkgs/diagnostics/lldb`: LLVM native target debugger.

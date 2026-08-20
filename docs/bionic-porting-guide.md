@@ -59,13 +59,16 @@ Rather than mutating upstream Bionic sysroot derivations in-place, `bionic-pkgs`
 2. **Header Shims via `#include_next`**: Wraps Bionic headers cleanly without in-place mutation:
    - `<netinet/in.h>`: Injects `typedef uint32_t in_addr_t;`.
    - `<arpa/inet.h>`: Guarantees `<netinet/in.h>` is parsed before Bionic's `<arpa/inet.h>`.
+   - `<sys/types.h>`: Guarantees POSIX `in_addr_t` is available in `<sys/types.h>`.
    - `<asm/stat.h>`: Uses `#pragma push_macro("__unused")` / `#undef __unused` to prevent macro collisions with Bionic `<sys/cdefs.h>`.
+   - `<libintl.h>`: Provides standard no-op macro definitions for GNU gettext/libintl functions.
+   - `<fnmatch.h>`: Provides fallback `#define FNM_EXTMATCH 0` for non-glibc systems.
 
 Injected automatically into the cross-compiler wrapper via `-isystem ${bionic-compat}/include` and `-L${bionic-compat}/lib`.
 
-### Official Android NDK Platform Headers (`pkgs/libs/android-headers`)
-Nixpkgs's `bionic-prebuilt` derivation only fetches core `platform/bionic` libc headers, omitting public Android NDK platform headers that reside in separate AOSP components (`platform/system/logging`, etc.).
-We provide `pkgs/libs/android-headers` to unpack Google's official NDK sysroot headers (`<android/log.h>`, `<android/trace.h>`, `<android/sync.h>`, `<android/native_window.h>`, etc.). Packages that use Android NDK platform APIs should declare `android-headers` explicitly in their `buildInputs`.
+### Official Android Platform Prebuilts (`pkgs/libs/android-prebuilts`)
+Nixpkgs's default `bionic-prebuilt` derivation only fetches core `platform/bionic` libc headers, omitting public Android NDK platform headers and library stubs that reside in separate AOSP components (`platform/system/logging`, hardware compression `libz`, etc.).
+We provide `pkgs/libs/android-prebuilts` to unpack Google's official NDK sysroot headers (`<android/log.h>`, `<android/trace.h>`, `<android/sync.h>`, `<zlib.h>`, `<jni.h>`, etc.) and architecture-specific platform shared library stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.). Packages requiring Android platform APIs should declare `android-prebuilts` in their `buildInputs`.
 
 ### Stripping Unneeded System Libraries (`-lpthread`, `-lrt`, `-lutil`)
 When Autotools or CMake scripts try to link `-lpthread` or `-lrt`:
@@ -176,12 +179,32 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    - CPython 3.11+ cross-compilation requires a native host Python interpreter matching the target major and minor version (e.g., `buildPackages.python313`).
 3. **Android System Logging (`<android/log.h>` & `liblog.so`)**:
    - Python's lifecycle initialization on Android includes `<android/log.h>` for `__android_log_write()`.
-   - **Resolution**: `<android/log.h>` is provided by the standalone `pkgs/libs/android-headers` package and included in `buildInputs`, linking cleanly against Bionic's system `liblog.so`.
+   - **Resolution**: `<android/log.h>` and `liblog.so` are provided by the standalone `pkgs/libs/android-prebuilts` package and included in `buildInputs`, linking cleanly against Android's system `liblog.so`.
 4. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
    - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
    - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
 5. **Runtime Standard Library Resolution (`PYTHONHOME`)**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"` and `export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"`.
+
+### Case Study 3: `elfutils` & Platform `libz.so` (Minimalistic ELF & DWARF Tool Suite)
+`elfutils` provides core ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, `eu-size`, `eu-elfcmp`, `eu-elfcompress`, `eu-elflint`, `eu-elfclassify`, `eu-addr2line`, `eu-stack`, `eu-unstrip`) and DWARF debugging inspection (`libdw`, `libasm`).
+
+1. **Minimizing Dependency Footprint & Leveraging Platform `libz.so`**:
+   - Upstream Linux packaging of `elfutils` typically pulls heavy server daemon dependencies via `debuginfod` (`curl`, `sqlite`, `json-c`, `libmicrohttpd`, `libarchive`, `openssl`, `krb5`).
+   - By disabling `debuginfod` (`--disable-debuginfod --disable-libdebuginfod`), NLS (`--disable-nls`), and the demangler (`--disable-demangler`), we eliminate transitively hundreds of megabytes of external dependencies.
+   - Rather than compiling and staging a redundant `libz.so.1` binary, `pkgs/libs/android-prebuilts` provides official Google NDK `libz.so` stubs and `<zlib.h>` headers. The compiled binaries bind directly to Android's pre-installed, hardware-accelerated platform library (`/system/lib64/libz.so`), eliminating deployment staging overhead.
+2. **Non-glibc Compatibility Shims (`argp`, `obstack`, `libintl`)**:
+   - Android Bionic libc omits GNU `argp`, `obstack`, and `libintl` APIs.
+   - `argp` and `obstack` are fulfilled via lightweight `argp-standalone` and `musl-obstack` packages.
+   - `<libintl.h>` is provided as a standard no-op macro shim by `pkgs/libs/bionic-compat`, eliminating external gettext dependencies.
+3. **Pure Upstream 0.196 Build with Zero External Patches**:
+   - `elfutils 0.196` incorporates upstream AArch64 floating-point register unpacking, `strndup` migration, and i386 relocation fixes, allowing pure upstream cross-compilation without vendor patches.
+4. **Program Invocation Name Resolution**:
+   - `elfutils` tools use `program_invocation_short_name` and `program_invocation_name` for error output.
+   - In `lib/system.h`, these are redirected to Bionic's native `getprogname()` function.
+5. **Compiler Flags & C++ Utility Decoupling**:
+   - `-Werror` is stripped from Automake templates to prevent Clang warning differences from breaking cross-compilation.
+   - The optional `srcfiles` C++ utility is decoupled from `bin_PROGRAMS` to avoid C++ standard library / libarchive requirements and ensure pure C builds.
 
 ---
 

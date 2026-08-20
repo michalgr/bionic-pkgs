@@ -70,6 +70,40 @@ EOF
 #include_next <asm/stat.h>
 #pragma pop_macro("__unused")
 EOF
+
+    # 6. Header Shim: <libintl.h>
+    # Android Bionic libc omits GNU gettext / libintl. We provide standard no-op macro definitions
+    # so packages that include <libintl.h> compile cleanly without requiring external gettext.
+    cat << 'EOF' > "$out/include/libintl.h"
+#pragma once
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define gettext(Msgid) ((char *)(Msgid))
+#define dgettext(Domainname, Msgid) ((char *)(Msgid))
+#define dcgettext(Domainname, Msgid, Category) ((char *)(Msgid))
+#define ngettext(Singular, Plural, N) ((char *)((N) == 1 ? (Singular) : (Plural)))
+#define dngettext(Domainname, Singular, Plural, N) ((char *)((N) == 1 ? (Singular) : (Plural)))
+#define dcngettext(Domainname, Singular, Plural, N, Category) ((char *)((N) == 1 ? (Singular) : (Plural)))
+#define textdomain(Domainname) ((char *)(Domainname))
+#define bindtextdomain(Domainname, Dirname) ((char *)(Dirname))
+#define bind_textdomain_codeset(Domainname, Codeset) ((char *)(Codeset))
+
+#ifdef __cplusplus
+}
+#endif
+EOF
+
+    # 7. Header Shim: <fnmatch.h>
+    # Bionic defines POSIX fnmatch() constants but omits the GNU extension FNM_EXTMATCH.
+    cat << 'EOF' > "$out/include/fnmatch.h"
+#pragma once
+#include_next <fnmatch.h>
+#ifndef FNM_EXTMATCH
+#define FNM_EXTMATCH 0
+#endif
+EOF
   '';
 
   meta = {

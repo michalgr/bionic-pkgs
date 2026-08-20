@@ -44,6 +44,10 @@ let
     let
       adbBin = "${hostPkgs.android-tools}/bin/adb";
       binName = if pkg ? meta && pkg.meta ? mainProgram then pkg.meta.mainProgram else pkgName;
+      directDeps = lib.filter (d: lib.isDerivation d && d ? outPath) (
+        (pkg.buildInputs or [ ]) ++ (pkg.propagatedBuildInputs or [ ])
+      );
+      allDeps = lib.closePropagation directDeps;
       pushScript = hostPkgs.writeShellScriptBin "push-${pkgName}-${targetName}" ''
         set -euo pipefail
         shopt -s nullglob
@@ -75,8 +79,24 @@ let
         run_adb shell "rm -rf $DEST_DIR && mkdir -p $DEST_DIR/bin $DEST_DIR/lib"
 
         echo "==> Staging package tree and runtime closure dependencies..."
-        STAGE_TAR=$(mktemp "/tmp/bionic_push_${pkgName}_XXXXXX.tar")
+        STAGE_TAR=$(mktemp "''${TMPDIR:-/tmp}/bionic_push_${pkgName}_XXXXXX.tar")
         tar -ch --hard-dereference --mode=u+rwX -cf "$STAGE_TAR" -C "${pkg}" .
+
+        # Stage shared libraries from buildInputs / propagatedBuildInputs closure
+        ${lib.concatMapStrings (dep:
+          let runtimeDep = dep.lib or dep.out or dep;
+          in ''
+          if [ -d "${runtimeDep}/lib" ]; then
+            case "${runtimeDep}" in
+              *bionic-compat*|*bionic-prebuilt*|*android-prebuilts*|*android-headers*|*zlib*)
+                # Skip build-time libc linker script and platform stub libraries
+                ;;
+              *)
+                tar -h --hard-dereference --mode=u+rwX -rf "$STAGE_TAR" -C "${runtimeDep}" lib
+                ;;
+            esac
+          fi
+        '') allDeps}
 
         # Include shared libraries from target architecture dependencies in closure (excluding libc stubs)
         closure_paths=$(nix-store -qR "${pkg}" 2>/dev/null || true)
@@ -84,8 +104,8 @@ let
           for req in $closure_paths; do
             if [ "$req" != "${pkg}" ] && [ -d "$req/lib" ]; then
               case "$req" in
-                *bionic-compat*|*bionic-prebuilt*|*bionic-*)
-                  # Skip build-time libc linker script stubs
+                *bionic-compat*|*bionic-prebuilt*|*android-prebuilts*|*android-headers*|*zlib*)
+                  # Skip build-time libc linker script and platform stub libraries
                   ;;
                 *"${targetName}"*|*"-android-"*|*"-android"*)
                   tar -h --hard-dereference --mode=u+rwX -rf "$STAGE_TAR" -C "$req" lib
@@ -101,7 +121,7 @@ let
         rm -f "$STAGE_TAR"
 
         # Deploy launcher wrapper script with LD_LIBRARY_PATH support
-        LAUNCHER=$(mktemp "/tmp/bionic_run_${pkgName}_XXXXXX.sh")
+        LAUNCHER=$(mktemp "''${TMPDIR:-/tmp}/bionic_run_${pkgName}_XXXXXX.sh")
         cat << 'EOF' > "$LAUNCHER"
 #!/system/bin/sh
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -154,10 +174,10 @@ EOF
     lib.isDerivation pkg &&
     (pkg ? meta && pkg.meta ? mainProgram);
 
-  # Helper to determine if a package can be verified for ELF properties (excluding header/shim-only packages)
+  # Helper to determine if a package can be verified for ELF properties (excluding header/shim/prebuilt-only packages)
   isCheckablePkg = pkg:
     lib.isDerivation pkg &&
-    (pkg ? pname && pkg.pname != "bionic-compat" && pkg.pname != "android-headers");
+    (pkg ? pname && pkg.pname != "bionic-compat" && pkg.pname != "android-headers" && pkg.pname != "android-prebuilts");
 
   # Automatically generates flat package outputs from targetMatrix
   generatePackages = { targetMatrix, defaultTarget ? "aarch64-android" }:
