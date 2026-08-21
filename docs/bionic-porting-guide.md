@@ -12,7 +12,7 @@ Cross-compiling C/C++ applications for Android's **Bionic libc** differs signifi
 
 2. **Missing or Non-Standard POSIX APIs**:
    - **No Thread Cancellation**: `pthread_cancel()`, `pthread_testcancel()`, and `pthread_setcancelstate()` do **not** exist in Bionic. Multithreaded software must use atomic flags or signal handling for cooperative termination.
-   - **No System V IPC**: `<sys/shm.h>`, `<sys/ipc.h>`, `<sys/sem.h>`, and `<sys/msg.h>` are completely absent. Software must use POSIX shared memory (`shm_open`), `memfd_create()`, or anonymous `mmap()`.
+   - **No System V IPC**: `<sys/ipc.h>`, `<sys/sem.h>`, and `<sys/msg.h>` are absent in Bionic. While `<sys/shm.h>` function declarations exist in API 26+ NDK headers, SysV IPC is disabled in default Android kernels (`CONFIG_SYSVIPC=n`). Software should use POSIX shared memory (`shm_open`), `memfd_create()`, or anonymous `mmap()`.
    - **No `/etc/passwd` or `/etc/group` Databases**: `fgetpwent()`, `getpwent()`, and `getgrent()` are absent. Android UIDs/GIDs are managed by system services and `<android_filesystem_config.h>`.
    - **No `<wordexp.h>`**: Word expansion is not supported.
    - **No Native `<iconv.h>`**: Character encoding conversions require linking against an external `libiconv` derivation.
@@ -86,7 +86,7 @@ postPatch = ''
 Rather than requiring every derivation to set repetitive compilation flags manually, `lib/bionic-compat.nix` defines canonical `bionicFlags` and injects `bionicFixupHook` globally into `stdenv.extraNativeBuildInputs`.
 
 All target derivations built with `stdenv.mkDerivation` automatically receive:
-- **`NIX_CFLAGS_COMPILE`**: `-isystem ${bionic-compat}/include -isystem ${bionic.dev}/include -fno-emulated-tls -D__BIONIC_NO_PAGE_SIZE_MACRO`
+- **`NIX_CFLAGS_COMPILE`**: `-nostdlibinc -isystem ${bionic-compat}/include -isystem ${bionic.dev}/include -fno-emulated-tls -D__BIONIC_NO_PAGE_SIZE_MACRO`
 - **`NIX_LDFLAGS`**: `-L${bionic-compat}/lib -L${bionic.out}/lib -z max-page-size=16384 -z common-page-size=16384`
 
 ### Dynamic Linker Path (`/system/bin/linker64` / `/system/bin/linker`) & `$ORIGIN` RPATH
@@ -167,10 +167,10 @@ long page_size = sysconf(_SC_PAGESIZE);
    - Bionic defines `#define __unused __attribute__((__unused__))` in `<sys/cdefs.h>`. When Linux UAPI headers like `<asm/stat.h>` declare fields named `__unused`, compilation fails with syntax errors.
    - **Resolution**: Wrap `<asm/stat.h>` in `pkgs/libs/bionic-compat` with `#pragma push_macro("__unused")` / `#undef __unused` / `#include_next <asm/stat.h>` / `#pragma pop_macro("__unused")`.
 
-### Case Study 2: `python3` & `libffi` (Minimalistic Standalone Runtime)
+### Case Study 2: `python3` & `libffi` (Minimal Standalone Runtime)
 Python 3 on Android provides a standalone CLI scripting runtime and C interoperability via `ctypes`.
 
-1. **Minimalistic Dependency Architecture**:
+1. **Minimal Dependency Architecture**:
    - Upstream Linux Python distributions pull heavy dependency graphs (Tcl/Tk, ncurses, readline, sqlite, gdbm, dbm, OpenSSL, libxcrypt, etc.).
    - For an efficient, portable Android runtime, optional modules are disabled (`--without-readline`, `--without-curses`, `--without-sqlite3`, `--without-gdbm`, `--without-dbm`, `--without-tkinter`, `--disable-test-modules`).
    - Hash algorithm support (`_hashlib` / `hashlib`) is fulfilled without OpenSSL via `--with-builtin-hashlib-hashes=md5,sha1,sha2,sha3,blake2` which compiles internal C implementations (HACL*).
@@ -186,7 +186,7 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
 5. **Runtime Standard Library Resolution (`PYTHONHOME`)**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"` and `export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"`.
 
-### Case Study 3: `elfutils` & Platform `libz.so` (Minimalistic ELF & DWARF Tool Suite)
+### Case Study 3: `elfutils` & Platform `libz.so` (Minimal ELF & DWARF Tool Suite)
 `elfutils` provides core ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, `eu-size`, `eu-elfcmp`, `eu-elfcompress`, `eu-elflint`, `eu-elfclassify`, `eu-addr2line`, `eu-stack`, `eu-unstrip`) and DWARF debugging inspection (`libdw`, `libasm`).
 
 1. **Minimizing Dependency Footprint & Leveraging Platform `libz.so`**:
@@ -205,6 +205,24 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
 5. **Compiler Flags & C++ Utility Decoupling**:
    - `-Werror` is stripped from Automake templates to prevent Clang warning differences from breaking cross-compilation.
    - The optional `srcfiles` C++ utility is decoupled from `bin_PROGRAMS` to avoid C++ standard library / libarchive requirements and ensure pure C builds.
+
+### Case Study 4: `rizin` (Reverse Engineering Framework)
+`rizin` is a UNIX-like reverse engineering framework and command-line toolset (`rizin`, `rz-asm`, `rz-ax`, `rz-bin`, `rz-diff`, `rz-find`, `rz-gg`, `rz-hash`, `rz-run`, `rz-sign`, `rz-ar`).
+
+1. **Monolithic Binary Blob (`-Dblob=true`) & Multi-Call Dispatch**:
+   - Upstream builds over 20 separate shared libraries. To eliminate dynamic library staging overhead on Android, we compile all modules statically into a single self-contained executable (`bin/rizin`) with dispatch symlinks (`rz-asm`, `rz-bin`, `rz-diff`, etc.) that multiplex commands based on `argv[0]`.
+2. **Sandboxed Offline Cross-Compilation with Bundled Subprojects**:
+   - Release archives bundle vetted dependencies in `subprojects/` (`capstone-next`, `pcre2`, `tree-sitter`, `xxhash`, `zydis`, etc.), with external system lookups disabled.
+   - Host build generators (`sdb_gen`) require cross-native mirrors (`pcre2_cross_native`, `softfloat_cross_native`), prepared in `postPatch` for offline sandboxed builds.
+3. **Disabling Unsupported Shared Memory IO Plugin (`disable-io-shm-on-android.patch`)**:
+   - In `librz/io/p/io_shm.c`, the shared memory plugin implementation relies on POSIX `shm_open()`, legacy `/dev/ashmem`, or System V `shmat()`.
+   - On modern Android, `shm_open()` is absent from Bionic, `ashmem` is removed from NDK headers and modern kernels, and SysV `shmat()` is disallowed by SELinux policies and disabled in default kernels (`CONFIG_SYSVIPC=n`).
+   - We apply `disable-io-shm-on-android.patch` to guard the plugin implementation with `!defined(__ANDROID__)`, allowing `librz/io` to gracefully fall back to a clean stub descriptor without dead or broken syscall paths.
+4. **Upstream Android Meson Target Branching**:
+   - Supplying `--cross-file` with `[host_machine] system = 'android'` in `preConfigure` activates Rizin's native upstream Android debug backends (`android_arm64.c`, `android_x86_64.c`) and skips the glibc-specific Linux coredump generator.
+5. **Host Header Isolation (`-nostdlibinc`) & C23 `<stdbit.h>` Collision**:
+   - The bundled `Zydis` subproject detects C23 `<stdbit.h>`, which leaked host glibc `/usr/include/stdbit.h` on modern build hosts and failed on missing `<bits/endian.h>`.
+   - Globally injecting `-nostdlibinc` in `bionicFlags` restricts Clang to Bionic headers while preserving compiler builtins, ensuring hermetic cross-compilation.
 
 ---
 

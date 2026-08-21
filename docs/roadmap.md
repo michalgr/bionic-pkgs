@@ -18,14 +18,14 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 - [x] **`pkgs/diagnostics/` (System Diagnostics & Tracing)**:
   - [x] `pkgs/diagnostics/strace`: Full syscall decoding, MPERS support, and verified live on Android 14+ devices.
 - [x] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
-  - [x] `pkgs/runtime/python3`: Standalone minimalistic CLI runtime for Android.
+  - [x] `pkgs/runtime/python3`: Standalone minimal CLI runtime for Android.
   - [x] `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
   - [x] `pkgs/libs/android-prebuilts`: Official Google Android NDK platform headers (`log.h`, `trace.h`, `zlib.h`, `jni.h`) and platform library stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
   - [ ] Supporting optional libraries: `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
   - [x] `pkgs/libs/elfutils`: Minimalistic ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, etc.) and DWARF debugging (`libdw`, `libasm`) suite.
 - [ ] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - `pkgs/reversing/radare2`: Standalone binary analysis framework.
-  - `pkgs/reversing/rizin`: Reverse engineering suite and command-line disassembler.
+  - [x] `pkgs/reversing/rizin`: Reverse engineering framework and command-line disassembler.
 - [ ] **`pkgs/core/` (Core Unix CLI Utilities)**:
   - `pkgs/core/htop`, `pkgs/core/zstd`, `pkgs/core/curl`, `pkgs/core/socat`.
 

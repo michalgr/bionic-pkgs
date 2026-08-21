@@ -16,6 +16,9 @@ let
     # Diagnostics & System Tracing
     strace = targetPkgs.callPackage ./diagnostics/strace { };
 
+    # Reversing & Binary Analysis
+    rizin = targetPkgs.callPackage ./reversing/rizin { };
+
     # Runtime Environments & Interpreters
     python3 = targetPkgs.callPackage ./runtime/python3 {
       inherit (self) libffi android-prebuilts;

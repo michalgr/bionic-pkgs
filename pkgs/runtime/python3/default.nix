@@ -31,7 +31,7 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
-  # Minimalistic dependency set: libffi (for ctypes) and android-prebuilts (<android/log.h>)
+  # Minimal dependency set: libffi (for ctypes) and android-prebuilts (<android/log.h>)
   buildInputs = [
     libffi
     android-prebuilts
