@@ -1,0 +1,17 @@
+Subject: [PATCH] disable unsupported shared memory io plugin on Android
+
+On Android 14+ (Bionic libc), POSIX shm_open() is absent, ashmem is
+deprecated and removed from NDK headers and Linux 5.18+ kernels, and
+System V IPC (shmat/shmdt) is disallowed by Android SELinux policies and
+disabled in default Android kernels (CONFIG_SYSVIPC=n).
+
+Disable the implementation on __ANDROID__ so librz/io falls back to
+the clean stub plugin descriptor.
+
+--- a/librz/io/p/io_shm.c
++++ b/librz/io/p/io_shm.c
+@@ -9,3 +9,3 @@
+ 
+-#if HAVE_HEADER_LINUX_ASHMEM_H || HAVE_HEADER_SYS_SHM_H || __WINDOWS__
++#if (HAVE_HEADER_LINUX_ASHMEM_H || HAVE_HEADER_SYS_SHM_H || __WINDOWS__) && !defined(__ANDROID__)
+ #if HAVE_HEADER_LINUX_ASHMEM_H

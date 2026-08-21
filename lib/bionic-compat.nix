@@ -69,6 +69,8 @@ let
   # Canonical compilation and linker flags for Android Bionic targets
   bionicFlags = {
     cflags = [
+      # Prevent Clang from searching host C library include paths (/usr/include, /usr/local/include)
+      "-nostdlibinc"
       # Priority header search paths for Bionic compat shims and Bionic libc headers
       "-isystem ${final.bionic-compat}/include"
       "-isystem ${final.bionic.dev}/include"
