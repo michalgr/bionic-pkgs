@@ -23,8 +23,8 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/libs/android-prebuilts`: Official Google Android NDK platform headers (`log.h`, `trace.h`, `zlib.h`, `jni.h`) and platform library stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
   - [ ] Supporting optional libraries: `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
   - [x] `pkgs/libs/elfutils`: Minimalistic ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, etc.) and DWARF debugging (`libdw`, `libasm`) suite.
-- [ ] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
-  - `pkgs/reversing/radare2`: Standalone binary analysis framework.
+- [x] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
+  - [x] `pkgs/reversing/radare2`: Standalone binary analysis framework.
   - [x] `pkgs/reversing/rizin`: Reverse engineering framework and command-line disassembler.
 - [ ] **`pkgs/core/` (Core Unix CLI Utilities)**:
   - `pkgs/core/htop`, `pkgs/core/zstd`, `pkgs/core/curl`, `pkgs/core/socat`.
