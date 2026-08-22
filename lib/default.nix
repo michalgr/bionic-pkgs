@@ -50,105 +50,14 @@ let
       allDeps = lib.closePropagation directDeps;
       pushScript = hostPkgs.writeShellScriptBin "push-${pkgName}-${targetName}" ''
         set -euo pipefail
-        shopt -s nullglob
-
-        DEST_DIR="/data/local/tmp/bionic-pkgs/${pkgName}"
-        echo "==> Preparing ${pkgName} for target ${targetName}..."
-        echo "==> Target device staging directory: $DEST_DIR"
-
-        ADB_CMD="${adbBin}"
-        if ! command -v "$ADB_CMD" >/dev/null 2>&1; then
-          if command -v adb >/dev/null 2>&1; then
-            ADB_CMD="adb"
-          else
-            echo "Error: adb command not found." >&2
-            exit 1
-          fi
-        fi
-
-        ADB_FLAGS=()
-        if [ -n "''${ANDROID_SERIAL:-''${ADB_SERIAL:-}}" ]; then
-          ADB_FLAGS+=(-s "''${ANDROID_SERIAL:-''${ADB_SERIAL}}")
-        fi
-
-        run_adb() {
-          "$ADB_CMD" "''${ADB_FLAGS[@]}" "$@"
-        }
-
-        echo "==> Creating remote directory structure on device..."
-        run_adb shell "rm -rf $DEST_DIR && mkdir -p $DEST_DIR/bin $DEST_DIR/lib"
-
-        echo "==> Staging package tree and runtime closure dependencies..."
-        STAGE_TAR=$(mktemp "''${TMPDIR:-/tmp}/bionic_push_${pkgName}_XXXXXX.tar")
-        tar -ch --hard-dereference --mode=u+rwX -cf "$STAGE_TAR" -C "${pkg}" .
-
-        # Stage shared libraries from buildInputs / propagatedBuildInputs closure
-        ${lib.concatMapStrings (dep:
-          let runtimeDep = dep.lib or dep.out or dep;
-          in ''
-          if [ -d "${runtimeDep}/lib" ]; then
-            case "${runtimeDep}" in
-              *bionic-compat*|*bionic-prebuilt*|*android-prebuilts*|*android-headers*|*zlib*)
-                # Skip build-time libc linker script and platform stub libraries
-                ;;
-              *)
-                tar -h --hard-dereference --mode=u+rwX -rf "$STAGE_TAR" -C "${runtimeDep}" lib
-                ;;
-            esac
-          fi
-        '') allDeps}
-
-        # Include shared libraries from target architecture dependencies in closure (excluding libc stubs)
-        closure_paths=$(nix-store -qR "${pkg}" 2>/dev/null || true)
-        if [ -n "$closure_paths" ]; then
-          for req in $closure_paths; do
-            if [ "$req" != "${pkg}" ] && [ -d "$req/lib" ]; then
-              case "$req" in
-                *bionic-compat*|*bionic-prebuilt*|*android-prebuilts*|*android-headers*|*zlib*)
-                  # Skip build-time libc linker script and platform stub libraries
-                  ;;
-                *"${targetName}"*|*"-android-"*|*"-android"*)
-                  tar -h --hard-dereference --mode=u+rwX -rf "$STAGE_TAR" -C "$req" lib
-                  ;;
-              esac
-            fi
-          done
-        fi
-
-        echo "==> Pushing package archive to device..."
-        run_adb push "$STAGE_TAR" "$DEST_DIR/stage.tar"
-        run_adb shell "tar -xf $DEST_DIR/stage.tar -C $DEST_DIR && rm -f $DEST_DIR/stage.tar && chmod 755 $DEST_DIR/bin/* 2>/dev/null || true"
-        rm -f "$STAGE_TAR"
-
-        # Deploy launcher wrapper script with LD_LIBRARY_PATH support
-        LAUNCHER=$(mktemp "''${TMPDIR:-/tmp}/bionic_run_${pkgName}_XXXXXX.sh")
-        cat << 'EOF' > "$LAUNCHER"
-#!/system/bin/sh
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"
-for py_dir in "$SCRIPT_DIR"/lib/python3.*; do
-  if [ -d "$py_dir" ]; then
-    export PYTHONHOME="$SCRIPT_DIR"
-    break
-  fi
-done
-if [ -x "$SCRIPT_DIR/bin/${binName}" ]; then
-  exec "$SCRIPT_DIR/bin/${binName}" "$@"
-else
-  echo "Executable $SCRIPT_DIR/bin/${binName} not found" >&2
-  exit 1
-fi
-EOF
-        run_adb push "$LAUNCHER" "$DEST_DIR/run.sh" >/dev/null
-        rm -f "$LAUNCHER"
-        run_adb shell "chmod 755 $DEST_DIR/run.sh"
-
-        echo ""
-        echo "==> Deployment complete!"
-        echo "==> Run on device via ADB:"
-        echo "    adb shell \"$DEST_DIR/run.sh\""
-        echo "    # Or directly:"
-        echo "    adb shell \"$DEST_DIR/bin/${binName}\""
+        exec ${../scripts/adb-push.sh} \
+          --pkg-path "${pkg}" \
+          --pkg-name "${pkgName}" \
+          --target "${targetName}" \
+          --bin-name "${binName}" \
+          --adb "${adbBin}" \
+          ${lib.concatMapStringsSep " " (dep: "--dep \"${dep.lib or dep.out or dep}\"") allDeps} \
+          "$@"
       '';
     in
     {
