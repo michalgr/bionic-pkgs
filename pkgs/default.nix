@@ -17,6 +17,9 @@ let
     strace = targetPkgs.callPackage ./diagnostics/strace { };
 
     # Reversing & Binary Analysis
+    radare2 = targetPkgs.callPackage ./reversing/radare2 {
+      inherit (self) android-prebuilts;
+    };
     rizin = targetPkgs.callPackage ./reversing/rizin { };
 
     # Runtime Environments & Interpreters

@@ -1,0 +1,46 @@
+--- a/subprojects/sdb/meson.build
++++ b/subprojects/sdb/meson.build
+@@ -141,8 +141,16 @@
+ endif
+ 
+ if meson.is_cross_build()
++  libsdb_native_static = static_library('libsdb_native_static', libsdb_sources,
++    include_directories: sdb_inc,
++    implicit_include_directories: false,
++    native: true,
++    install: false
++  )
++
+   sdb_native_exe = executable('sdb_native', join_paths('src','entry.c'),
+     include_directories: sdb_inc,
+-    link_with: [link_with],
++    link_with: [libsdb_native_static],
++    native: true,
+     install: false,
+     implicit_include_directories: false
+   )
+--- a/meson.build
++++ b/meson.build
+@@ -574,7 +574,12 @@
+   include_directories: libsdb_includes
+ )
+ 
+-sdb_exe = libsdb_sp.get_variable('sdb_exe')
++sdb_target_exe = libsdb_sp.get_variable('sdb_exe')
++if meson.is_cross_build()
++  sdb_exe = libsdb_sp.get_variable('sdb_native_exe')
++else
++  sdb_exe = sdb_target_exe
++endif
+ 
+ if host_machine.system() == 'windows'
+ copyinout = [
+@@ -586,7 +591,7 @@
+ 
+ if host_machine.system() != 'uefi'
+   sdb_install = custom_target('r2sdb',
+-    input : sdb_exe,
++    input : sdb_target_exe,
+     output : 'r2sdb',
+     command : copyinout,
+     install : true,
