@@ -16,6 +16,11 @@ let
     # Diagnostics & System Tracing
     strace = targetPkgs.callPackage ./diagnostics/strace { };
 
+    # Tracing & Kernel Diagnostics
+    libbpf = targetPkgs.callPackage ./tracing/libbpf {
+      inherit (self) elfutils android-prebuilts;
+    };
+
     # Reversing & Binary Analysis
     radare2 = targetPkgs.callPackage ./reversing/radare2 {
       inherit (self) android-prebuilts;

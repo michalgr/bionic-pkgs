@@ -104,6 +104,49 @@ EOF
 #define FNM_EXTMATCH 0
 #endif
 EOF
+
+    # 8. Header Shim: <elf.h>
+    # Bionic defines standard ELF constants but omits GNU versioning section types and GNU note types.
+    cat << 'EOF' > "$out/include/elf.h"
+#pragma once
+#include_next <elf.h>
+#ifndef SHT_GNU_INCREMENTAL_INPUTS
+#define SHT_GNU_INCREMENTAL_INPUTS 0x6fff4700
+#endif
+#ifndef SHT_GNU_ATTRIBUTES
+#define SHT_GNU_ATTRIBUTES 0x6ffffff5
+#endif
+#ifndef SHT_GNU_HASH
+#define SHT_GNU_HASH 0x6ffffff6
+#endif
+#ifndef SHT_GNU_LIBLIST
+#define SHT_GNU_LIBLIST 0x6ffffff7
+#endif
+#ifndef SHT_GNU_verdef
+#define SHT_GNU_verdef 0x6ffffffd
+#endif
+#ifndef SHT_GNU_verneed
+#define SHT_GNU_verneed 0x6ffffffe
+#endif
+#ifndef SHT_GNU_versym
+#define SHT_GNU_versym 0x6fffffff
+#endif
+#ifndef NT_GNU_ABI_TAG
+#define NT_GNU_ABI_TAG 1
+#endif
+#ifndef NT_GNU_HWCAP
+#define NT_GNU_HWCAP 2
+#endif
+#ifndef NT_GNU_BUILD_ID
+#define NT_GNU_BUILD_ID 3
+#endif
+#ifndef NT_GNU_GOLD_VERSION
+#define NT_GNU_GOLD_VERSION 4
+#endif
+#ifndef NT_GNU_PROPERTY_TYPE_0
+#define NT_GNU_PROPERTY_TYPE_0 5
+#endif
+EOF
   '';
 
   meta = {
