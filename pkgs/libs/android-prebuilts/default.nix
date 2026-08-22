@@ -55,17 +55,17 @@ stdenvNoCC.mkDerivation {
     # 4. Path-specific pkg-config definitions
     cat << EOF > "$out/lib/pkgconfig/zlib.pc"
 prefix=$out
-exec_prefix=''${prefix}
-libdir=''${prefix}/lib
-sharedlibdir=''${prefix}/lib
-includedir=''${prefix}/include
+exec_prefix=\''${prefix}
+libdir=\''${prefix}/lib
+sharedlibdir=\''${prefix}/lib
+includedir=\''${prefix}/include
 
 Name: zlib
 Description: Android platform zlib compression library
 Version: 1.3.2
 Requires:
-Libs: -L''${libdir} -lz
-Cflags: -I''${includedir}
+Libs: -L\''${libdir} -lz
+Cflags: -I\''${includedir}
 EOF
     cp "$out/lib/pkgconfig/zlib.pc" "$out/share/pkgconfig/zlib.pc"
   '';
