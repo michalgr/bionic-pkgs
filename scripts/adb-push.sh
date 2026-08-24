@@ -284,6 +284,21 @@ chmod -R u+wX "$STAGE_DIR" 2>/dev/null || true
 find "$STAGE_DIR" -type f \( -name "*.a" -o -name "*.la" -o -name "*.o" \) -delete 2>/dev/null || true
 find "$STAGE_DIR" -type d \( -name "pkgconfig" -o -name "cmake" \) -exec rm -rf {} + 2>/dev/null || true
 
+# Replace GNU linker script stubs (e.g. libc++.so -> INPUT(libc++.so.1 ...)) with symlinks to their versioned .so
+if [ -d "$STAGE_DIR/lib" ]; then
+  for so_file in "$STAGE_DIR"/lib/*.so; do
+    if [ -f "$so_file" ] && [ ! -L "$so_file" ]; then
+      if [ "$(od -An -N4 -tx1 "$so_file" 2>/dev/null | tr -d ' \n')" != "7f454c46" ]; then
+        if [ -f "${so_file}.1" ] || [ -L "${so_file}.1" ]; then
+          ln -sf "$(basename "${so_file}.1")" "$so_file"
+        else
+          rm -f "$so_file"
+        fi
+      fi
+    fi
+  done
+fi
+
 # Remove empty directories
 [ -d "$STAGE_DIR/lib" ] && [ -z "$(ls -A "$STAGE_DIR/lib")" ] && rmdir "$STAGE_DIR/lib" || true
 [ -d "$STAGE_DIR/share" ] && [ -z "$(ls -A "$STAGE_DIR/share")" ] && rmdir "$STAGE_DIR/share" || true
@@ -345,9 +360,13 @@ cat << EOF > "$LAUNCHER_TMP"
 #!/system/bin/sh
 SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
 export LD_LIBRARY_PATH="\$SCRIPT_DIR/lib:\$SCRIPT_DIR/../lib:\$LD_LIBRARY_PATH"
+export PATH="\$SCRIPT_DIR/bin:\$PATH"
 for py_dir in "\$SCRIPT_DIR"/lib/python3.*; do
   if [ -d "\$py_dir" ]; then
     export PYTHONHOME="\$SCRIPT_DIR"
+    if [ -d "\$py_dir/site-packages" ]; then
+      export PYTHONPATH="\$py_dir/site-packages:\''${PYTHONPATH:-}"
+    fi
     break
   fi
 done

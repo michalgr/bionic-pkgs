@@ -224,6 +224,28 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    - The bundled `Zydis` subproject detects C23 `<stdbit.h>`, which leaked host glibc `/usr/include/stdbit.h` on modern build hosts and failed on missing `<bits/endian.h>`.
    - Globally injecting `-nostdlibinc` in `bionicFlags` restricts Clang to Bionic headers while preserving compiler builtins, ensuring hermetic cross-compilation.
 
+### Case Study 5: `bcc` (BPF Compiler Collection & Target LLVM/Clang)
+`bcc` provides dynamic kernel tracing, BPF C++ frontends, Python bindings, and introspection utilities (`bps`).
+
+1. **Target LLVM & Clang C++ Toolchain Cross-Compilation**:
+   - BCC embeds Clang/LLVM libraries (`libclang-cpp.so`, `libLLVM.so`) to compile runtime eBPF programs on-device.
+   - LLVM and Clang are cross-compiled directly for Bionic targets (`-DLLVM_ENABLE_LIBCXX=ON -DLLVM_TARGETS_TO_BUILD="BPF;AArch64;X86;ARM"`), linking against target `libc++` and `compiler-rt`.
+2. **Modern UAPI BTF Header Priority (`<linux/btf.h>`)**:
+   - Older NDK kernel headers lack modern BTF enum definitions (e.g. `enum btf_func_linkage`).
+   - When C++ headers parse `bpf/btf.h`, forward enum declarations fail in C++. Prepending `-isystem ${libbpf}/include` in `preConfigure` prioritizes `libbpf`'s modern UAPI headers over legacy Bionic sysroot kernel headers.
+3. **Implicit Function Declarations in Introspection Utilities (`bzero`)**:
+   - `introspection/bps.c` invoked legacy `bzero()` without `<strings.h>`.
+   - Replaced with standard `memset()` via `postPatch` for strict ISO C99+ compliance.
+4. **Fixing Pkgconfig Prefix Path Concatenation (`libbcc.pc`)**:
+   - `libbcc.pc.in` defined `libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@`. Because Nix CMake sets `CMAKE_INSTALL_LIBDIR` to an absolute `/nix/store/...` path, this created invalid double slashes (`//`).
+   - Rewritten to `libdir=''${prefix}/lib` in `postPatch`.
+5. **Python 3 Runtime Bundling & Standalone Tool Launchers**:
+   - On Android devices without `/usr/bin/env python`, BCC tools cannot run out-of-the-box.
+   - BCC derivation copies the target `python3` binary and standard library into `$out/lib/python3.13` and installs wrapper scripts into `$out/bin/` (`execsnoop`, `opensnoop`, etc.) that configure `PYTHONHOME`, `PYTHONPATH`, and `LD_LIBRARY_PATH` and execute via `/system/bin/sh`.
+6. **Bionic C Library Dynamic Loading in `ctypes` (`libc.so` vs `libc.so.6`/`librt.so.1`)**:
+   - `src/python/bcc/perf.py` and `src/python/bcc/__init__.py` invoked `ctypes.CDLL('libc.so.6')` and `ctypes.CDLL('librt.so.1')`.
+   - Patched via `postPatch` to reference Bionic's unified `libc.so`.
+
 ---
 
 ## 6. Testing & Verifying Cross-Compiled Binaries

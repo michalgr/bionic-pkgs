@@ -62,12 +62,49 @@ let
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
       ];
     });
+
+    libllvm = lprev.libllvm.overrideAttrs (old: {
+      buildInputs = (old.buildInputs or [ ]) ++ [
+        lfinal.libcxx
+        final.android-prebuilts
+      ];
+      preConfigure = ''
+        export NIX_CFLAGS_COMPILE="-isystem ${lfinal.libcxx.dev}/include/c++/v1 $NIX_CFLAGS_COMPILE"
+      '' + (old.preConfigure or "");
+      cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+        "-DLLVM_ENABLE_LIBCXX=ON"
+        "-DLLVM_ENABLE_TERMINFO=OFF"
+        "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
+        "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
+        "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
+      ];
+    });
+
+    llvm = lfinal.libllvm;
+
+    libclang = lprev.libclang.overrideAttrs (old: {
+      buildInputs = (old.buildInputs or [ ]) ++ [
+        lfinal.libcxx
+        final.android-prebuilts
+      ];
+      preConfigure = ''
+        export NIX_CFLAGS_COMPILE="-isystem ${lfinal.libcxx.dev}/include/c++/v1 $NIX_CFLAGS_COMPILE"
+      '' + (old.preConfigure or "");
+      cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+        "-DLLVM_ENABLE_LIBCXX=ON"
+        "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
+        "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
+        "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
+      ];
+    });
+
+    clang-unwrapped = lfinal.libclang;
   };
 in
 final: prev:
 let
   # Canonical compilation and linker flags for Android Bionic targets
-  bionicFlags = {
+  bionicFlags = rec {
     cflags = [
       # Prevent Clang from searching host C library include paths (/usr/include, /usr/local/include)
       "-nostdlibinc"
@@ -87,14 +124,15 @@ let
       "-z" "max-page-size=16384"
       "-z" "common-page-size=16384"
     ];
-    cflagsString = lib.concatStringsSep " " bionicFlags.cflags;
-    ldflagsString = lib.concatStringsSep " " bionicFlags.ldflags;
+    cflagsString = lib.concatStringsSep " " cflags;
+    ldflagsString = lib.concatStringsSep " " ldflags;
   };
 in
 {
   inherit bionicFlags;
 
   bionic-compat = final.callPackage ../pkgs/libs/bionic-compat { };
+  android-prebuilts = final.callPackage ../pkgs/libs/android-prebuilts { };
 
   # Ensure Linux kernel headers build cleanly across all build hosts (including Darwin / macOS)
   makeLinuxHeaders = args:
@@ -111,9 +149,20 @@ in
       '';
     });
 
-  llvmPackages = prev.llvmPackages.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
-  llvmPackages_21 = prev.llvmPackages_21.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
+  # ncurses for cross-compilation on Bionic
+  ncurses = prev.ncurses.overrideAttrs (old: {
+    configureFlags = (old.configureFlags or [ ]) ++ [
+      "--without-cxx-binding"
+      "--without-ada"
+    ];
+  });
 
+  llvmPackages = prev.llvmPackages.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
+}
+// (lib.optionalAttrs (prev ? llvmPackages_21) {
+  llvmPackages_21 = prev.llvmPackages_21.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
+})
+// {
   # Setup hook that injects Bionic compiler/linker flags, header priority, and rewrites ELF RUNPATH
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
