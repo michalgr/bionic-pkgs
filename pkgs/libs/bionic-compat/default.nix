@@ -20,7 +20,7 @@ stdenvNoCC.mkDerivation {
     # are consolidated directly into libc.so. We provide GNU linker script stubs
     # that redirect legacy glibc split library link flags (-lpthread, -lrt, etc.)
     # to Bionic libc without polluting DT_NEEDED.
-    for libname in libpthread.so libpthread.a librt.so librt.a libutil.so libutil.a libresolv.so libresolv.a libcrypt.so libcrypt.a libnsl.so libnsl.a libanl.so libanl.a; do
+    for libname in libpthread.so libpthread.a librt.so librt.a libutil.so libutil.a libresolv.so libresolv.a libcrypt.so libcrypt.a libnsl.so libnsl.a libanl.so libanl.a libatomic.so libatomic.a; do
       echo "INPUT(-lc)" > "$out/lib/$libname"
     done
 

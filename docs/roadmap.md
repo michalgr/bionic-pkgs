@@ -33,8 +33,8 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 
 ## 🔬 Phase 3: eBPF Tracing & Advanced Debuggers
 - [ ] **`pkgs/tracing/` & Kernel Diagnostics**:
-  - `pkgs/tracing/bcc`: BPF Compiler Collection.
-  - `pkgs/tracing/bpftrace`: High-level kernel dynamic tracing language and runtime.
+  - [x] `pkgs/tracing/bcc`: BPF Compiler Collection.
+  - [ ] `pkgs/tracing/bpftrace`: High-level kernel dynamic tracing language and runtime.
   - [x] `pkgs/tracing/libbpf`: Core BPF object loader library.
 - [ ] **`pkgs/diagnostics/` (Debuggers)**:
   - `pkgs/diagnostics/gdb`: GDB & `gdbserver` cross-compiled for Bionic.

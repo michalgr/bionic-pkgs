@@ -20,6 +20,9 @@ let
     libbpf = targetPkgs.callPackage ./tracing/libbpf {
       inherit (self) elfutils android-prebuilts;
     };
+    bcc = targetPkgs.callPackage ./tracing/bcc {
+      inherit (self) elfutils libbpf android-prebuilts python3;
+    };
 
     # Reversing & Binary Analysis
     radare2 = targetPkgs.callPackage ./reversing/radare2 {
