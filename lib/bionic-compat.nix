@@ -68,6 +68,14 @@ let
         lfinal.libcxx
         final.android-prebuilts
       ];
+      # Nixpkgs unconditionally sets env.LDFLAGS = "-Wl,--build-id=sha1" when stdenv.hostPlatform is not Darwin.
+      # When cross-compiling on a Darwin host (macOS), LLVM's nested NATIVE subproject for tablegen tools
+      # inherits this ambient LDFLAGS environment variable, causing Darwin ld to fail with:
+      # "ld: unknown option: --build-id=sha1".
+      # We clear ambient LDFLAGS from the derivation environment and pass build-id explicitly via cmakeFlags for the target.
+      env = (old.env or { }) // {
+        LDFLAGS = "";
+      };
       preConfigure = ''
         export NIX_CFLAGS_COMPILE="-isystem ${lfinal.libcxx.dev}/include/c++/v1 $NIX_CFLAGS_COMPILE"
       '' + (old.preConfigure or "");
@@ -77,6 +85,9 @@ let
         "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
         "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
         "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
+        "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=sha1"
+        "-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1"
+        "-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1"
       ];
     });
 
