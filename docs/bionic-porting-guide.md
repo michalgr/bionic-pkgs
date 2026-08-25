@@ -245,6 +245,11 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
 6. **Bionic C Library Dynamic Loading in `ctypes` (`libc.so` vs `libc.so.6`/`librt.so.1`)**:
    - `src/python/bcc/perf.py` and `src/python/bcc/__init__.py` invoked `ctypes.CDLL('libc.so.6')` and `ctypes.CDLL('librt.so.1')`.
    - Patched via `postPatch` to reference Bionic's unified `libc.so`.
+7. **macOS Host Isolation for Nested NATIVE Tablegen Builds (`--build-id=sha1`)**:
+   - Nixpkgs sets `env.LDFLAGS = "-Wl,--build-id=sha1"` whenever the target (`hostPlatform`) is not Darwin.
+   - When cross-compiling LLVM on a macOS build machine (`aarch64-darwin`), LLVM's CMake build invokes a nested CMake instance (`build/NATIVE`) using the host compiler (`clang-wrapper`) and Apple's linker (`cctools` / `ld64`) to build host `llvm-tblgen` and `llvm-config-native`.
+   - This nested native CMake inherited the ambient `LDFLAGS="-Wl,--build-id=sha1"` environment variable, causing the host compiler check (`testCCompiler.c`) to fail on Darwin with `ld: unknown option: --build-id=sha1`.
+   - **Resolution**: In `lib/bionic-compat.nix`, `libllvm` overrides `env.LDFLAGS = ""` to prevent ambient leakage into host subprojects, and passes `-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=sha1`, `-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1`, and `-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1` explicitly in `cmakeFlags` for target binaries.
 
 ---
 
