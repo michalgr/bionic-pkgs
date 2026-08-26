@@ -9,6 +9,7 @@
   pkg-config,
   libffi,
   android-prebuilts,
+  xz,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -31,10 +32,11 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
-  # Minimal dependency set: libffi (for ctypes) and android-prebuilts (<android/log.h>)
+  # Minimal dependency set: libffi (for ctypes), xz (for lzma), and android-prebuilts (<android/log.h>)
   buildInputs = [
     libffi
     android-prebuilts
+    xz
   ];
 
   # Bionic Porting Notes & Dependency Exclusions:

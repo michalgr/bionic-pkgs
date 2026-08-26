@@ -9,8 +9,9 @@ let
     bionic-compat = targetPkgs.callPackage ./libs/bionic-compat { };
     android-prebuilts = targetPkgs.callPackage ./libs/android-prebuilts { };
     libffi = targetPkgs.callPackage ./libs/libffi { };
+    xz = targetPkgs.callPackage ./libs/xz { };
     elfutils = targetPkgs.callPackage ./libs/elfutils {
-      inherit (self) android-prebuilts;
+      inherit (self) android-prebuilts xz;
     };
 
     # Diagnostics & System Tracing
@@ -32,7 +33,7 @@ let
 
     # Runtime Environments & Interpreters
     python3 = targetPkgs.callPackage ./runtime/python3 {
-      inherit (self) libffi android-prebuilts;
+      inherit (self) libffi android-prebuilts xz;
     };
   };
 in
