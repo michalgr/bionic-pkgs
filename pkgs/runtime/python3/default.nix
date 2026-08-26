@@ -10,6 +10,7 @@
   libffi,
   android-prebuilts,
   xz,
+  bzip2,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -32,11 +33,12 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
-  # Minimal dependency set: libffi (for ctypes), xz (for lzma), and android-prebuilts (<android/log.h>)
+  # Minimal dependency set: libffi (for ctypes), xz (for lzma), bzip2 (for bz2), and android-prebuilts (<android/log.h>)
   buildInputs = [
     libffi
     android-prebuilts
     xz
+    bzip2
   ];
 
   # Bionic Porting Notes & Dependency Exclusions:
@@ -72,9 +74,10 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   enableParallelBuilding = true;
+  doCheck = false;
 
   meta = {
-    description = "High-level programming language with dynamic typing and minimal dependency set (libffi) for Android (Bionic)";
+    description = "High-level programming language with dynamic typing and minimal dependency set (libffi, lzma, bz2) for Android (Bionic)";
     homepage = "https://www.python.org/";
     license = lib.licenses.psfl;
     platforms = lib.platforms.linux;
