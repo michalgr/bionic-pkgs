@@ -9,6 +9,7 @@
   android-prebuilts,
   argp-standalone,
   musl-obstack,
+  xz,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -55,6 +56,7 @@ EOF
     android-prebuilts
     argp-standalone
     musl-obstack
+    xz
   ];
 
   # Bionic Porting Notes & Minimal Dependency Architecture:
@@ -62,8 +64,7 @@ EOF
   #    (curl, sqlite, json-c, libmicrohttpd, libarchive, openssl, krb5).
   # 2. NLS (Native Language Support): Disabled to eliminate gettext runtime dependency.
   # 3. Demangler: Disabled to eliminate libstdc++ / libiberty dependency.
-  # 4. Compression: Links against Android's hardware-accelerated platform libz.so (/system/lib64/libz.so)
-  #    via pkgs/libs/android-prebuilts stubs, completely eliminating external compression library dependencies.
+  # 4. Compression: Links against Android platform libz.so and liblzma.so for .xz-compressed ELF/DWARF sections.
   # 5. argp & obstack: Sourced from lightweight argp-standalone and musl-obstack shims.
   configureFlags = [
     "--program-prefix=eu-"
@@ -73,7 +74,7 @@ EOF
     "--disable-nls"
     "--disable-demangler"
     "--without-bzlib"
-    "--without-lzma"
+    "--with-lzma"
     "--without-zstd"
     "--with-zlib"
     "--without-libiconv-prefix"
