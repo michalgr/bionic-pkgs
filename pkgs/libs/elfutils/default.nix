@@ -10,6 +10,7 @@
   argp-standalone,
   musl-obstack,
   xz,
+  zstd,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -57,6 +58,7 @@ EOF
     argp-standalone
     musl-obstack
     xz
+    zstd
   ];
 
   # Bionic Porting Notes & Minimal Dependency Architecture:
@@ -64,7 +66,7 @@ EOF
   #    (curl, sqlite, json-c, libmicrohttpd, libarchive, openssl, krb5).
   # 2. NLS (Native Language Support): Disabled to eliminate gettext runtime dependency.
   # 3. Demangler: Disabled to eliminate libstdc++ / libiberty dependency.
-  # 4. Compression: Links against Android platform libz.so and liblzma.so for .xz-compressed ELF/DWARF sections.
+  # 4. Compression: Links against Android platform libz.so, liblzma.so, and libzstd.so for compressed ELF/DWARF sections.
   # 5. argp & obstack: Sourced from lightweight argp-standalone and musl-obstack shims.
   configureFlags = [
     "--program-prefix=eu-"
@@ -75,7 +77,7 @@ EOF
     "--disable-demangler"
     "--without-bzlib"
     "--with-lzma"
-    "--without-zstd"
+    "--with-zstd"
     "--with-zlib"
     "--without-libiconv-prefix"
     "--without-libintl-prefix"

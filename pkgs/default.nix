@@ -10,8 +10,9 @@ let
     android-prebuilts = targetPkgs.callPackage ./libs/android-prebuilts { };
     libffi = targetPkgs.callPackage ./libs/libffi { };
     xz = targetPkgs.callPackage ./libs/xz { };
+    zstd = targetPkgs.callPackage ./libs/zstd { };
     elfutils = targetPkgs.callPackage ./libs/elfutils {
-      inherit (self) android-prebuilts xz;
+      inherit (self) android-prebuilts xz zstd;
     };
 
     # Diagnostics & System Tracing

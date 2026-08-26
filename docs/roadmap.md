@@ -22,13 +22,14 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
   - [x] `pkgs/libs/android-prebuilts`: Official Google Android NDK platform headers (`log.h`, `trace.h`, `zlib.h`, `jni.h`) and platform library stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
   - [x] `pkgs/libs/xz`: Cross-compiled XZ Utils compression library (`liblzma`) and CLI tools (`xz`, `unxz`, `xzcat`, `lzma`) for Android.
+  - [x] `pkgs/libs/zstd`: Cross-compiled Zstandard compression library (`libzstd`) and CLI tools (`zstd`, `unzstd`, `zstdcat`, `zstdmt`) for Android.
   - [ ] Supporting optional libraries: `pkgs/libs/readline`, `pkgs/libs/openssl`, `pkgs/libs/ncurses`.
   - [x] `pkgs/libs/elfutils`: Minimalistic ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, etc.) and DWARF debugging (`libdw`, `libasm`) suite.
 - [x] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - [x] `pkgs/reversing/radare2`: Standalone binary analysis framework.
   - [x] `pkgs/reversing/rizin`: Reverse engineering framework and command-line disassembler.
 - [ ] **`pkgs/core/` (Core Unix CLI Utilities)**:
-  - `pkgs/core/htop`, `pkgs/core/zstd`, `pkgs/core/curl`, `pkgs/core/socat`.
+  - `pkgs/core/htop`, `pkgs/core/curl`, `pkgs/core/socat`.
 
 ---
 
