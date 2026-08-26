@@ -11,8 +11,9 @@ let
     libffi = targetPkgs.callPackage ./libs/libffi { };
     xz = targetPkgs.callPackage ./libs/xz { };
     zstd = targetPkgs.callPackage ./libs/zstd { };
+    bzip2 = targetPkgs.callPackage ./libs/bzip2 { };
     elfutils = targetPkgs.callPackage ./libs/elfutils {
-      inherit (self) android-prebuilts xz zstd;
+      inherit (self) android-prebuilts xz zstd bzip2;
     };
 
     # Diagnostics & System Tracing
@@ -34,7 +35,7 @@ let
 
     # Runtime Environments & Interpreters
     python3 = targetPkgs.callPackage ./runtime/python3 {
-      inherit (self) libffi android-prebuilts xz;
+      inherit (self) libffi android-prebuilts xz bzip2;
     };
   };
 in

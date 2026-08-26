@@ -11,6 +11,7 @@
   musl-obstack,
   xz,
   zstd,
+  bzip2,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -59,6 +60,7 @@ EOF
     musl-obstack
     xz
     zstd
+    bzip2
   ];
 
   # Bionic Porting Notes & Minimal Dependency Architecture:
@@ -66,7 +68,7 @@ EOF
   #    (curl, sqlite, json-c, libmicrohttpd, libarchive, openssl, krb5).
   # 2. NLS (Native Language Support): Disabled to eliminate gettext runtime dependency.
   # 3. Demangler: Disabled to eliminate libstdc++ / libiberty dependency.
-  # 4. Compression: Links against Android platform libz.so, liblzma.so, and libzstd.so for compressed ELF/DWARF sections.
+  # 4. Compression: Links against Android platform libz.so, liblzma.so, libzstd.so, and libbz2.so for compressed ELF/DWARF sections.
   # 5. argp & obstack: Sourced from lightweight argp-standalone and musl-obstack shims.
   configureFlags = [
     "--program-prefix=eu-"
@@ -75,7 +77,7 @@ EOF
     "--disable-libdebuginfod"
     "--disable-nls"
     "--disable-demangler"
-    "--without-bzlib"
+    "--with-bzlib"
     "--with-lzma"
     "--with-zstd"
     "--with-zlib"
@@ -93,7 +95,7 @@ EOF
     description = "Set of utilities and libraries to handle ELF objects and DWARF debugging information (minimal build)";
     homepage = "https://sourceware.org/elfutils/";
     license = with lib.licenses; [
-      gpl2Only  # elfutils libraries (GPL-2.0-only / LGPL-3.0-or-later)
+      gpl2Plus  # elfutils libraries (GPL-2.0-or-later / LGPL-3.0-or-later)
       lgpl3Plus
       gpl3Plus  # CLI binaries
     ];
