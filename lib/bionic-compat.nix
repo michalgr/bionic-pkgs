@@ -113,6 +113,7 @@ let
   };
 in
 final: prev:
+if !prev.stdenv.hostPlatform.isAndroid then { } else
 let
   # Canonical compilation and linker flags for Android Bionic targets
   bionicFlags = rec {
@@ -179,9 +180,14 @@ in
     name = "bionic-fixup-hook";
     propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
-    # Export canonical compilation and linker flags into environment at setup hook source time
-    export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
-    export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
+    addBionicFlags() {
+      # Export canonical compilation and linker flags into environment
+      export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
+      export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
+    }
+
+    # Only apply these flags to the target compiler when cross-compiling
+    addEnvHooks "$hostOffset" addBionicFlags
 
     bionicFixup() {
       for output in ''${outputs:-out}; do
