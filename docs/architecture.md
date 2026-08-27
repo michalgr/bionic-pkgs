@@ -160,4 +160,4 @@ A GitHub Actions workflow (`.github/workflows/ci.yml`) will validate the cross-c
 
 ### Phased Binary Caching
 - **Design for Cacheability**: The architecture guarantees deterministic store paths and pure derivations, ensuring out-of-the-box compatibility with any Nix binary cache.
-- **Cachix Setup**: Cachix substituter configuration (`bionic-pkgs.cachix.org`) and signing credentials will be integrated as an enhancement once the package set expands and builds scale up.
+- **Cachix Setup**: Cachix substituter configuration (`bionic-pkgs.cachix.org`) is actively integrated via `nixConfig` in `flake.nix`. GitHub CI is securely configured to push artifacts to this cache on successful matrix builds.

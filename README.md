@@ -41,6 +41,10 @@ For detailed architectural specifications, toolchain strategy, and Bionic portin
 
 > *Note: `bionic-pkgs` is currently in early active setup. Flake schema details are finalized in [docs/architecture.md](docs/architecture.md).*
 
+### Binary Cache (Cachix)
+
+`bionic-pkgs` uses a Cachix binary cache to speed up builds. By default, the `flake.nix` is configured to use the `bionic-pkgs` cache. When you run your first `nix build` or `nix run` command, Nix will ask if you want to trust the cache settings provided by the flake. We recommend saying `y` to avoid having to compile packages from source.
+
 ### Building a package for Android ARM64
 
 ```bash

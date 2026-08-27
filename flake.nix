@@ -4,6 +4,11 @@
 {
   description = "Cross-compiled CLI tools, debugging suites, and profilers for Android 14+ (Bionic libc)";
 
+  nixConfig = {
+    extra-substituters = [ "https://bionic-pkgs.cachix.org" ];
+    extra-trusted-public-keys = [ "bionic-pkgs.cachix.org-1:6jDMfWYMBreZzvhxc33zCaASzmvW7UTKSYfWY1ThDkM=" ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
