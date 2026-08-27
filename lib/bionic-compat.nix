@@ -181,9 +181,15 @@ in
     propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
     addBionicFlags() {
+      local role_post
+      getHostRoleEnvHook
+
+      local cflags_var="NIX_CFLAGS_COMPILE''${role_post}"
+      local ldflags_var="NIX_LDFLAGS''${role_post}"
+
       # Export canonical compilation and linker flags into environment
-      export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
-      export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
+      export ''${cflags_var}="${bionicFlags.cflagsString} ''${!cflags_var:-}"
+      export ''${ldflags_var}="${bionicFlags.ldflagsString} ''${!ldflags_var:-}"
     }
 
     # Only apply these flags to the target compiler when cross-compiling
