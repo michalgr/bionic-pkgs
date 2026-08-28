@@ -38,8 +38,12 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     mkdir -p "$out/include" "$out/lib/pkgconfig" "$out/share/pkgconfig"
 
-    # 1. Install all official NDK platform headers
-    cp -rL "${ndkHeaders}"/* "$out/include/"
+    # 1. Install official NDK platform headers selectively (avoiding kernel/Bionic duplicates)
+    for h in android EGL GLES GLES2 GLES3 KHR SLES amidi camera media jni.h zconf.h zlib.h; do
+      if [ -e "${ndkHeaders}/$h" ]; then
+        cp -rL "${ndkHeaders}/$h" "$out/include/"
+      fi
+    done
 
     # 2. Install architecture-specific platform shared library stubs (Android 14 / API 34)
     if [ -d "${ndkLibs}/${targetArchDir}/34" ]; then
