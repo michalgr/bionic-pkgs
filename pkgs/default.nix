@@ -18,6 +18,7 @@ let
 
     # Diagnostics & System Tracing
     strace = targetPkgs.callPackage ./diagnostics/strace { };
+    verify-flags = targetPkgs.callPackage ./diagnostics/verify-flags { };
 
     # Tracing & Kernel Diagnostics
     libbpf = targetPkgs.callPackage ./tracing/libbpf {
