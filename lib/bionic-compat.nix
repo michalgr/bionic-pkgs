@@ -192,7 +192,7 @@ in
     }
 
     # Only apply these flags to the target compiler when cross-compiling
-    addEnvHooks "$hostOffset" addBionicFlags
+    addEnvHooks "$targetOffset" addBionicFlags
 
     bionicFixup() {
       for output in ''${outputs:-out}; do
