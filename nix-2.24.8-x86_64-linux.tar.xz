@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+  <head>
+    <title>Hydra - 500 Internal Server Error</title>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" /><script type="text/javascript" src="https://hydra.nixos.org/static/js/jquery/jquery-3.4.1.min.js"></script>
+<script type="text/javascript" src="https://hydra.nixos.org/static/js/jquery/jquery-ui-1.10.4.min.js"></script>
+<script type="text/javascript" src="https://hydra.nixos.org/static/js/moment/moment-2.24.0.min.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<link href="https://hydra.nixos.org/static/fontawesome/css/all.css" rel="stylesheet" />
+<script type="text/javascript" src="https://hydra.nixos.org/static/js/popper.min.js"></script>
+<script type="text/javascript" src="https://hydra.nixos.org/static/bootstrap/js/bootstrap.min.js"></script>
+<link href="https://hydra.nixos.org/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+
+<!-- hydra.css may need to be moved to before boostrap to make the @media rule work. -->
+<link rel="stylesheet" href="https://hydra.nixos.org/static/css/hydra.css" type="text/css" />
+<link rel="stylesheet" href="https://hydra.nixos.org/static/css/rotated-th.css" type="text/css" />
+
+<style>
+  .popover { max-width: 40%; }
+</style>
+
+<script type="text/javascript" src="https://hydra.nixos.org/static/js/bootbox.min.js"></script>
+
+<link rel="stylesheet" href="https://hydra.nixos.org/static/css/tree.css" type="text/css" />
+
+<script type="text/javascript" src="https://hydra.nixos.org/static/js/common.js"></script>
+
+<script type="text/javascript" src="https://hydra.nixos.org/static/js/ansi_up.js"></script>
+      <meta name="google-signin-client_id" content="816926039128-ia4s4rsqrq998rsevce7i09mo6a4nffg.apps.googleusercontent.com">
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-expand-md navbar-light bg-light">
+      <div class="container">
+        <a class="navbar-brand" href="https://hydra.nixos.org/">            <img src="https://hydra.nixos.org/logo" alt="Hydra Logo" class="logo" />        </a>
+        <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbarSupportedContent">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav mr-auto">
+  <li class="nav-item dropdown" id="275338169" >
+    <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Status<b class="caret"></b></a>
+    <div class="dropdown-menu">  <a class="dropdown-item"href="https://hydra.nixos.org/queue-summary" >Queue (113/179576)  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/status" >Running builds  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/machines" >Machine status  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/evals" >Latest evaluations  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/all" >Latest builds  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/steps" >Latest steps  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/queue_runner_status" >Queue Runner Status  </a>    </div>
+  </li>  <li class="nav-item dropdown" id="275338169" >
+    <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Project<b class="caret"></b></a>
+    <div class="dropdown-menu">      <h6 class="dropdown-header">nixpkgs</h6>
+      <div class="dropdown-divider"></div>  <a class="dropdown-item"href="https://hydra.nixos.org/project/nixpkgs" >Overview  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/project/nixpkgs/all" >Latest builds  </a>    </div>
+  </li>  <li class="nav-item dropdown" id="275338169" >
+    <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Jobset<b class="caret"></b></a>
+    <div class="dropdown-menu">      <h6 class="dropdown-header">staging-next</h6>
+      <div class="dropdown-divider"></div>  <a class="dropdown-item"href="https://hydra.nixos.org/jobset/nixpkgs/staging-next" >Overview  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/jobset/nixpkgs/staging-next/evals" >Evaluations  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/jobset/nixpkgs/staging-next/all" >Latest builds  </a>    </div>
+  </li>  <li class="nav-item dropdown" id="275338169" >
+    <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Job<b class="caret"></b></a>
+    <div class="dropdown-menu">      <h6 class="dropdown-header">python311Packages.pypca.x86_64-linux</h6>
+      <div class="dropdown-divider"></div>  <a class="dropdown-item"href="https://hydra.nixos.org/job/nixpkgs/staging-next/python311Packages.pypca.x86_64-linux" >Overview  </a>  <a class="dropdown-item"href="https://hydra.nixos.org/job/nixpkgs/staging-next/python311Packages.pypca.x86_64-linux/all" >Latest builds  </a>    </div>
+  </li>
+</ul>  <form class="form-inline" action="https://hydra.nixos.org/search">
+    <input name="query" type="text" class="form-control" placeholder="Search" value=""/>
+  </form>
+<ul class="navbar-nav">
+  <li class="nav-item dropdown" id="sign-in-menu" >
+    <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Sign in<b class="caret"></b></a>
+    <div class="dropdown-menu dropdown-menu-right">        <script src="https://accounts.google.com/gsi/client" async defer></script>
+        <div id="g_id_onload" data-client_id="816926039128-ia4s4rsqrq998rsevce7i09mo6a4nffg.apps.googleusercontent.com" data-auto_prompt="false" data-callback="onGoogleSignIn">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
+        <div class="dropdown-divider"></div>        <a class="dropdown-item" href="/github-redirect?after=build%2F275338169%2Fdownload%2F1%2Fnix-2.24.8-x86_64-linux.tar.xz%2F">Sign in with GitHub</a>
+        <div class="dropdown-divider"></div>      <a class="dropdown-item" href="#hydra-signin" data-toggle="modal">Sign in with a Hydra account</a>    </div>
+  </li>
+</ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div class="skip-topbar"></div>
+        <div class="page-header">500 Internal Server Error        </div>   <div class="alert alert-error">Do not know how to serve path &#39;/nix/store/2m2f8qk3w3mkhhvxh6rqkv37xh0b7bbz-python3.11-pypca-0.0.13-dist&#39;.</div>
+      <footer class="navbar">
+        <hr />
+        <small>
+          <em><a href="http://nixos.org/hydra" target="_blank" class="squiggle">Hydra</a> 0.1.20260827.d1e8d11 (using nix-2.35.3 and nix-eval-jobs-2.35.1).</em>        </small>
+      </footer>
+
+    </div>
+
+  <div id="hydra-signin" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form id="signin-form">
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="username" class="col-form-label">User name</label>
+              <input type="text" class="form-control" name="username"/>
+            </div>
+            <div class="form-group">
+              <label for="password" class="col-form-label">Password</label>
+              <input type="password" class="form-control" name="password"/>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Sign in</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    function finishSignOut() { }
+
+    $("#signin-form").submit(function(e) {
+      e.preventDefault();
+      requestJSON({
+        url: "https://hydra.nixos.org/login",
+        data: $(this).serialize(),
+        type: 'POST',
+        success: function(data) {
+          window.location.reload();
+        }
+      });
+      return false;
+    });
+
+    $("#sign-in-menu").on("click", function() {        $.getScript("https://apis.google.com/js/platform.js");    });
+
+  </script>
+    <script>
+      function onGoogleSignIn(googleUser) {
+        requestJSON({
+          url: "https://hydra.nixos.org/google-login",
+          data: "id_token=" + googleUser.credential,
+          type: 'POST',
+          success: function(data) {
+            window.location.reload();
+          }
+        });
+        return false;
+        };
+
+    </script>
+  </body>
+
+</html>
