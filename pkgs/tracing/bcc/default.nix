@@ -46,7 +46,6 @@ stdenv.mkDerivation (finalAttrs: {
     llvmPackages.libcxx
     elfutils
     libbpf
-    android-prebuilts
     python3
   ];
 
@@ -59,10 +58,6 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-warn "ct.CDLL('libc.so.6'" "ct.CDLL('libc.so'"
     substituteInPlace src/python/bcc/__init__.py \
       --replace-warn "ct.CDLL('librt.so.1'" "ct.CDLL('libc.so'"
-  '';
-
-  preConfigure = ''
-    export NIX_CFLAGS_COMPILE="-isystem ${llvmPackages.libcxx.dev}/include/c++/v1 -isystem ${libbpf}/include $NIX_CFLAGS_COMPILE"
   '';
 
   cmakeFlags = [
