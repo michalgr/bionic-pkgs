@@ -112,7 +112,7 @@ let
       # Prevent Clang from searching host C library include paths (/usr/include, /usr/local/include)
       "-nostdlibinc"
       # Priority header search paths for Bionic compat shims and Bionic libc headers
-      "-idirafter ${final.bionic-compat}/include"
+      "-isystem ${final.bionic-compat}/include"
       "-idirafter ${final.bionic.dev}/include"
       "-idirafter ${final.android-prebuilts}/include"
       # Enforce native ELF Thread-Local Storage (TLS) instead of emulated TLS
