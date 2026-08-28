@@ -178,7 +178,6 @@ in
   # Setup hook that injects Bionic compiler/linker flags, header priority, and rewrites ELF RUNPATH
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
-    propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
     addBionicFlags() {
       local role_post
