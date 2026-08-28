@@ -213,5 +213,6 @@ in
   # Automatically equip target stdenv with Bionic flags, compatibility shims, and postFixup RPATH hook
   stdenv = prev.stdenv.override (old: {
     extraNativeBuildInputs = (old.extraNativeBuildInputs or [ ]) ++ [ final.bionicFixupHook ];
+    extraBuildInputs = (old.extraBuildInputs or [ ]) ++ [ final.bionic-compat ];
   });
 }
