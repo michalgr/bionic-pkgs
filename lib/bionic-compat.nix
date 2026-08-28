@@ -180,8 +180,8 @@ in
     propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
     # Export canonical compilation and linker flags into environment at setup hook source time
-    export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
-    export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
+    export NIX_CFLAGS_COMPILE_FOR_TARGET="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_FOR_TARGET:-}"
+    export NIX_LDFLAGS_FOR_TARGET="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_FOR_TARGET:-}"
 
     bionicFixup() {
       for output in ''${outputs:-out}; do
