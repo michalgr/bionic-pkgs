@@ -17,9 +17,14 @@ stdenv.mkDerivation {
     echo "=== CLANG INVOCATION (DRY RUN) ===" >> $out/flags.log
 
     echo "int main() { return 0; }" > dummy.c
+    echo "int main() { return 0; }" > dummy.cpp
 
     # We use -### to just print the invocation commands without executing them
-    $CC -### dummy.c -o dummy 2>> $out/flags.log || true
+    echo "--- C ---" >> $out/flags.log
+    $CC -### dummy.c -o dummy_c 2>> $out/flags.log || true
+
+    echo "--- C++ ---" >> $out/flags.log
+    $CXX -### dummy.cpp -o dummy_cpp 2>> $out/flags.log || true
   '';
 
   installPhase = ''

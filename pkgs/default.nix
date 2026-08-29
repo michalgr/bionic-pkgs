@@ -16,9 +16,11 @@ let
       inherit (self) android-prebuilts xz zstd bzip2;
     };
 
+    # Build Support Utilities
+    verify-flags = targetPkgs.callPackage ./build-support/verify-flags { };
+
     # Diagnostics & System Tracing
     strace = targetPkgs.callPackage ./diagnostics/strace { };
-    verify-flags = targetPkgs.callPackage ./diagnostics/verify-flags { };
 
     # Tracing & Kernel Diagnostics
     libbpf = targetPkgs.callPackage ./tracing/libbpf {

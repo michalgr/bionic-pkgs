@@ -24,6 +24,8 @@ jobs:
         include:
           - os: ubuntu-latest
             system: x86_64-linux
+          - os: macos-latest
+            system: aarch64-darwin
 
     steps:
       - name: Checkout repository
@@ -41,6 +43,7 @@ jobs:
         uses: cachix/cachix-action@v15
         with:
           name: bionic-pkgs
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
       - name: Build verify-flags Derivation
         run: nix build .#aarch64-android.verify-flags
