@@ -13,7 +13,7 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString + " " + bionicFlags.cflagsLinkString;
       };
       postInstall = ''
         mkdir -p $out/lib
@@ -36,7 +36,7 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString + " " + bionicFlags.cflagsLinkString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
@@ -56,7 +56,7 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString + " " + bionicFlags.cflagsLinkString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
@@ -127,6 +127,8 @@ let
       # Android 15+ 16 KB memory page alignment for ELF LOAD segments
       "-z" "max-page-size=16384"
       "-z" "common-page-size=16384"
+    ];
+    cflagsLink = [
       # Prevent macOS from leaking standard library paths when cross-compiling
       "-nodefaultlibs"
       "-lc"
@@ -134,6 +136,7 @@ let
     ];
     cflagsString = lib.concatStringsSep " " cflags;
     ldflagsString = lib.concatStringsSep " " ldflags;
+    cflagsLinkString = lib.concatStringsSep " " cflagsLink;
   };
 in
 {
@@ -179,6 +182,7 @@ in
     # Export canonical compilation and linker flags into environment at setup hook source time
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
+    export NIX_CFLAGS_LINK_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsLinkString} ''${NIX_CFLAGS_LINK_${final.stdenv.cc.suffixSalt}:-}"
 
     bionicFixup() {
       for output in ''${outputs:-out}; do
