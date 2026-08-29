@@ -66,7 +66,6 @@ let
     libllvm = lprev.libllvm.overrideAttrs (old: {
       buildInputs = (old.buildInputs or [ ]) ++ [
         lfinal.libcxx
-        final.android-prebuilts
       ];
       # Nixpkgs unconditionally sets env.LDFLAGS = "-Wl,--build-id=sha1" when stdenv.hostPlatform is not Darwin.
       # When cross-compiling on a Darwin host (macOS), LLVM's nested NATIVE subproject for tablegen tools
@@ -76,9 +75,6 @@ let
       env = (old.env or { }) // {
         LDFLAGS = "";
       };
-      preConfigure = ''
-        export NIX_CFLAGS_COMPILE="-isystem ${lfinal.libcxx.dev}/include/c++/v1 $NIX_CFLAGS_COMPILE"
-      '' + (old.preConfigure or "");
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DLLVM_ENABLE_LIBCXX=ON"
         "-DLLVM_ENABLE_TERMINFO=OFF"
@@ -96,11 +92,7 @@ let
     libclang = lprev.libclang.overrideAttrs (old: {
       buildInputs = (old.buildInputs or [ ]) ++ [
         lfinal.libcxx
-        final.android-prebuilts
       ];
-      preConfigure = ''
-        export NIX_CFLAGS_COMPILE="-isystem ${lfinal.libcxx.dev}/include/c++/v1 $NIX_CFLAGS_COMPILE"
-      '' + (old.preConfigure or "");
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DLLVM_ENABLE_LIBCXX=ON"
         "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
@@ -121,7 +113,8 @@ let
       "-nostdlibinc"
       # Priority header search paths for Bionic compat shims and Bionic libc headers
       "-isystem ${final.bionic-compat}/include"
-      "-isystem ${final.bionic.dev}/include"
+      "-idirafter ${final.bionic.dev}/include"
+      "-idirafter ${final.android-prebuilts}/include"
       # Enforce native ELF Thread-Local Storage (TLS) instead of emulated TLS
       "-fno-emulated-tls"
       # Modern Android (Android 15+) dynamic page size support
@@ -180,8 +173,8 @@ in
     propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
     # Export canonical compilation and linker flags into environment at setup hook source time
-    export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
-    export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
+    export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
+    export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
     bionicFixup() {
       for output in ''${outputs:-out}; do
