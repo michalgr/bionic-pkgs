@@ -86,7 +86,8 @@ let
   # Helper to determine if a package can be verified for ELF properties (excluding header/shim/prebuilt-only packages)
   isCheckablePkg = pkg:
     lib.isDerivation pkg &&
-    (pkg ? pname && pkg.pname != "bionic-compat" && pkg.pname != "android-headers" && pkg.pname != "android-prebuilts");
+    !(pkg.meta.skipElfCheck or false) &&
+    (pkg ? pname && !builtins.elem pkg.pname [ "bionic-compat" "android-headers" "android-prebuilts" ]);
 
   # Automatically generates flat package outputs from targetMatrix
   generatePackages = { targetMatrix, defaultTarget ? "aarch64-android" }:
@@ -170,10 +171,6 @@ let
 
       for elf_file in "''${elf_files[@]}"; do
         if [ -f "$elf_file" ] && [ "$(od -An -N4 -tx1 "$elf_file" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
-          # Skip verify-flags outputs as it only generates logs, and isn't intended to produce ELF binaries
-          if [[ "${pkgName}" == "verify-flags" ]]; then
-            continue
-          fi
           found_elf=$((found_elf + 1))
           rel_path="''${elf_file#${pkg}/}"
           echo "--- Checking ELF artifact: $rel_path ---"
@@ -270,12 +267,8 @@ let
       done
 
       if [ "$found_elf" -eq 0 ]; then
-        if [[ "${pkgName}" != "verify-flags" ]]; then
-          echo "ERROR: No ELF binaries or libraries found in ${pkg}" >&2
-          exit 1
-        else
-          echo "No ELF binaries found (expected for verify-flags)"
-        fi
+        echo "ERROR: No ELF binaries or libraries found in ${pkg}" >&2
+        exit 1
       fi
 
       echo "==> Successfully verified $found_elf ELF artifact(s) for ${pkgName} (${targetName})."
