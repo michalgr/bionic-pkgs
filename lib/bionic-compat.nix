@@ -119,6 +119,8 @@ let
       "-fno-emulated-tls"
       # Modern Android (Android 15+) dynamic page size support
       "-D__BIONIC_NO_PAGE_SIZE_MACRO"
+      # Compatibility for Bionic r23 headers with NDK r27 where this macro was removed
+      "-D__INTRODUCED_IN_X86_NO_GUARD_FOR_NDK(x)="
     ];
     ldflags = [
       # Library search paths for GNU Linker Script shims and Bionic libc

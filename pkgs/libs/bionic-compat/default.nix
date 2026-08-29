@@ -59,18 +59,7 @@ typedef uint32_t in_addr_t;
 #endif
 EOF
 
-    # 5. Header Shim: <sys/cdefs.h>
-    # Bionic r23 <math.h> headers rely on __INTRODUCED_IN_X86_NO_GUARD_FOR_NDK
-    # which may be missing when combining r23 bionic headers with r27 NDK headers.
-    cat << 'EOF' > "$out/include/sys/cdefs.h"
-#pragma once
-#include_next <sys/cdefs.h>
-#ifndef __INTRODUCED_IN_X86_NO_GUARD_FOR_NDK
-#define __INTRODUCED_IN_X86_NO_GUARD_FOR_NDK(x)
-#endif
-EOF
-
-    # 6. Header Shim: <asm/stat.h>
+    # 5. Header Shim: <asm/stat.h>
     # Bionic defines `#define __unused __attribute__((__unused__))` in <sys/cdefs.h>,
     # which conflicts with struct fields named `__unused` in kernel stat headers on x86_64.
     # We temporarily undefine __unused around the kernel header inclusion.
@@ -82,7 +71,7 @@ EOF
 #pragma pop_macro("__unused")
 EOF
 
-    # 7. Header Shim: <libintl.h>
+    # 6. Header Shim: <libintl.h>
     # Android Bionic libc omits GNU gettext / libintl. We provide standard no-op macro definitions
     # so packages that include <libintl.h> compile cleanly without requiring external gettext.
     cat << 'EOF' > "$out/include/libintl.h"
@@ -106,7 +95,7 @@ extern "C" {
 #endif
 EOF
 
-    # 8. Header Shim: <fnmatch.h>
+    # 7. Header Shim: <fnmatch.h>
     # Bionic defines POSIX fnmatch() constants but omits the GNU extension FNM_EXTMATCH.
     cat << 'EOF' > "$out/include/fnmatch.h"
 #pragma once
@@ -116,7 +105,7 @@ EOF
 #endif
 EOF
 
-    # 9. Header Shim: <elf.h>
+    # 8. Header Shim: <elf.h>
     # Bionic defines standard ELF constants but omits GNU versioning section types and GNU note types.
     cat << 'EOF' > "$out/include/elf.h"
 #pragma once
