@@ -170,6 +170,10 @@ let
 
       for elf_file in "''${elf_files[@]}"; do
         if [ -f "$elf_file" ] && [ "$(od -An -N4 -tx1 "$elf_file" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
+          # Skip verify-flags outputs as it only generates logs, and isn't intended to produce ELF binaries
+          if [[ "${pkgName}" == "verify-flags" ]]; then
+            continue
+          fi
           found_elf=$((found_elf + 1))
           rel_path="''${elf_file#${pkg}/}"
           echo "--- Checking ELF artifact: $rel_path ---"
@@ -266,8 +270,12 @@ let
       done
 
       if [ "$found_elf" -eq 0 ]; then
-        echo "ERROR: No ELF binaries or libraries found in ${pkg}" >&2
-        exit 1
+        if [[ "${pkgName}" != "verify-flags" ]]; then
+          echo "ERROR: No ELF binaries or libraries found in ${pkg}" >&2
+          exit 1
+        else
+          echo "No ELF binaries found (expected for verify-flags)"
+        fi
       fi
 
       echo "==> Successfully verified $found_elf ELF artifact(s) for ${pkgName} (${targetName})."
