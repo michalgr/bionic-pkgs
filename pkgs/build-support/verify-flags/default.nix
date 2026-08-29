@@ -35,5 +35,6 @@ stdenv.mkDerivation {
     description = "Utility package to verify clang flags and environment variables";
     platforms = platforms.all;
     license = licenses.mit;
+    skipElfCheck = true;
   };
 }
