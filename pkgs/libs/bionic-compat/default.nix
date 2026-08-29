@@ -155,5 +155,6 @@ EOF
     license = lib.licenses.mit;
     platforms = lib.platforms.linux;
     maintainers = [ ];
+    skipElfCheck = true;
   };
 }

@@ -87,7 +87,7 @@ let
   isCheckablePkg = pkg:
     lib.isDerivation pkg &&
     !(pkg.meta.skipElfCheck or false) &&
-    (pkg ? pname && !builtins.elem pkg.pname [ "bionic-compat" "android-headers" "android-prebuilts" ]);
+    (pkg ? pname);
 
   # Automatically generates flat package outputs from targetMatrix
   generatePackages = { targetMatrix, defaultTarget ? "aarch64-android" }:
