@@ -172,6 +172,7 @@ in
   } (final.writeScript "bionic-fixup.sh" ''
     # Export canonical compilation and linker flags into environment at setup hook source time
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
+    # Inject bionic-compat headers early via NIX_CFLAGS_COMPILE_BEFORE so they take precedence over the implicitly cc-wrapper injected bionic.dev headers.
     export NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}="-idirafter ${final.bionic-compat}/include ''${NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
