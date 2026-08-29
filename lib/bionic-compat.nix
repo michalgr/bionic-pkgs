@@ -112,8 +112,6 @@ let
       # Prevent Clang from searching host C library include paths (/usr/include, /usr/local/include)
       "-nostdlibinc"
       # Priority header search paths for Bionic compat shims and Bionic libc headers
-      "-isystem ${final.bionic-compat}/include"
-      "-idirafter ${final.bionic.dev}/include"
       "-idirafter ${final.android-prebuilts}/include"
       # Enforce native ELF Thread-Local Storage (TLS) instead of emulated TLS
       "-fno-emulated-tls"
@@ -174,6 +172,8 @@ in
   } (final.writeScript "bionic-fixup.sh" ''
     # Export canonical compilation and linker flags into environment at setup hook source time
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
+    # Inject bionic-compat headers early via NIX_CFLAGS_COMPILE_BEFORE so they take precedence over the implicitly cc-wrapper injected bionic.dev headers.
+    export NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}="-idirafter ${final.bionic-compat}/include ''${NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
     bionicFixup() {
