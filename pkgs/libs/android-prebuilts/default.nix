@@ -10,8 +10,8 @@
 let
   # Google Android NDK platform headers (public NDK C/C++ API: <android/*.h>, <zlib.h>, <jni.h>, etc.)
   ndkHeaders = fetchzip {
-    url = "https://android.googlesource.com/toolchain/prebuilts/ndk/r23/+archive/6c5fa4c0d3999b9ee932f6acbd430eb2f31f3151/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include.tar.gz";
-    hash = "sha256-qm91DpoftCh25SL9qQ0RbRqPRetkTIoGdeofdPkVdGQ=";
+    url = "https://android.googlesource.com/toolchain/prebuilts/ndk/r27/+archive/77eba0d553f8f58557f99fa98f327eb5f46e0c8c/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include.tar.gz";
+    hash = "sha256-JA1JVLbea91yx7IHJ4fz4NypO7TjGt2H7kAjQbG3r3A=";
     stripRoot = false;
   };
 
