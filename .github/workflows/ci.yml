@@ -27,8 +27,6 @@ jobs:
 
       - name: Setup Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v8
-        with:
-          use-flakehub: false
 
       - name: Check Flake Schema & Lockfile
         run: nix flake check --no-build --all-systems
@@ -58,8 +56,6 @@ jobs:
 
       - name: Setup Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v8
-        with:
-          use-flakehub: false
 
       - name: Setup Cachix (if secret configured)
         uses: cachix/cachix-action@v15
