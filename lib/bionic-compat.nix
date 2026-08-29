@@ -12,8 +12,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = bionicFlags.cflagsString + " " + (builtins.replaceStrings [ "-isystem ${final.bionic.dev}/include" "-idirafter ${final.bionic.dev}/include" ] [ "" "" ] (old.env.NIX_CFLAGS_COMPILE or ""));
-        NIX_CFLAGS_LINK = bionicFlags.ldflagsString + " " + (old.env.NIX_CFLAGS_LINK or "");
+        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       postInstall = ''
         mkdir -p $out/lib
@@ -35,8 +35,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = bionicFlags.cflagsString + " " + (builtins.replaceStrings [ "-isystem ${final.bionic.dev}/include" "-idirafter ${final.bionic.dev}/include" ] [ "" "" ] (old.env.NIX_CFLAGS_COMPILE or ""));
-        NIX_CFLAGS_LINK = bionicFlags.ldflagsString + " " + (old.env.NIX_CFLAGS_LINK or "");
+        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
@@ -55,8 +55,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = bionicFlags.cflagsString + " " + (builtins.replaceStrings [ "-isystem ${final.bionic.dev}/include" "-idirafter ${final.bionic.dev}/include" ] [ "" "" ] (old.env.NIX_CFLAGS_COMPILE or ""));
-        NIX_CFLAGS_LINK = bionicFlags.ldflagsString + " " + (old.env.NIX_CFLAGS_LINK or "");
+        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
@@ -112,8 +112,6 @@ let
       # Prevent Clang from searching host C library include paths (/usr/include, /usr/local/include)
       "-nostdlibinc"
       # Priority header search paths for Bionic compat shims and Bionic libc headers
-      "-idirafter ${final.bionic-compat}/include"
-      "-idirafter ${final.bionic.dev}/include"
       "-idirafter ${final.android-prebuilts}/include"
       # Enforce native ELF Thread-Local Storage (TLS) instead of emulated TLS
       "-fno-emulated-tls"
@@ -173,10 +171,8 @@ in
     propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
     # Export canonical compilation and linker flags into environment at setup hook source time
-    # Strip implicit bionic.dev include to prevent duplicates and enforce our custom -idirafter order
-    local stripped_cflags="''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
-    stripped_cflags="$(echo "$stripped_cflags" | sed -e 's|-isystem ${final.bionic.dev}/include||g' -e 's|-idirafter ${final.bionic.dev}/include||g')"
-    export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} $stripped_cflags"
+    export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
+    export NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}="-idirafter ${final.bionic-compat}/include ''${NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
     bionicFixup() {
