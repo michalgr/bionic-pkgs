@@ -39,7 +39,7 @@ stdenvNoCC.mkDerivation {
     mkdir -p "$out/include" "$out/lib/pkgconfig" "$out/share/pkgconfig"
 
     # 1. Install official NDK platform headers selectively (avoiding kernel/Bionic duplicates)
-    for h in android EGL GLES GLES2 GLES3 KHR SLES amidi camera media jni.h zconf.h zlib.h; do
+    for h in android bits EGL GLES GLES2 GLES3 KHR SLES amidi camera media jni.h zconf.h zlib.h; do
       if [ -e "${ndkHeaders}/$h" ]; then
         cp -rL "${ndkHeaders}/$h" "$out/include/"
       fi
