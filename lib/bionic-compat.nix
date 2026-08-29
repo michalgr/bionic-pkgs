@@ -176,10 +176,6 @@ in
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
-    # Prevent macOS from leaking host standard library paths during cross-compilation
-    export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="$(echo "''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}" | sed -E 's/(^| )-L\/usr\/lib( |$)/\1\2/g' | sed -E 's/(^| )-L\/usr\/lib( |$)/\1\2/g')"
-    export NIX_LDFLAGS="$(echo "''${NIX_LDFLAGS:-}" | sed -E 's/(^| )-L\/usr\/lib( |$)/\1\2/g' | sed -E 's/(^| )-L\/usr\/lib( |$)/\1\2/g')"
-
     bionicFixup() {
       for output in ''${outputs:-out}; do
         local dir="''${!output:-}"
