@@ -12,8 +12,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
+        NIX_CFLAGS_COMPILE = bionicFlags.cflagsString + " " + (old.env.NIX_CFLAGS_COMPILE or "");
+        NIX_CFLAGS_LINK = bionicFlags.ldflagsString + " " + (old.env.NIX_CFLAGS_LINK or "");
       };
       postInstall = ''
         mkdir -p $out/lib
@@ -35,8 +35,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
+        NIX_CFLAGS_COMPILE = bionicFlags.cflagsString + " " + (old.env.NIX_CFLAGS_COMPILE or "");
+        NIX_CFLAGS_LINK = bionicFlags.ldflagsString + " " + (old.env.NIX_CFLAGS_LINK or "");
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
@@ -55,8 +55,8 @@ let
         final.bionic-compat
       ];
       env = (old.env or { }) // {
-        NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
+        NIX_CFLAGS_COMPILE = bionicFlags.cflagsString + " " + (old.env.NIX_CFLAGS_COMPILE or "");
+        NIX_CFLAGS_LINK = bionicFlags.ldflagsString + " " + (old.env.NIX_CFLAGS_LINK or "");
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
@@ -112,8 +112,7 @@ let
       # Prevent Clang from searching host C library include paths (/usr/include, /usr/local/include)
       "-nostdlibinc"
       # Priority header search paths for Bionic compat shims and Bionic libc headers
-      "-isystem ${final.bionic-compat}/include"
-      "-idirafter ${final.bionic.dev}/include"
+      "-idirafter ${final.bionic-compat}/include"
       "-idirafter ${final.android-prebuilts}/include"
       # Enforce native ELF Thread-Local Storage (TLS) instead of emulated TLS
       "-fno-emulated-tls"
