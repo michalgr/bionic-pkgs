@@ -127,6 +127,10 @@ let
       # Android 15+ 16 KB memory page alignment for ELF LOAD segments
       "-z" "max-page-size=16384"
       "-z" "common-page-size=16384"
+      # Prevent macOS from leaking standard library paths when cross-compiling
+      "-nodefaultlibs"
+      "-lc"
+      "-lm"
     ];
     cflagsString = lib.concatStringsSep " " cflags;
     ldflagsString = lib.concatStringsSep " " ldflags;
