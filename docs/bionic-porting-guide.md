@@ -251,6 +251,30 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    - This nested native CMake inherited the ambient `LDFLAGS="-Wl,--build-id=sha1"` environment variable, causing the host compiler check (`testCCompiler.c`) to fail on Darwin with `ld: unknown option: --build-id=sha1`.
    - **Resolution**: In `lib/bionic-compat.nix`, `libllvm` overrides `env.LDFLAGS = ""` to prevent ambient leakage into host subprojects, and passes `-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=sha1`, `-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1`, and `-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1` explicitly in `cmakeFlags` for target binaries.
 
+### Case Study 6: `bpftrace` & `bpftrace-static` (High-Level Dynamic Tracing Language & Tools)
+`bpftrace` compiles high-level tracing scripts into eBPF bytecode via Clang/LLVM, attaching to kernel tracepoints, kprobes, uprobes, and intervals. We provide two builds:
+- **`bpftrace` (Dynamic default)**: Built with `STATIC_LINKING=OFF` against shared LLVM/Clang and BCC libraries (`libLLVM.so`, `libclang-cpp.so`, `libbcc.so`, `libbpf.so`, etc.). Dynamic dependencies are synchronized from the package dependency closure into the device staging directory via `scripts/adb-push.sh` and resolved at runtime through relative `$ORIGIN/../lib` runpaths.
+- **`bpftrace-static` (Standalone static)**: Built with `STATIC_LINKING=ON` embedding static LLVM, Clang components, BCC, and compression libraries into a self-contained executable.
+
+1. **Standalone Semi-Static Architecture & Dual-Runtime Avoidance (`bpftrace-static`)**:
+   - `bpftrace-static` is compiled with `-DSTATIC_LINKING=ON`, statically embedding LLVM 21, Clang AST/CodeGen/Rewriter components, BCC, libbpf, libdw, libelf, cereal, and `libc++`.
+   - **Crucial C++ ODR Insight**: In hybrid static/dynamic configurations where `-static-libstdc++` is used alongside a dynamically loaded `libclang.so`, duplicate `std::locale` / `std::use_facet` Singletons clash at runtime, throwing `std::bad_cast`.
+   - **Resolution**: Enabled `-DLIBCLANG_BUILD_STATIC=ON` in `lib/bionic-compat.nix` so Clang exports `libclang_static.a`. `bpftrace-static` links `libclang_static` into a unified static `libc++` runtime, dynamically binding **only** to Android's built-in platform C libraries (`libc.so`, `libm.so`, `libdl.so`, `libz.so`, `liblog.so`).
+2. **Full Compression Integration (`LibLzma`, `LibBz2`, `libzstd`) & Binary Size Optimization**:
+   - `elfutils` provides `libdw` and `libelf` with multi-format compression support (`--with-lzma`, `--with-bzlib`, `--with-zstd`, `--with-zlib`).
+   - `bpftrace-static` leverages upstream `find_package(LibLzma)` and `find_package(LibBz2)` to statically bind `liblzma.a` and `libbz2.a`, and defines `LIBZSTD` to link `libzstd.a` for complete DWARF decompression on device.
+   - Size optimization: Compiling with `-Wl,--gc-sections` and `--strip-all` eliminates unreferenced LLVM/Clang symbols and drops the standalone binary size by over 45 MB (~111 MB total). Dynamic dependencies bind strictly to Android platform libraries (`libc.so`, `libm.so`, `libdl.so`, `libz.so`, `liblog.so`).
+3. **Clang Static Component Resolution & Transitive Dependency Unlinking**:
+   - In static builds, `libbcc.a`'s object files reference Clang rewrite and AST utilities (`clang::Rewriter`, `clang::index::*`, `clang::ASTMatchFinder`, `clang::ASTReader`). Extended `src/ast/CMakeLists.txt` to link `clangRewrite`, `clangRewriteFrontend`, `clangIndex`, and `clangASTMatchers` static archives.
+   - **Transitive Dependency Unlinking**: LLVM exports static target `LLVMSupport` with `INTERFACE_LINK_LIBRARIES "dl;-lpthread;m;ZLIB::ZLIB"`. In `-Bstatic` mode, CMake attempts to link these transitively as static archives, causing `ld.lld` errors (`cannot find -lpthread`, `attempted static link of dynamic object libz.so`). We use upstream's `unlink_transitive_dependency` helper to strip `ZLIB::ZLIB`, `-lpthread`, `dl`, and `m` from `LLVMSupport` and `${llvm_libs}`, linking them cleanly via `-Wl,-Bdynamic -ldl -lm -lz` at the final executable stage.
+4. **Kernel Capability Definitions (`<linux/capability.h>`)**:
+   - `src/run_bpftrace.cpp` checks for modern Linux capabilities (`CAP_BPF=39`, `CAP_PERFMON=38`, `CAP_CHECKPOINT_RESTORE=40`).
+   - Android NDK r23 headers lack these definitions. Added a `<linux/capability.h>` shim to `pkgs/libs/bionic-compat/` providing `#ifndef CAP_BPF ... #endif`.
+5. **Embedded Standard Library via Host `xxd` (`Embed.cmake`)**:
+   - `bpftrace` uses `xxd` to convert stdlib BPF scripts into C arrays embedded into the `bpftrace` binary. Added `xxd` to `nativeBuildInputs`.
+6. **Standalone Companion Tools (`share/bpftrace/tools/*.bt`)**:
+   - Generated wrapper scripts in `$out/bin/` (`execsnoop`, `opensnoop`, `runqlat`, `biosnoop`, `pidpersec`, `syscount`, `tcpconnect`, etc.) that execute via `/system/bin/sh`.
+
 ---
 
 ## 6. Testing & Verifying Cross-Compiled Binaries

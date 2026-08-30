@@ -21,8 +21,11 @@ stdenvNoCC.mkDerivation {
     # that redirect legacy glibc split library link flags (-lpthread, -lrt, etc.)
     # to Bionic libc without polluting DT_NEEDED.
     for libname in libpthread.so libpthread.a librt.so librt.a libutil.so libutil.a libresolv.so libresolv.a libcrypt.so libcrypt.a libnsl.so libnsl.a libanl.so libanl.a libatomic.so libatomic.a; do
-      echo "INPUT(-lc)" > "$out/lib/$libname"
+      echo "INPUT(libc.so)" > "$out/lib/$libname"
     done
+    echo "INPUT(libdl.so)" > "$out/lib/libdl.a"
+    echo "INPUT(libm.so)" > "$out/lib/libm.a"
+    echo "INPUT(libc.so)" > "$out/lib/libc.a"
 
     # 2. Header Shim: <netinet/in.h>
     # Bionic NDK headers define in_port_t in <netinet/in.h> but omit typedef uint32_t in_addr_t
@@ -145,6 +148,23 @@ EOF
 #endif
 #ifndef NT_GNU_PROPERTY_TYPE_0
 #define NT_GNU_PROPERTY_TYPE_0 5
+#endif
+EOF
+
+    # 9. Header Shim: <linux/capability.h>
+    # Modern Linux capabilities (CAP_PERFMON=38, CAP_BPF=39, CAP_CHECKPOINT_RESTORE=40)
+    mkdir -p "$out/include/linux"
+    cat << 'EOF' > "$out/include/linux/capability.h"
+#pragma once
+#include_next <linux/capability.h>
+#ifndef CAP_PERFMON
+#define CAP_PERFMON 38
+#endif
+#ifndef CAP_BPF
+#define CAP_BPF 39
+#endif
+#ifndef CAP_CHECKPOINT_RESTORE
+#define CAP_CHECKPOINT_RESTORE 40
 #endif
 EOF
   '';
