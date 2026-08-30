@@ -169,7 +169,6 @@ in
   # Setup hook that injects Bionic compiler/linker flags, header priority, and rewrites ELF RUNPATH
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
-    propagatedBuildInputs = [ final.bionic-compat ];
   } (final.writeScript "bionic-fixup.sh" ''
     # Export canonical compilation and linker flags into environment at setup hook source time
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
