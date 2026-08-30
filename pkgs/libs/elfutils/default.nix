@@ -54,13 +54,16 @@ EOF
     buildPackages.bzip2
   ];
 
-  buildInputs = [
-    android-prebuilts
+  propagatedBuildInputs = [
     argp-standalone
     musl-obstack
     xz
     zstd
     bzip2
+  ];
+
+  buildInputs = [
+    android-prebuilts
   ];
 
   # Bionic Porting Notes & Minimal Dependency Architecture:
