@@ -158,6 +158,11 @@ A GitHub Actions workflow (`.github/workflows/ci.yml`) will validate the cross-c
 - `macos-latest` (`aarch64-darwin`)
 - ARM64 Linux runner / container (`aarch64-linux`)
 
+### Package Dependency Verification & Reporting
+- **Automated Dependency Auditing**: For every package evaluated in `bionic-pkgs` (e.g., `strace`, `bcc`, `radare2`, `python3`), `nix flake check` automatically executes a dependency reporting check (`check-deps-${targetName}-${pkgName}`).
+- **Store Path & Closure Inspection**: Utilizing `exportReferencesGraph`, each verification check extracts direct build/runtime dependencies, identifies Bionic ecosystem packages in the closure, and reports the complete transitive store path closure.
+- **Aggregate Matrix Summary**: An aggregate check `check-deps-summary` combines all package dependency reports across target architectures into a single unified matrix report (`$out/summary.txt`).
+
 ### Phased Binary Caching
 - **Design for Cacheability**: The architecture guarantees deterministic store paths and pure derivations, ensuring out-of-the-box compatibility with any Nix binary cache.
 - **Cachix Setup**: Cachix substituter configuration (`bionic-pkgs.cachix.org`) is actively integrated via `nixConfig` in `flake.nix`. GitHub CI is securely configured to push artifacts to this cache on successful matrix builds.

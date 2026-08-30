@@ -68,6 +68,13 @@ nix run .#push-aarch64-android-strace
 nix run .#apps.x86_64-linux.push-aarch64-android-strace
 ```
 
+### Automated Flake Checks & Dependency Auditing
+
+```bash
+# Run automated ELF property verifications and package dependency reports across all targets:
+nix flake check --print-build-logs
+```
+
 ---
 
 ## 🤝 Contributing

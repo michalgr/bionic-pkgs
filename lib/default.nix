@@ -276,10 +276,109 @@ let
       echo "ELF verification passed for ${pkgName} (${targetName}) ($found_elf artifacts)" > "$out/result"
     '';
 
+  # Helper to create a package dependency verification report derivation for CI / nix flake check
+  mkDepReportCheck = { hostPkgs, pkg, targetName, pkgName }:
+    let
+      directInputs = lib.filter (d: lib.isDerivation d && (d ? pname || d ? name)) (
+        (pkg.buildInputs or [ ])
+        ++ (pkg.nativeBuildInputs or [ ])
+        ++ (pkg.propagatedBuildInputs or [ ])
+        ++ (pkg.propagatedNativeBuildInputs or [ ])
+        ++ (pkg.depsBuildBuild or [ ])
+      );
+      directInputsJSON = builtins.toJSON (map (d: {
+        name = d.pname or d.name or "unknown";
+        version = d.version or "";
+        path = "${d}";
+      }) directInputs);
+    in
+    hostPkgs.runCommand "check-deps-${targetName}-${pkgName}" {
+      exportReferencesGraph = [ "graph" pkg ];
+      nativeBuildInputs = [ hostPkgs.jq ];
+      inherit directInputsJSON;
+    } ''
+      set -euo pipefail
+      mkdir -p "$out"
+
+      cat << 'EOF' > "$out/dep-report.txt"
+================================================================================
+BIONIC PACKAGE DEPENDENCY REPORT: ${pkgName} (${targetName})
+================================================================================
+Target Architecture : ${targetName}
+Package Name        : ${pkgName}
+Package Store Path  : ${pkg}
+
+Direct Declared Build & Runtime Inputs:
+EOF
+
+      if [ -n "$directInputsJSON" ] && [ "$directInputsJSON" != "[]" ]; then
+        echo "$directInputsJSON" | jq -r '.[] | "  - \(.name) \(.version) -> \(.path)"' >> "$out/dep-report.txt"
+      else
+        echo "  (None explicitly declared)" >> "$out/dep-report.txt"
+      fi
+
+      mapfile -t closure_paths < <(awk '/^\/nix\/store\// { print $1 }' graph | sort -u)
+
+      echo "" >> "$out/dep-report.txt"
+      echo "Bionic Ecosystem Dependencies in Closure:" >> "$out/dep-report.txt"
+      found_bionic=0
+      for path in "''${closure_paths[@]}"; do
+        base_name="$(basename "$path")"
+        clean_name="''${base_name#*-}"
+        case "$clean_name" in
+          bionic-compat*|android-prebuilts*|elfutils*|libbpf*|python3*|libffi*|zstd*|xz*|bzip2*|strace*|bcc*|radare2*|rizin*|verify-flags*)
+            echo "  - $clean_name ($path)" >> "$out/dep-report.txt"
+            found_bionic=$((found_bionic + 1))
+            ;;
+        esac
+      done
+      if [ "$found_bionic" -eq 0 ]; then
+        echo "  (No extra bionic-pkgs packages in runtime closure)" >> "$out/dep-report.txt"
+      fi
+
+      echo "" >> "$out/dep-report.txt"
+      echo "Complete Transitive Store Path Closure (''${#closure_paths[@]} paths):" >> "$out/dep-report.txt"
+
+      for path in "''${closure_paths[@]}"; do
+        base_name="$(basename "$path")"
+        clean_name="''${base_name#*-}"
+        echo "  - $clean_name ($path)" >> "$out/dep-report.txt"
+      done
+
+      cat "$out/dep-report.txt"
+      echo "Dependency verification report successfully generated for ${pkgName} (${targetName})." > "$out/result"
+    '';
+
+  # Helper to aggregate all dependency report checks into a complete matrix summary
+  mkDepSummaryCheck = { hostPkgs, depChecks }:
+    hostPkgs.runCommand "check-deps-summary" { } ''
+      set -euo pipefail
+      mkdir -p "$out"
+
+      {
+        echo "================================================================================"
+        echo "BIONIC-PKGS COMPLETE MATRIX DEPENDENCY VERIFICATION SUMMARY"
+        echo "================================================================================"
+        echo ""
+      } > "$out/summary.txt"
+
+      ${lib.concatMapStringsSep "\n" (check: ''
+        if [ -f "${check}/dep-report.txt" ]; then
+          cat "${check}/dep-report.txt" >> "$out/summary.txt"
+          echo "" >> "$out/summary.txt"
+          echo "--------------------------------------------------------------------------------" >> "$out/summary.txt"
+          echo "" >> "$out/summary.txt"
+        fi
+      '') depChecks}
+
+      cat "$out/summary.txt"
+      echo "Matrix dependency report summary generated successfully." > "$out/result"
+    '';
+
   # Automatically generates checks for all target matrix packages
   generateChecks = { hostPkgs, targetMatrix }:
     let
-      checkEntries = lib.concatMap (targetName:
+      elfCheckEntries = lib.concatMap (targetName:
         let pkgsForTarget = targetMatrix.${targetName};
         in lib.concatMap (pkgName:
           let pkg = pkgsForTarget.${pkgName};
@@ -291,8 +390,31 @@ let
           }
         ) (builtins.attrNames pkgsForTarget)
       ) (builtins.attrNames targetMatrix);
+
+      depCheckEntries = lib.concatMap (targetName:
+        let pkgsForTarget = targetMatrix.${targetName};
+        in map (pkgName:
+          let pkg = pkgsForTarget.${pkgName};
+          in {
+            name = "check-deps-${targetName}-${pkgName}";
+            value = mkDepReportCheck {
+              inherit hostPkgs targetName pkgName pkg;
+            };
+          }
+        ) (builtins.attrNames pkgsForTarget)
+      ) (builtins.attrNames targetMatrix);
+
+      allDepChecks = map (entry: entry.value) depCheckEntries;
+
+      summaryCheck = {
+        name = "check-deps-summary";
+        value = mkDepSummaryCheck {
+          inherit hostPkgs;
+          depChecks = allDepChecks;
+        };
+      };
     in
-    builtins.listToAttrs checkEntries;
+    builtins.listToAttrs (elfCheckEntries ++ depCheckEntries ++ [ summaryCheck ]);
 
 in
 {
@@ -304,6 +426,8 @@ in
     mkAndroidPkgs
     mkAdbPushApp
     mkElfCheck
+    mkDepReportCheck
+    mkDepSummaryCheck
     mkTargetMatrix
     generatePackages
     generateApps
