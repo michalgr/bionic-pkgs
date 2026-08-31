@@ -99,3 +99,35 @@ jobs:
           else
             echo "No checks found for target ${{ matrix.target }}"
           fi
+
+      - name: Build Target Archives (${{ matrix.target }})
+        if: matrix.system == 'x86_64-linux'
+        run: |
+          case "${{ matrix.target }}" in
+            aarch64-android)
+              arch="aarch64"
+              ;;
+            x86_64-android)
+              arch="x86_64"
+              ;;
+            *)
+              arch="${{ matrix.target }}"
+              ;;
+          esac
+
+          echo "Building sysroot and bpftrace-static archive for ${{ matrix.target }} ($arch)..."
+          nix build .#${{ matrix.target }}-sysroot .#${{ matrix.target }}-bpftrace-static-archive --print-build-logs
+
+          mkdir -p dist
+          cp result*/sysroot-${arch}.tar.gz dist/ 2>/dev/null || cp result/sysroot-${arch}.tar.gz dist/
+          cp result*/bpftrace-static-${arch}.tar.gz dist/ 2>/dev/null || cp result-1/bpftrace-static-${arch}.tar.gz dist/
+
+          ls -lh dist/
+
+      - name: Upload Target Archives (${{ matrix.target }})
+        if: matrix.system == 'x86_64-linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: archives-${{ matrix.target }}
+          path: dist/*.tar.gz
+          if-no-files-found: error

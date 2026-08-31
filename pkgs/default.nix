@@ -49,6 +49,29 @@ let
     python3 = targetPkgs.callPackage ./runtime/python3 {
       inherit (self) libffi android-prebuilts xz bzip2;
     };
+
+    # Bundled Archives
+    sysroot = targetPkgs.callPackage ./sysroot { } {
+      packages = [
+        self.bpftrace
+        self.python3
+        self.strace
+        self.elfutils
+        self.radare2
+        self.rizin
+        self.bcc
+        self.libbpf
+        self.libffi
+        self.xz
+        self.zstd
+        self.bzip2
+        self.cereal
+      ];
+    };
+
+    bpftrace-static-archive = targetPkgs.callPackage ./bpftrace-static-archive { } {
+      inherit (self) bpftrace-static;
+    };
   };
 in
 self

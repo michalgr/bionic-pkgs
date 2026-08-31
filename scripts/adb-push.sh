@@ -356,27 +356,7 @@ run_adb shell "tar -xf '$DEST_DIR/stage.tar' -C '$DEST_DIR' && rm -f '$DEST_DIR/
 
 # 7. Generate launcher wrapper script
 LAUNCHER_TMP=$(mktemp "${TMPDIR:-/tmp}/bionic_run_${PKG_NAME}_XXXXXX.sh")
-cat << EOF > "$LAUNCHER_TMP"
-#!/system/bin/sh
-SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
-export LD_LIBRARY_PATH="\$SCRIPT_DIR/lib:\$SCRIPT_DIR/../lib:\$LD_LIBRARY_PATH"
-export PATH="\$SCRIPT_DIR/bin:\$PATH"
-for py_dir in "\$SCRIPT_DIR"/lib/python3.*; do
-  if [ -d "\$py_dir" ]; then
-    export PYTHONHOME="\$SCRIPT_DIR"
-    if [ -d "\$py_dir/site-packages" ]; then
-      export PYTHONPATH="\$py_dir/site-packages:\''${PYTHONPATH:-}"
-    fi
-    break
-  fi
-done
-if [ -x "\$SCRIPT_DIR/bin/${BIN_NAME}" ]; then
-  exec "\$SCRIPT_DIR/bin/${BIN_NAME}" "\$@"
-else
-  echo "Executable \$SCRIPT_DIR/bin/${BIN_NAME} not found" >&2
-  exit 1
-fi
-EOF
+"${0%/*}/generate-launcher.sh" "${BIN_NAME}" > "$LAUNCHER_TMP"
 
 run_adb push "$LAUNCHER_TMP" "$DEST_DIR/run.sh" >/dev/null
 run_adb shell "chmod 755 '$DEST_DIR/run.sh'"
