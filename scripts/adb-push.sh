@@ -335,6 +335,12 @@ if [ -n "$SERIAL" ]; then
   ADB_FLAGS+=(-s "$SERIAL")
 fi
 
+# Helper for shell escaping values for remote shell commands
+shell_escape() {
+  local arg="$1"
+  printf "'%s'" "${arg//\'/\'\\\'\'}"
+}
+
 run_adb() {
   "$ADB_BIN" "${ADB_FLAGS[@]}" "$@"
 }
@@ -345,14 +351,19 @@ if ! run_adb get-state >/dev/null 2>&1; then
   exit 1
 fi
 
+DEST_DIR_ESC="$(shell_escape "$DEST_DIR")"
+STAGE_TAR_REMOTE_ESC="$(shell_escape "$DEST_DIR/stage.tar")"
+RUN_SH_REMOTE_ESC="$(shell_escape "$DEST_DIR/run.sh")"
+BIN_DIR_REMOTE_ESC="$(shell_escape "$DEST_DIR/bin")"
+
 echo "==> Creating staging directory on device ($DEST_DIR)..."
-run_adb shell "rm -rf '$DEST_DIR' && mkdir -p '$DEST_DIR'"
+run_adb shell "rm -rf ${DEST_DIR_ESC} && mkdir -p ${DEST_DIR_ESC}"
 
 echo "==> Pushing package archive (${PAYLOAD_SIZE})..."
 run_adb push "$STAGE_TAR" "$DEST_DIR/stage.tar"
 
 echo "==> Unpacking payload on device..."
-run_adb shell "tar -xf '$DEST_DIR/stage.tar' -C '$DEST_DIR' && rm -f '$DEST_DIR/stage.tar' && chmod -R u+w '$DEST_DIR' 2>/dev/null && chmod 755 '$DEST_DIR/bin/'* 2>/dev/null || true"
+run_adb shell "tar -xf ${STAGE_TAR_REMOTE_ESC} -C ${DEST_DIR_ESC} && rm -f ${STAGE_TAR_REMOTE_ESC} && chmod -R u+w ${DEST_DIR_ESC} 2>/dev/null && chmod 755 ${BIN_DIR_REMOTE_ESC}/* 2>/dev/null || true"
 
 # 7. Generate launcher wrapper script
 LAUNCHER_TMP=$(mktemp "${TMPDIR:-/tmp}/bionic_run_${PKG_NAME}_XXXXXX.sh")
@@ -379,19 +390,23 @@ fi
 EOF
 
 run_adb push "$LAUNCHER_TMP" "$DEST_DIR/run.sh" >/dev/null
-run_adb shell "chmod 755 '$DEST_DIR/run.sh'"
+run_adb shell "chmod 755 ${RUN_SH_REMOTE_ESC}"
 rm -f "$LAUNCHER_TMP"
 
 echo ""
 echo "==> Deployment complete!"
 echo "==> Run on device via ADB:"
-echo "    adb shell \"$DEST_DIR/run.sh\""
+echo "    adb shell ${RUN_SH_REMOTE_ESC}"
 echo "    # Or directly:"
-echo "    adb shell \"$DEST_DIR/bin/${BIN_NAME}\""
+echo "    adb shell $(shell_escape "$DEST_DIR/bin/${BIN_NAME}")"
 
 # 8. Execute if requested
 if [ "$RUN_AFTER" -eq 1 ]; then
   echo ""
   echo "==> Running $BIN_NAME on device..."
-  run_adb shell "$DEST_DIR/run.sh" "${RUN_ARGS[@]}"
+  RUN_CMD="${RUN_SH_REMOTE_ESC}"
+  for arg in "${RUN_ARGS[@]}"; do
+    RUN_CMD+=" $(shell_escape "$arg")"
+  done
+  run_adb shell "$RUN_CMD"
 fi
