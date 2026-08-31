@@ -46,7 +46,7 @@ jobs:
 
       - name: Verify ADB Push Apps Evaluation
         run: |
-          nix eval .#apps --apply builtins.attrNames
+          nix eval .#apps --apply "apps: builtins.attrNames apps"
 
   matrix-build:
     name: Build & Verify (${{ matrix.system }} -> ${{ matrix.target }})
