@@ -31,13 +31,40 @@ jobs:
       - name: Check Flake Schema & Lockfile
         run: nix flake check --no-build --all-systems
 
+  verify-apps:
+    name: Verify ADB Push Apps Evaluation (${{ matrix.system }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+          - os: macos-latest
+            system: aarch64-darwin
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Verify ADB Push Apps Evaluation
+        run: |
+          nix eval .#apps.${{ matrix.system }} --apply builtins.attrNames
+
   matrix-build:
-    name: Build & Verify (${{ matrix.os }})
+    name: Build & Verify (${{ matrix.system }} -> ${{ matrix.target }})
     needs: flake-check
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
+        target: [aarch64-android, x86_64-android]
         include:
           - os: ubuntu-latest
             system: x86_64-linux
@@ -63,9 +90,12 @@ jobs:
           name: bionic-pkgs
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      - name: Run Flake Checks & Automated ELF Verifications
-        run: nix flake check --print-build-logs
-
-      - name: Verify ADB Push Apps Evaluation
+      - name: Run Target ELF Verification Checks (${{ matrix.target }})
         run: |
-          nix eval .#apps.${{ matrix.system }} --apply builtins.attrNames
+          checks=$(nix eval --raw .#checks.${{ matrix.system }} --apply "checks: builtins.concatStringsSep \" \" (builtins.map (name: \".#checks.${{ matrix.system }}.\${name}\") (builtins.filter (name: !(builtins.isNull (builtins.match \".*${{ matrix.target }}.*\" name))) (builtins.attrNames checks)))")
+          if [ -n "$checks" ]; then
+            echo "Building checks for target ${{ matrix.target }}: $checks"
+            nix build $checks --print-build-logs
+          else
+            echo "No checks found for target ${{ matrix.target }}"
+          fi
