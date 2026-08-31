@@ -31,6 +31,30 @@ jobs:
       - name: Check Flake Schema & Lockfile
         run: nix flake check --no-build --all-systems
 
+  verify-apps:
+    name: Verify ADB Push Apps Evaluation (${{ matrix.system }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+          - os: macos-latest
+            system: aarch64-darwin
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Verify ADB Push Apps Evaluation
+        run: |
+          nix eval .#apps.${{ matrix.system }} --apply builtins.attrNames
 
   matrix-build:
     name: Build & Verify (${{ matrix.system }} -> ${{ matrix.target }})
@@ -75,7 +99,3 @@ jobs:
           else
             echo "No checks found for target ${{ matrix.target }}"
           fi
-
-      - name: Verify ADB Push Apps Evaluation
-        run: |
-          nix eval .#apps.${{ matrix.system }} --apply builtins.attrNames
