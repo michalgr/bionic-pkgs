@@ -17,8 +17,11 @@ stdenv.mkDerivation {
     mkdir -p staging/bin staging/lib staging/share
 
     for pkg in $packagePaths; do
+      chmod -R u+w staging 2>/dev/null || true
+
       if [ -d "$pkg/bin" ]; then
         cp -a "$pkg/bin/." staging/bin/
+        chmod -R u+w staging 2>/dev/null || true
       fi
       if [ -d "$pkg/lib" ]; then
         for item in "$pkg"/lib/*; do
@@ -29,6 +32,7 @@ stdenv.mkDerivation {
               ;;
             *)
               cp -a "$item" staging/lib/
+              chmod -R u+w staging 2>/dev/null || true
               ;;
           esac
         done
@@ -42,6 +46,7 @@ stdenv.mkDerivation {
               ;;
             *)
               cp -a "$item" staging/share/
+              chmod -R u+w staging 2>/dev/null || true
               ;;
           esac
         done
