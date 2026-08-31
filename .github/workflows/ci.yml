@@ -75,6 +75,6 @@ jobs:
             echo "No checks found for target ${{ matrix.target }}"
           fi
 
-      - name: Verify ADB Push Apps Evaluation
+      - name: Verify ADB Push Apps Evaluation (${{ matrix.target }})
         run: |
-          nix eval .#apps.${{ matrix.system }} --apply builtins.attrNames
+          nix eval .#apps.${{ matrix.system }} --apply "apps: builtins.filter (name: !(builtins.isNull (builtins.match \".*${{ matrix.target }}.*\" name)) || (\"${{ matrix.target }}\" == \"aarch64-android\" && builtins.isNull (builtins.match \".*-(x86_64|armv7a|i686)-android-.*\" name))) (builtins.attrNames apps)"
