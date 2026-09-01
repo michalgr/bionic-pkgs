@@ -1,9 +1,14 @@
 # pkgs/bpftrace-static-archive/default.nix
 # BPFtrace static binary archive.
 
-{ stdenv, gnutar, gzip, lib }:
-
-{ bpftrace-static, targetArch ? stdenv.hostPlatform.parsed.cpu.name }:
+{
+  lib,
+  stdenv,
+  gnutar,
+  gzip,
+  bpftrace-static,
+  targetArch ? stdenv.hostPlatform.parsed.cpu.name,
+}:
 
 stdenv.mkDerivation {
   pname = "bpftrace-static-archive-${targetArch}";
@@ -18,11 +23,15 @@ stdenv.mkDerivation {
     chmod -R u+w staging 2>/dev/null || true
 
     mkdir -p $out
-    tar -czf "$out/bpftrace-static-${targetArch}.tar.gz" -C staging .
+    tar --owner=0 --group=0 --numeric-owner --mtime='@1' --sort=name -czf "$out/bpftrace-static-${targetArch}.tar.gz" -C staging .
   '';
 
   meta = {
     description = "BPFtrace static binary archive (${targetArch})";
+    homepage = "https://github.com/bpftrace/bpftrace";
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.linux;
+    maintainers = [ ];
     skipElfCheck = true;
   };
 }

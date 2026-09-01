@@ -356,7 +356,8 @@ run_adb shell "tar -xf '$DEST_DIR/stage.tar' -C '$DEST_DIR' && rm -f '$DEST_DIR/
 
 # 7. Generate launcher wrapper script
 LAUNCHER_TMP=$(mktemp "${TMPDIR:-/tmp}/bionic_run_${PKG_NAME}_XXXXXX.sh")
-"${0%/*}/generate-launcher.sh" "${BIN_NAME}" > "$LAUNCHER_TMP"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/generate-launcher.sh" "${BIN_NAME}" > "$LAUNCHER_TMP"
 
 run_adb push "$LAUNCHER_TMP" "$DEST_DIR/run.sh" >/dev/null
 run_adb shell "chmod 755 '$DEST_DIR/run.sh'"
