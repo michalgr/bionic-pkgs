@@ -137,6 +137,13 @@ in
   bionic-compat = final.callPackage ../pkgs/libs/bionic-compat { };
   android-prebuilts = final.callPackage ../pkgs/libs/android-prebuilts { };
 
+  # Map zlib to Android platform NDK stubs so all packages bind directly to /system/lib64/libz.so
+  zlib = final.android-prebuilts // {
+    dev = final.android-prebuilts;
+    out = final.android-prebuilts;
+    static = final.android-prebuilts;
+  };
+
   # Ensure Linux kernel headers build cleanly across all build hosts (including Darwin / macOS)
   makeLinuxHeaders = args:
     (prev.makeLinuxHeaders args).overrideAttrs (old: {
