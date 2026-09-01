@@ -32,7 +32,7 @@ def clean_name(drv_path, env):
     return drv_filename
 
 def is_target_dep(drv_path, drv_info, target_triple):
-    env = drv_info.get("env", {})
+    env = drv_info.get("env", {}) if isinstance(drv_info, dict) else {}
     chost = env.get("CHOST", "")
     cross_config = env.get("crossConfig", "")
     configure_flags = env.get("configureFlags", "")
@@ -41,7 +41,6 @@ def is_target_dep(drv_path, drv_info, target_triple):
     cargo_target = env.get("CARGO_BUILD_TARGET", "")
     cflags = env.get("NIX_CROSS_CFLAGS_COMPILE", "") or env.get("NIX_CFLAGS_COMPILE", "")
 
-    # Direct match on CHOST or crossConfig target triple
     if target_triple in chost or target_triple in cross_config:
         return True
     if target_triple in cargo_target:
@@ -53,7 +52,6 @@ def is_target_dep(drv_path, drv_info, target_triple):
     if "-DCMAKE_SYSTEM_NAME=Android" in cmake_flags:
         return True
 
-    # Check if derivation explicitly targets android host via cflags or flags
     if "bionic" in cflags.lower() or "android" in cflags.lower():
         return True
 
@@ -61,7 +59,7 @@ def is_target_dep(drv_path, drv_info, target_triple):
 
 def load_derivations_in_batches(drv_list_file):
     with open(drv_list_file, "r") as f:
-        drv_paths = [line.strip() for line in f if line.strip()]
+        drv_paths = [line.strip() for line in f if line.strip().endswith(".drv")]
 
     derivations = {}
     batch_size = 50
@@ -75,9 +73,22 @@ def load_derivations_in_batches(drv_list_file):
                 check=True
             )
             batch_data = json.loads(res.stdout)
-            derivations.update(batch_data)
-        except Exception as e:
-            sys.stderr.write(f"Warning: Failed to run nix derivation show on batch {i}: {e}\n")
+            if isinstance(batch_data, dict):
+                derivations.update(batch_data)
+        except Exception:
+            for drv_path in batch:
+                try:
+                    res = subprocess.run(
+                        ["nix", "derivation", "show", drv_path],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+                    single_data = json.loads(res.stdout)
+                    if isinstance(single_data, dict):
+                        derivations.update(single_data)
+                except Exception as e:
+                    sys.stderr.write(f"Warning: Failed to show derivation {drv_path}: {e}\n")
     return derivations
 
 def main():
@@ -97,10 +108,16 @@ def main():
     else:
         derivations = json.load(sys.stdin)
 
+    if not isinstance(derivations, dict):
+        sys.stderr.write("Error: Expected dictionary for derivations\n")
+        sys.exit(1)
+
     target_deps = {}
     build_deps = {}
 
     for drv_path, drv_info in derivations.items():
+        if not isinstance(drv_info, dict):
+            continue
         env = drv_info.get("env", {})
         name = clean_name(drv_path, env)
 

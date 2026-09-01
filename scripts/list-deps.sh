@@ -29,13 +29,13 @@ python3 -c '
 import json, sys
 data = json.loads(sys.argv[1])
 for path in data:
-    if path:
+    if path and path.endswith(".drv"):
         print(path)
 ' "${TOP_DRVS_JSON}" > "${TOP_DRVS_FILE}"
 
 echo "Finding recursive derivation closures..."
 ALL_DRVS_FILE="${TMP_DIR}/all_drvs.txt"
-xargs nix-store -qR < "${TOP_DRVS_FILE}" | sort -u > "${ALL_DRVS_FILE}"
+xargs nix-store -qR < "${TOP_DRVS_FILE}" | grep '\.drv$' | sort -u > "${ALL_DRVS_FILE}"
 
 echo "Categorizing and listing projects..."
 python3 "${SCRIPT_DIR}/list-deps.py" --target "${TARGET}" --system "${SYSTEM}" --drv-list-file "${ALL_DRVS_FILE}"
