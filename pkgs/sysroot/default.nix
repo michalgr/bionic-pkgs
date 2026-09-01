@@ -64,7 +64,7 @@ stdenv.mkDerivation {
     [ -d staging/share ] && [ -z "$(ls -A staging/share)" ] && rmdir staging/share || true
 
     # Create python-launcher.sh at root of extracted sysroot
-    ${generateLauncher} python3 > staging/python-launcher.sh
+    bash ${generateLauncher} python3 > staging/python-launcher.sh
     chmod 755 staging/python-launcher.sh
 
     mkdir -p $out
