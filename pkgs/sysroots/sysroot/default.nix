@@ -6,7 +6,7 @@
   stdenv,
   gnutar,
   gzip,
-  generateLauncher ? ../../scripts/generate-launcher.sh,
+  generateLauncher ? ../../../scripts/generate-launcher.sh,
   packages ? [ ],
   targetArch ? stdenv.hostPlatform.parsed.cpu.name,
 }:
