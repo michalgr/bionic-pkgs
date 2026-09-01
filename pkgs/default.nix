@@ -51,7 +51,7 @@ let
     };
 
     # Bundled Archives
-    sysroot = targetPkgs.callPackage ./sysroots/sysroot {
+    sysroot = targetPkgs.callPackage ./bundles/sysroot {
       packages = [
         self.bpftrace
         self.python3
@@ -69,7 +69,7 @@ let
       ];
     };
 
-    bpftrace-static-archive = targetPkgs.callPackage ./sysroots/bpftrace-static-archive {
+    bpftrace-static-archive = targetPkgs.callPackage ./bundles/bpftrace-static-archive {
       inherit (self) bpftrace-static;
     };
   };
