@@ -156,14 +156,14 @@ let
     builtins.listToAttrs (targetAppEntries ++ defaultAppEntries) // defaultApp;
 
   # Helper to create an ELF verification check derivation for CI / nix flake check
-  mkElfCheck = { hostPkgs, pkg, targetName, pkgName }:
+  mkElfCheck = { hostPkgs, pkg, targetName, pkgName, checkElfScript ? ../scripts/check-elf.sh }:
     hostPkgs.runCommand "check-elf-${pkgName}-${targetName}" {
       nativeBuildInputs = [
         hostPkgs.llvmPackages.llvm
         hostPkgs.file
       ];
     } ''
-      bash ${../scripts}/check-elf.sh "${pkg}" "${targetName}" "${pkgName}" "$out"
+      bash ${checkElfScript} "${pkg}" "${targetName}" "${pkgName}" "$out"
     '';
 
   # Automatically generates checks for all target matrix packages
