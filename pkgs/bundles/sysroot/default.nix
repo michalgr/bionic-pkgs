@@ -12,12 +12,7 @@
   targetArch ? stdenv.hostPlatform.parsed.cpu.name,
 }:
 
-stdenv.mkDerivation {
-  pname = "sysroot-${targetArch}";
-  version = "1.0.0";
-
-  nativeBuildInputs = [ gnutar gzip ];
-
+let
   getRuntimeOutputs = pkg:
     if lib.isDerivation pkg then
       let
@@ -28,6 +23,14 @@ stdenv.mkDerivation {
       [ pkg ];
 
   packagePaths = lib.unique (map (p: "${p}") (lib.concatMap getRuntimeOutputs packages));
+in
+stdenv.mkDerivation {
+  pname = "sysroot-${targetArch}";
+  version = "1.0.0";
+
+  nativeBuildInputs = [ gnutar gzip ];
+
+  inherit packagePaths;
 
   buildCommand = ''
     mkdir -p staging/bin staging/lib staging/share
