@@ -247,7 +247,7 @@ let
           fi
 
           # 4. Check Forbidden glibc dependencies
-          for forbidden in libpthread.so librt.so libutil.so libresolv.so libcrypt.so libnsl.so libanl.so libc.so.6 libm.so.6 ld-linux; do
+          for forbidden in libpthread.so librt.so libutil.so libresolv.so libcrypt.so libnsl.so libanl.so libc.so.6 libm.so.6 ld-linux libz.so.1; do
             if llvm-readelf -d "$elf_file" 2>/dev/null | grep NEEDED | grep -q "$forbidden"; then
               echo "ERROR: Binary links forbidden glibc library: $forbidden" >&2
               exit 1
