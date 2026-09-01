@@ -12,7 +12,8 @@ TOP_DRVS_JSON=$(nix eval --json ".#legacyPackages.${SYSTEM}.${TARGET}" --apply '
     builtins.attrValues (
       builtins.mapAttrs (n: v:
         let
-          evalDrv = builtins.tryEval (if builtins.isDerivation v then v.drvPath else null);
+          isDrv = builtins.isAttrs v && (v ? drvPath);
+          evalDrv = builtins.tryEval (if isDrv then v.drvPath else null);
         in
         if evalDrv.success then evalDrv.value else null
       ) pkgs
