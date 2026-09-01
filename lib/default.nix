@@ -50,7 +50,7 @@ let
       allDeps = lib.closePropagation directDeps;
       pushScript = hostPkgs.writeShellScriptBin "push-${pkgName}-${targetName}" ''
         set -euo pipefail
-        exec ${../scripts/adb-push.sh} \
+        exec ${../scripts}/adb-push.sh \
           --pkg-path "${pkg}" \
           --pkg-name "${pkgName}" \
           --target "${targetName}" \
