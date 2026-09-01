@@ -66,6 +66,8 @@ let
         self.zstd
         self.bzip2
         targetPkgs.llvmPackages.libcxx
+        targetPkgs.llvmPackages.libclang
+        targetPkgs.llvmPackages.llvm
       ];
     };
 
