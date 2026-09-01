@@ -1,4 +1,4 @@
-# pkgs/sysroot/default.nix
+# pkgs/bundles/sysroot/default.nix
 # Android sysroot runtime bundle archive.
 
 {
@@ -7,6 +7,7 @@
   gnutar,
   gzip,
   generateLauncher ? ../../../scripts/generate-launcher.sh,
+  fixLinkerScripts ? ../../../scripts/fix-linker-scripts.sh,
   packages ? [ ],
   targetArch ? stdenv.hostPlatform.parsed.cpu.name,
 }:
@@ -17,7 +18,16 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [ gnutar gzip ];
 
-  packagePaths = map (p: "${p}") packages;
+  getRuntimeOutputs = pkg:
+    if lib.isDerivation pkg then
+      let
+        available = lib.filter (out: pkg ? ${out}) [ "out" "bin" "lib" ];
+      in
+        if available != [ ] then map (out: pkg.${out}) available else [ pkg ]
+    else
+      [ pkg ];
+
+  packagePaths = lib.unique (map (p: "${p}") (lib.concatMap getRuntimeOutputs packages));
 
   buildCommand = ''
     mkdir -p staging/bin staging/lib staging/share
@@ -58,6 +68,9 @@ stdenv.mkDerivation {
     # Clean up unwanted static archives or pkgconfig inside staging
     find staging -type f \( -name "*.a" -o -name "*.la" -o -name "*.o" \) -delete 2>/dev/null || true
     find staging -type d \( -name "pkgconfig" -o -name "cmake" \) -exec rm -rf {} + 2>/dev/null || true
+
+    # Replace GNU linker script stubs with symlinks to versioned ELF libraries
+    bash ${fixLinkerScripts} staging/lib
 
     # Remove empty dirs
     [ -d staging/lib ] && [ -z "$(ls -A staging/lib)" ] && rmdir staging/lib || true

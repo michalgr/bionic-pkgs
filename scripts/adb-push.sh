@@ -284,20 +284,8 @@ chmod -R u+wX "$STAGE_DIR" 2>/dev/null || true
 find "$STAGE_DIR" -type f \( -name "*.a" -o -name "*.la" -o -name "*.o" \) -delete 2>/dev/null || true
 find "$STAGE_DIR" -type d \( -name "pkgconfig" -o -name "cmake" \) -exec rm -rf {} + 2>/dev/null || true
 
-# Replace GNU linker script stubs (e.g. libc++.so -> INPUT(libc++.so.1 ...)) with symlinks to their versioned .so
-if [ -d "$STAGE_DIR/lib" ]; then
-  for so_file in "$STAGE_DIR"/lib/*.so; do
-    if [ -f "$so_file" ] && [ ! -L "$so_file" ]; then
-      if [ "$(od -An -N4 -tx1 "$so_file" 2>/dev/null | tr -d ' \n')" != "7f454c46" ]; then
-        if [ -f "${so_file}.1" ] || [ -L "${so_file}.1" ]; then
-          ln -sf "$(basename "${so_file}.1")" "$so_file"
-        else
-          rm -f "$so_file"
-        fi
-      fi
-    fi
-  done
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/fix-linker-scripts.sh" "$STAGE_DIR/lib"
 
 # Remove empty directories
 [ -d "$STAGE_DIR/lib" ] && [ -z "$(ls -A "$STAGE_DIR/lib")" ] && rmdir "$STAGE_DIR/lib" || true
