@@ -9,7 +9,6 @@
   pkg-config,
   meson,
   ninja,
-  android-prebuilts,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -30,10 +29,6 @@ stdenv.mkDerivation (finalAttrs: {
     meson
     ninja
     buildPackages.python3
-  ];
-
-  buildInputs = [
-    android-prebuilts
   ];
 
   preConfigure = ''

@@ -9,7 +9,6 @@ let
       buildInputs = (old.buildInputs or [ ]) ++ [
         final.bionic.dev
         final.bionic.out
-        final.bionic-compat
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
@@ -32,7 +31,6 @@ let
       buildInputs = (old.buildInputs or [ ]) ++ [
         final.bionic.dev
         final.bionic.out
-        final.bionic-compat
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
@@ -52,7 +50,6 @@ let
       buildInputs = (old.buildInputs or [ ]) ++ [
         final.bionic.dev
         final.bionic.out
-        final.bionic-compat
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
@@ -61,6 +58,10 @@ let
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
       ];
+      postInstall = (old.postInstall or "") + ''
+        ln -sf libc++.so $out/lib/libc++_shared.so
+        ln -sf libc++.a $out/lib/libc++_static.a
+      '';
     });
 
     libllvm = lprev.libllvm.overrideAttrs (old: {
@@ -112,16 +113,13 @@ let
     cflags = [
       # Prevent Clang from searching host C library include paths (/usr/include, /usr/local/include)
       "-nostdlibinc"
-      # Priority header search paths for Bionic compat shims and Bionic libc headers
-      "-idirafter ${final.android-prebuilts}/include"
       # Enforce native ELF Thread-Local Storage (TLS) instead of emulated TLS
       "-fno-emulated-tls"
       # Modern Android (Android 15+) dynamic page size support
       "-D__BIONIC_NO_PAGE_SIZE_MACRO"
     ];
     ldflags = [
-      # Library search paths for GNU Linker Script shims and Bionic libc
-      "-L${final.bionic-compat}/lib"
+      # Library search path for Bionic libc and linker script stubs
       "-L${final.bionic.out}/lib"
       # Android 15+ 16 KB memory page alignment for ELF LOAD segments
       "-z" "max-page-size=16384"
@@ -134,14 +132,14 @@ in
 {
   inherit bionicFlags;
 
-  bionic-compat = final.callPackage ../pkgs/libs/bionic-compat { };
-  android-prebuilts = final.callPackage ../pkgs/libs/android-prebuilts { };
+  # Custom Android 14+ (API 34) Bionic libc & NDK r27 sysroot with built-in shims
+  bionic = final.callPackage ../pkgs/libs/bionic { };
 
   # Map zlib to Android platform NDK stubs so all packages bind directly to /system/lib64/libz.so
-  zlib = final.android-prebuilts // {
-    dev = final.android-prebuilts;
-    out = final.android-prebuilts;
-    static = final.android-prebuilts;
+  zlib = final.bionic // {
+    dev = final.bionic;
+    out = final.bionic;
+    static = final.bionic;
   };
 
   # Ensure Linux kernel headers build cleanly across all build hosts (including Darwin / macOS)
@@ -173,14 +171,12 @@ in
   llvmPackages_21 = prev.llvmPackages_21.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
 })
 // {
-  # Setup hook that injects Bionic compiler/linker flags, header priority, and rewrites ELF RUNPATH
+  # Setup hook that injects Bionic compiler/linker flags and rewrites ELF RUNPATH
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
   } (final.writeScript "bionic-fixup.sh" ''
     # Export canonical compilation and linker flags into environment at setup hook source time
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
-    # Inject bionic-compat headers early via NIX_CFLAGS_COMPILE_BEFORE so they take precedence over the implicitly cc-wrapper injected bionic.dev headers.
-    export NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}="-idirafter ${final.bionic-compat}/include ''${NIX_CFLAGS_COMPILE_BEFORE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
     bionicFixup() {

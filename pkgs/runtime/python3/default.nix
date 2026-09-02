@@ -8,7 +8,6 @@
   buildPackages,
   pkg-config,
   libffi,
-  android-prebuilts,
   xz,
   bzip2,
 }:
@@ -36,7 +35,6 @@ stdenv.mkDerivation (finalAttrs: {
   # Minimal dependency set: libffi (for ctypes), xz (for lzma), bzip2 (for bz2), and android-prebuilts (<android/log.h>)
   buildInputs = [
     libffi
-    android-prebuilts
     xz
     bzip2
   ];

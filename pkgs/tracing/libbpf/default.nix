@@ -7,7 +7,6 @@
   fetchurl,
   pkg-config,
   elfutils,
-  android-prebuilts,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -25,7 +24,6 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildInputs = [
     elfutils
-    android-prebuilts
   ];
 
   makeFlags = [
