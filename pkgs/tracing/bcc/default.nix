@@ -10,7 +10,6 @@
   flex,
   bison,
   pkg-config,
-  makeWrapper,
   llvmPackages,
   elfutils,
   libbpf,
@@ -33,7 +32,6 @@ stdenv.mkDerivation (finalAttrs: {
     flex
     bison
     pkg-config
-    makeWrapper
     buildPackages.python3
     buildPackages.python3Packages.setuptools
     llvmPackages.llvm
