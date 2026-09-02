@@ -218,9 +218,12 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    - In `librz/io/p/io_shm.c`, the shared memory plugin implementation relies on POSIX `shm_open()`, legacy `/dev/ashmem`, or System V `shmat()`.
    - On modern Android, `shm_open()` is absent from Bionic, `ashmem` is removed from NDK headers and modern kernels, and SysV `shmat()` is disallowed by SELinux policies and disabled in default kernels (`CONFIG_SYSVIPC=n`).
    - We apply `disable-io-shm-on-android.patch` to guard the plugin implementation with `!defined(__ANDROID__)`, allowing `librz/io` to gracefully fall back to a clean stub descriptor without dead or broken syscall paths.
-4. **Upstream Android Meson Target Branching**:
+4. **Android x86_64 TLS Dialect limitation (`R_X86_64_TLSDESC`)**:
+   - Bionic does not support `R_X86_64_TLSDESC` (relocation type 36) in Android API versions earlier than 35.
+   - When `-fno-emulated-tls` is active, Clang defaults to TLSDESC on x86_64 Android targets unless `-mtls-dialect=gnu` is passed to force traditional GNU TLS.
+5. **Upstream Android Meson Target Branching**:
    - Supplying `--cross-file` with `[host_machine] system = 'android'` in `preConfigure` activates Rizin's native upstream Android debug backends (`android_arm64.c`, `android_x86_64.c`) and skips the glibc-specific Linux coredump generator.
-5. **Host Header Isolation (`-nostdlibinc`) & C23 `<stdbit.h>` Collision**:
+6. **Host Header Isolation (`-nostdlibinc`) & C23 `<stdbit.h>` Collision**:
    - The bundled `Zydis` subproject detects C23 `<stdbit.h>`, which leaked host glibc `/usr/include/stdbit.h` on modern build hosts and failed on missing `<bits/endian.h>`.
    - Globally injecting `-nostdlibinc` in `bionicFlags` restricts Clang to Bionic headers while preserving compiler builtins, ensuring hermetic cross-compilation.
 

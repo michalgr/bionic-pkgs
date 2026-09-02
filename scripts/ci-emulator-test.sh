@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 DRY_RUN=0
 DIR="dist/"
@@ -45,6 +45,9 @@ adb wait-for-device
 
 echo "Elevating permissions and mounting tracefs/debugfs..."
 adb root
+until [ "$(adb shell id -u 2>/dev/null)" = "0" ]; do
+  sleep 1
+done
 adb wait-for-device
 adb shell setenforce 0
 adb shell "mount -t tracefs nodev /sys/kernel/tracing 2>/dev/null || true"
@@ -59,6 +62,7 @@ adb shell "mkdir -p /data/local/tmp/test-sysroot"
 echo "Deploying bpftrace-static-x86_64.tar.gz..."
 adb push "$BPFTRACE_TAR" /data/local/tmp/
 adb shell "cd /data/local/tmp/test-bpftrace-static && tar xzf /data/local/tmp/bpftrace-static-x86_64.tar.gz"
+adb shell "chmod 755 /data/local/tmp/test-bpftrace-static/bin/* 2>/dev/null || true"
 
 echo "Verifying bpftrace-static..."
 adb shell "/data/local/tmp/test-bpftrace-static/bin/bpftrace -V"
@@ -68,8 +72,14 @@ echo "Running basic userspace BPF smoke test..."
 adb shell "/data/local/tmp/test-bpftrace-static/bin/bpftrace -e 'BEGIN { printf(\"bpftrace-static smoke ok\n\"); exit(); }'"
 
 echo "Running tracepoint probe..."
-# Use || true to prevent set -e from killing the script if timeout exits with 124
-timeout 15 adb shell "/data/local/tmp/test-bpftrace-static/bin/bpftrace -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }'" || true
+set +e
+timeout 15 adb shell "/data/local/tmp/test-bpftrace-static/bin/bpftrace -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }'"
+RET=$?
+set -e
+if [ $RET -ne 0 ] && [ $RET -ne 124 ]; then
+  echo "Tracepoint probe failed with exit code $RET"
+  exit $RET
+fi
 
 echo "Checking syscount companion tool..."
 adb shell "/data/local/tmp/test-bpftrace-static/bin/syscount --help" > /dev/null
@@ -78,6 +88,7 @@ adb shell "/data/local/tmp/test-bpftrace-static/bin/syscount --help" > /dev/null
 echo "Deploying sysroot-x86_64.tar.gz..."
 adb push "$SYSROOT_TAR" /data/local/tmp/
 adb shell "cd /data/local/tmp/test-sysroot && tar xzf /data/local/tmp/sysroot-x86_64.tar.gz"
+adb shell "chmod 755 /data/local/tmp/test-sysroot/bin/* /data/local/tmp/test-sysroot/*.sh 2>/dev/null || true"
 
 echo "Verifying strace..."
 adb shell "/data/local/tmp/test-sysroot/bin/strace -V"
