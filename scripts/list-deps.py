@@ -7,11 +7,18 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Categorize and list recursive build and host machine dependencies.")
-    parser.add_argument("--target", required=True, help="Target architecture (e.g. aarch64-android or x86_64-android)")
+    parser.add_argument("--target", required=True, help="Target architecture (e.g. aarch64-android, x86_64-android, armv7a-android, i686-android)")
     parser.add_argument("--system", required=True, help="Host system runner (e.g. x86_64-linux or aarch64-darwin)")
     parser.add_argument("--drv-list-file", help="Path to file containing list of derivation paths (one per line)")
-    parser.add_argument("--json-input", help="Path to nix derivation show JSON file (or stdin if omitted)")
+    parser.add_argument("--json-input", help="Path to nix derivation show JSON file")
     return parser.parse_args()
+
+def extract_drvs(data):
+    if isinstance(data, dict):
+        drvs = data.get("derivations", data)
+        if isinstance(drvs, dict):
+            return {k: v for k, v in drvs.items() if isinstance(v, dict)}
+    return {}
 
 def clean_name(drv_path, env):
     pname = env.get("pname")
@@ -72,9 +79,9 @@ def load_derivations_in_batches(drv_list_file):
                 text=True,
                 check=True
             )
-            batch_data = json.loads(res.stdout)
-            if isinstance(batch_data, dict):
-                derivations.update(batch_data)
+            raw_data = json.loads(res.stdout)
+            batch_data = extract_drvs(raw_data)
+            derivations.update(batch_data)
         except Exception:
             for drv_path in batch:
                 try:
@@ -84,12 +91,25 @@ def load_derivations_in_batches(drv_list_file):
                         text=True,
                         check=True
                     )
-                    single_data = json.loads(res.stdout)
-                    if isinstance(single_data, dict):
-                        derivations.update(single_data)
+                    raw_data = json.loads(res.stdout)
+                    single_data = extract_drvs(raw_data)
+                    derivations.update(single_data)
                 except Exception as e:
                     sys.stderr.write(f"Warning: Failed to show derivation {drv_path}: {e}\n")
     return derivations
+
+def print_group(group_name, target_arch, deps_map):
+    total_drvs = sum(len(paths) for paths in deps_map.values())
+    print(f"--- {group_name} (built for {target_arch}) [{len(deps_map)} projects, {total_drvs} derivations] ---")
+    for name in sorted(deps_map.keys()):
+        paths = sorted(deps_map[name])
+        if len(paths) == 1:
+            print(f"  - {name} ({paths[0]})")
+        else:
+            print(f"  - {name} [{len(paths)} derivations]:")
+            for p in paths:
+                print(f"      * {p}")
+    print()
 
 def main():
     args = parse_args()
@@ -97,16 +117,24 @@ def main():
     target_triples = {
         "aarch64-android": "aarch64-unknown-linux-android",
         "x86_64-android": "x86_64-unknown-linux-android",
+        "armv7a-android": "armv7a-unknown-linux-androideabi",
+        "i686-android": "i686-unknown-linux-android",
     }
     target_triple = target_triples.get(args.target, f"{args.target}-unknown-linux-android")
 
-    if args.drv_list_file and os.path.exists(args.drv_list_file):
+    if args.drv_list_file:
+        if not os.path.exists(args.drv_list_file):
+            sys.stderr.write(f"Error: Derivation list file not found: {args.drv_list_file}\n")
+            sys.exit(1)
         derivations = load_derivations_in_batches(args.drv_list_file)
-    elif args.json_input and os.path.exists(args.json_input):
+    elif args.json_input:
+        if not os.path.exists(args.json_input):
+            sys.stderr.write(f"Error: JSON input file not found: {args.json_input}\n")
+            sys.exit(1)
         with open(args.json_input, "r") as f:
-            derivations = json.load(f)
+            derivations = extract_drvs(json.load(f))
     else:
-        derivations = json.load(sys.stdin)
+        derivations = extract_drvs(json.load(sys.stdin))
 
     if not isinstance(derivations, dict):
         sys.stderr.write("Error: Expected dictionary for derivations\n")
@@ -120,11 +148,15 @@ def main():
             continue
         env = drv_info.get("env", {})
         name = clean_name(drv_path, env)
+        full_path = drv_path if drv_path.startswith("/") else f"/nix/store/{drv_path}"
 
         if is_target_dep(drv_path, drv_info, target_triple):
-            target_deps[name] = drv_path
+            target_deps.setdefault(name, []).append(full_path)
         else:
-            build_deps[name] = drv_path
+            build_deps.setdefault(name, []).append(full_path)
+
+    total_target_drvs = sum(len(p) for p in target_deps.values())
+    total_build_drvs = sum(len(p) for p in build_deps.values())
 
     print("=" * 80)
     print(f"RECURSIVE DEPENDENCY LIST FOR TARGET: {args.target} ({target_triple})")
@@ -132,18 +164,11 @@ def main():
     print("=" * 80)
     print()
 
-    print(f"--- TARGET MACHINE PROJECTS (built for {args.target}) [{len(target_deps)}] ---")
-    for name in sorted(target_deps.keys()):
-        print(f"  - {name} ({target_deps[name]})")
-    print()
-
-    print(f"--- BUILD MACHINE PROJECTS (built for {args.system}) [{len(build_deps)}] ---")
-    for name in sorted(build_deps.keys()):
-        print(f"  - {name} ({build_deps[name]})")
-    print()
+    print_group("TARGET MACHINE PROJECTS", args.target, target_deps)
+    print_group("BUILD MACHINE PROJECTS", args.system, build_deps)
 
     print("=" * 80)
-    print(f"SUMMARY: {len(target_deps)} target machine projects, {len(build_deps)} build machine projects.")
+    print(f"SUMMARY: {len(target_deps)} target machine projects ({total_target_drvs} derivations), {len(build_deps)} build machine projects ({total_build_drvs} derivations).")
     print("=" * 80)
 
 if __name__ == "__main__":
