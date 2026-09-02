@@ -116,59 +116,13 @@ extern "C" {
 #endif
 EOF
 
-    # (c) <fnmatch.h> GNU Extension FNM_EXTMATCH
+    # (c) <fnmatch.h> GNU Extension FNM_EXTMATCH (required by elfutils)
     cat << 'EOF' >> "$dev/include/fnmatch.h"
 
 #ifndef FNM_EXTMATCH
 #define FNM_EXTMATCH 0
 #endif
 EOF
-
-    # (d) <elf.h> GNU Versioning and Note Types
-    cat << 'EOF' >> "$dev/include/elf.h"
-
-#ifndef SHT_GNU_INCREMENTAL_INPUTS
-#define SHT_GNU_INCREMENTAL_INPUTS 0x6fff4700
-#endif
-#ifndef SHT_GNU_ATTRIBUTES
-#define SHT_GNU_ATTRIBUTES 0x6ffffff5
-#endif
-#ifndef SHT_GNU_HASH
-#define SHT_GNU_HASH 0x6ffffff6
-#endif
-#ifndef SHT_GNU_LIBLIST
-#define SHT_GNU_LIBLIST 0x6ffffff7
-#endif
-#ifndef SHT_GNU_verdef
-#define SHT_GNU_verdef 0x6ffffffd
-#endif
-#ifndef SHT_GNU_verneed
-#define SHT_GNU_verneed 0x6ffffffe
-#endif
-#ifndef SHT_GNU_versym
-#define SHT_GNU_versym 0x6fffffff
-#endif
-#ifndef NT_GNU_ABI_TAG
-#define NT_GNU_ABI_TAG 1
-#endif
-#ifndef NT_GNU_HWCAP
-#define NT_GNU_HWCAP 2
-#endif
-#ifndef NT_GNU_BUILD_ID
-#define NT_GNU_BUILD_ID 3
-#endif
-#ifndef NT_GNU_GOLD_VERSION
-#define NT_GNU_GOLD_VERSION 4
-#endif
-#ifndef NT_GNU_PROPERTY_TYPE_0
-#define NT_GNU_PROPERTY_TYPE_0 5
-#endif
-EOF
-
-    # (e) <bits/ioctl.h> Disable C++ Signedness Overloading Ambiguity
-    if [ -f "$dev/include/bits/ioctl.h" ]; then
-      sed -i 's,!defined(BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD),0,g' "$dev/include/bits/ioctl.h"
-    fi
 
     # =========================================================================
     # 3. Install Platform Shared Libraries and CRT Objects
@@ -206,14 +160,12 @@ EOF
     # =========================================================================
     # Bionic consolidates pthread, rt, dl, util, etc. into libc.so.
     # GNU linker scripts redirect legacy glibc library links directly to Bionic libc.so
-    for libname in libpthread.so libpthread.a librt.so librt.a libutil.so libutil.a libresolv.so libresolv.a libcrypt.so libcrypt.a libnsl.so libnsl.a libanl.so libanl.a libatomic.so libatomic.a; do
+    for libname in libpthread.so libpthread.a librt.so librt.a libutil.so libutil.a libresolv.so libresolv.a libcrypt.so libcrypt.a; do
       echo "INPUT(libc.so)" > "$out/lib/$libname"
     done
     echo "INPUT(libdl.so)" > "$out/lib/libdl.a"
     echo "INPUT(libm.so)" > "$out/lib/libm.a"
     echo "INPUT(libc.so)" > "$out/lib/libc.a"
-    echo "INPUT(libc.so)" > "$out/lib/libgcc.a"
-    echo "INPUT(libc.so)" > "$out/lib/libgcc_s.so"
     echo "INPUT(-lz)" > "$out/lib/libz.a"
     echo "INPUT(-llog)" > "$out/lib/liblog.a"
 
