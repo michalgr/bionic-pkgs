@@ -117,6 +117,9 @@ let
       "-fno-emulated-tls"
       # Modern Android (Android 15+) dynamic page size support
       "-D__BIONIC_NO_PAGE_SIZE_MACRO"
+    ] ++ lib.optionals final.stdenv.hostPlatform.isx86_64 [
+      # Disable TLSDESC on x86_64 because Android < 15 emulator (API 34) does not support R_X86_64_TLSDESC (36)
+      "-mtls-dialect=gnu"
     ];
     ldflags = [
       # Library search path for Bionic libc and linker script stubs
