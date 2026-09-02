@@ -64,7 +64,7 @@ let
       '';
     });
 
-    libllvm = lprev.libllvm.overrideAttrs (old: {
+    libllvm = (lprev.libllvm.override { libxml2 = null; }).overrideAttrs (old: {
       buildInputs = (old.buildInputs or [ ]) ++ [
         lfinal.libcxx
       ];
@@ -79,6 +79,7 @@ let
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DLLVM_ENABLE_LIBCXX=ON"
         "-DLLVM_ENABLE_TERMINFO=OFF"
+        "-DLLVM_ENABLE_LIBXML2=OFF"
         "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
         "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
         "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
@@ -90,12 +91,13 @@ let
 
     llvm = lfinal.libllvm;
 
-    libclang = lprev.libclang.overrideAttrs (old: {
+    libclang = (lprev.libclang.override { libxml2 = null; }).overrideAttrs (old: {
       buildInputs = (old.buildInputs or [ ]) ++ [
         lfinal.libcxx
       ];
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DLLVM_ENABLE_LIBCXX=ON"
+        "-DLLVM_ENABLE_LIBXML2=OFF"
         "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
         "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
         "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
