@@ -19,7 +19,6 @@
   zstd,
   bzip2,
   libffi,
-  android-prebuilts,
   static ? false,
 }:
 
@@ -55,7 +54,6 @@ stdenv.mkDerivation (finalAttrs: {
     zstd
     bzip2
     libffi
-    android-prebuilts
   ];
 
   postPatch = lib.optionalString static ''

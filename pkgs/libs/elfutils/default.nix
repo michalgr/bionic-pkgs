@@ -6,7 +6,6 @@
   stdenv,
   fetchurl,
   buildPackages,
-  android-prebuilts,
   argp-standalone,
   musl-obstack,
   xz,
@@ -60,10 +59,6 @@ EOF
     xz
     zstd
     bzip2
-  ];
-
-  buildInputs = [
-    android-prebuilts
   ];
 
   # Bionic Porting Notes & Minimal Dependency Architecture:

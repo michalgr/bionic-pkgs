@@ -232,7 +232,7 @@ stage_dep_libs() {
   seen_deps["$dep_path"]=1
 
   case "$dep_path" in
-    *bionic-compat*|*bionic-prebuilt*|*android-prebuilts*|*android-headers*|*zlib*build*|*xgcc*|*gcc*|*glibc*)
+    *bionic*|*android-headers*|*zlib*build*|*xgcc*|*gcc*|*glibc*)
       # Skip build-time libc linker script shims, platform stubs, and host compiler libraries
       return 0
       ;;

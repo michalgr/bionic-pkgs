@@ -28,7 +28,7 @@ fi
 echo "==> Verifying ELF properties for ${PKG_NAME} (${TARGET_NAME})..."
 
 found_elf=0
-mapfile -t elf_files < <(find "${PKG_PATH}" -type f)
+mapfile -t elf_files < <(find -L "${PKG_PATH}" -type f)
 
 for elf_file in "${elf_files[@]}"; do
   if [ -f "$elf_file" ] && [ "$(od -An -N4 -tx1 "$elf_file" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then

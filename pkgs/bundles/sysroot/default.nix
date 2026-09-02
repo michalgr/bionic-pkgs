@@ -15,9 +15,7 @@
 let
   isPlatformPkg = p:
     let name = p.name or (p.pname or "");
-    in lib.hasInfix "android-prebuilts" name
-       || lib.hasInfix "bionic-compat" name
-       || lib.hasInfix "bionic-prebuilt" name;
+    in lib.hasInfix "bionic" name;
 
   allPackages = lib.filter (p: !isPlatformPkg p) (lib.closePropagation packages);
 

@@ -14,7 +14,6 @@
   llvmPackages,
   elfutils,
   libbpf,
-  android-prebuilts,
   python3,
 }:
 
