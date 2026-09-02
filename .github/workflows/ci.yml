@@ -132,3 +132,28 @@ jobs:
           name: archives-${{ matrix.target }}
           path: dist/*.tar.gz
           if-no-files-found: error
+
+  emulator-test-x86_64:
+    name: Android Emulator Test (x86_64)
+    needs: matrix-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Target Archives (x86_64-android)
+        uses: actions/download-artifact@v4
+        with:
+          name: archives-x86_64-android
+          path: dist/
+
+      - name: Run Emulator Test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none
+          script: ./scripts/ci-emulator-test.sh dist

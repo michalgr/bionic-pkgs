@@ -64,7 +64,7 @@ let
       '';
     });
 
-    libllvm = (lprev.libllvm.override { libxml2 = null; }).overrideAttrs (old: {
+    libllvm = lprev.libllvm.overrideAttrs (old: {
       buildInputs = (old.buildInputs or [ ]) ++ [
         lfinal.libcxx
       ];
@@ -79,7 +79,6 @@ let
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DLLVM_ENABLE_LIBCXX=ON"
         "-DLLVM_ENABLE_TERMINFO=OFF"
-        "-DLLVM_ENABLE_LIBXML2=OFF"
         "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
         "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
         "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
@@ -91,13 +90,12 @@ let
 
     llvm = lfinal.libllvm;
 
-    libclang = (lprev.libclang.override { libxml2 = null; }).overrideAttrs (old: {
+    libclang = lprev.libclang.overrideAttrs (old: {
       buildInputs = (old.buildInputs or [ ]) ++ [
         lfinal.libcxx
       ];
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DLLVM_ENABLE_LIBCXX=ON"
-        "-DLLVM_ENABLE_LIBXML2=OFF"
         "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
         "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
         "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
@@ -119,7 +117,7 @@ let
       "-fno-emulated-tls"
       # Modern Android (Android 15+) dynamic page size support
       "-D__BIONIC_NO_PAGE_SIZE_MACRO"
-    ];
+    ] ++ lib.optional (final.stdenv.hostPlatform.isx86_64 or false) "-mtls-dialect=gnu";
     ldflags = [
       # Library search path for Bionic libc and linker script stubs
       "-L${final.bionic.out}/lib"

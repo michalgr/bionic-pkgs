@@ -111,6 +111,11 @@ bionicFixup() {
 }
 ```
 
+### TLS Dialect on x86_64 (`-mtls-dialect=gnu`)
+When cross-compiling for Android x86_64, Bionic's dynamic linker does **not** implement `R_X86_64_TLSDESC` (relocation type 36). TLSDESC is only supported on ARM64 and RISC-V 64 in Bionic (`linker_relocate.cpp`).
+By default, when `-fno-emulated-tls` is enabled, Clang emits TLSDESC relocations on x86_64 targets, causing binaries that use thread-local storage (like Python extensions) to fail to load at runtime with `unknown reloc type 36`.
+To fix this, `bionicFlags.cflags` globally injects `-mtls-dialect=gnu` when targeting `x86_64-android`, which forces Clang to emit traditional GNU TLS (`__tls_get_addr`) relocations that Bionic fully supports on x86_64.
+
 ---
 
 ## 4. Dynamic Page Size Handling
