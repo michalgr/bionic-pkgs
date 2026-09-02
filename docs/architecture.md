@@ -6,7 +6,7 @@
 
 ### Why standard Android NDK is insufficient
 Cross-compiling standalone Linux CLI tools and diagnostic utilities for Android with the standard Google NDK is notoriously painful:
-1. **Transitive dependencies are hard**: Manually building and linking non-trivial dependency chains (e.g. `libffi`, `readline`, `ncurses`, `openssl`) without a package manager is brittle and time-consuming.
+1. **Transitive dependencies are hard**: Manually building and linking non-trivial dependency chains (e.g. `libffi`, `readline`, `openssl`) without a package manager is brittle and time-consuming.
 2. **Dialing cross-compilation options is tedious**: Finding the right combination of target triples, sysroot flags, PIE enforcement, and 16 KB page alignment requires constant trial and error.
 3. **No ARM64 Linux NDK**: Google NDK does not provide official toolchains for `aarch64-linux` hosts (e.g. Docker/containers on Apple Silicon, AWS Graviton, Asahi Linux).
 4. **Bionic libc adjustments**: Bionic differs from glibc/musl (no separate `libpthread`/`librt`, missing POSIX symbols, unified `libc.so`), requiring targeted patches and shims.

@@ -171,7 +171,7 @@ long page_size = sysconf(_SC_PAGESIZE);
 Python 3 on Android provides a standalone CLI scripting runtime and C interoperability via `ctypes`.
 
 1. **Minimal Dependency Architecture**:
-   - Upstream Linux Python distributions pull heavy dependency graphs (Tcl/Tk, ncurses, readline, sqlite, gdbm, dbm, OpenSSL, libxcrypt, etc.).
+   - Upstream Linux Python distributions pull heavy dependency graphs (Tcl/Tk, readline, sqlite, gdbm, dbm, OpenSSL, libxcrypt, etc.).
    - For an efficient, portable Android runtime, optional modules are disabled (`--without-readline`, `--without-curses`, `--without-sqlite3`, `--without-gdbm`, `--without-dbm`, `--without-tkinter`, `--disable-test-modules`).
    - Hash algorithm support (`_hashlib` / `hashlib`) is fulfilled without OpenSSL via `--with-builtin-hashlib-hashes=md5,sha1,sha2,sha3,blake2` which compiles internal C implementations (HACL*).
    - Only `libffi` is retained as an external dependency to power `_ctypes` for native C library interaction.

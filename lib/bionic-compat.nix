@@ -65,6 +65,7 @@ let
     });
 
     libllvm = (lprev.libllvm.override { libxml2 = null; }).overrideAttrs (old: {
+      propagatedBuildInputs = lib.filter (p: !(lib.hasInfix "ncurses" (p.name or ""))) (old.propagatedBuildInputs or [ ]);
       buildInputs = (old.buildInputs or [ ]) ++ [
         lfinal.libcxx
       ];
@@ -158,14 +159,6 @@ in
         make headers $makeFlags
       '';
     });
-
-  # ncurses for cross-compilation on Bionic
-  ncurses = prev.ncurses.overrideAttrs (old: {
-    configureFlags = (old.configureFlags or [ ]) ++ [
-      "--without-cxx-binding"
-      "--without-ada"
-    ];
-  });
 
   llvmPackages = prev.llvmPackages.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
 }
