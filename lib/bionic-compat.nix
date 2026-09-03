@@ -169,7 +169,7 @@ in
   llvmPackages_21 = prev.llvmPackages_21.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
 })
 // {
-  # Setup hook that injects Bionic compiler/linker flags and suppresses Nixpkgs auto-RPATH
+  # Setup hook that injects Bionic compiler/linker flags and suppresses Nixpkgs auto-RPATH & patchelf fixups
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
   } (final.writeScript "bionic-fixup.sh" ''
@@ -177,9 +177,11 @@ in
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
-    # Suppress Nixpkgs automatic RPATH generation to preserve pure link-time RPATHs
+    # Suppress Nixpkgs automatic RPATH generation and post-link patchelf fixups to preserve pure link-time RPATHs
     export NIX_DONT_SET_RPATH=1
     export NIX_DONT_SET_RPATH_${final.stdenv.cc.suffixSalt}=1
+    export dontPatchELF=1
+    export dontShrinkRPATH=1
   '');
 
   # Automatically equip target stdenv with Bionic flags and setup hook
