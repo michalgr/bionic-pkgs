@@ -7,7 +7,7 @@
 # 2. Dynamic linker interpreter path
 # 3. 16 KB page alignment on LOAD segments
 # 4. Absence of forbidden glibc library dependencies
-# 5. Absence of host /nix/store paths in RUNPATH
+# 5. Absence of host /nix/store paths in RPATH/RUNPATH and presence of $ORIGIN
 
 set -euo pipefail
 
@@ -115,12 +115,41 @@ for elf_file in "${elf_files[@]}"; do
       fi
     done
 
-    # 5. Check Relative RUNPATH ($ORIGIN/...)
-    rpath=$(llvm-readelf -d "$elf_file" 2>/dev/null | grep RUNPATH || true)
+    # 5. Check RPATH / RUNPATH Verification
+    rpath=$(llvm-readelf -d "$elf_file" 2>/dev/null | grep -E 'RUNPATH|RPATH' || true)
     if [ -n "$rpath" ]; then
-      echo "RUNPATH: $rpath"
+      echo "RPATH/RUNPATH: $rpath"
       if echo "$rpath" | grep -q "/nix/store"; then
-        echo "ERROR: Binary RUNPATH contains host /nix/store path!" >&2
+        echo "ERROR: Binary RPATH/RUNPATH contains host /nix/store path in $rel_path!" >&2
+        exit 1
+      fi
+    fi
+
+    # Determine if binary has non-system dynamic dependencies
+    has_non_system_deps=0
+    while IFS= read -r lib; do
+      [ -z "$lib" ] && continue
+      case "$lib" in
+        libc.so|libm.so|libdl.so|liblog.so|libz.so|libandroid.so|libEGL.so|libGLESv1_CM.so|libGLESv2.so|libGLESv3.so|libvulkan.so|libstdc++.so|libbinder_ndk.so|libmediandk.so|libcamera2ndk.so)
+          ;;
+        *)
+          has_non_system_deps=1
+          ;;
+      esac
+    done < <(llvm-readelf -d "$elf_file" 2>/dev/null | awk -F'[' '/\(NEEDED\)/ {print $2}' | tr -d ']' || true)
+
+    if [ "$has_non_system_deps" -eq 1 ]; then
+      if [ -z "$rpath" ]; then
+        echo "ERROR: Binary $rel_path has non-system dependencies but lacks RPATH/RUNPATH!" >&2
+        exit 1
+      fi
+      if ! echo "$rpath" | grep -q '\$ORIGIN'; then
+        echo "ERROR: Binary $rel_path has non-system dependencies but RPATH/RUNPATH does not contain \$ORIGIN!" >&2
+        exit 1
+      fi
+    elif [ -n "$rpath" ]; then
+      if ! echo "$rpath" | grep -q '\$ORIGIN'; then
+        echo "ERROR: Binary $rel_path RPATH/RUNPATH does not contain \$ORIGIN!" >&2
         exit 1
       fi
     fi

@@ -130,6 +130,9 @@ let
       # Android 15+ 16 KB memory page alignment for ELF LOAD segments
       "-z" "max-page-size=16384"
       "-z" "common-page-size=16384"
+      # Pure Link-Time RPATH emission for Android dynamic linker
+      "-rpath" "\\$ORIGIN/../lib:\\$ORIGIN:\\$ORIGIN/..:\\$ORIGIN/../.."
+      "--enable-new-dtags"
     ];
     cflagsString = lib.concatStringsSep " " cflags;
     ldflagsString = lib.concatStringsSep " " ldflags;
@@ -169,7 +172,7 @@ in
   llvmPackages_21 = prev.llvmPackages_21.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
 })
 // {
-  # Setup hook that injects Bionic compiler/linker flags and rewrites ELF RUNPATH
+  # Setup hook that injects Bionic compiler/linker flags and suppresses Nixpkgs auto-RPATH
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
   } (final.writeScript "bionic-fixup.sh" ''
@@ -177,23 +180,12 @@ in
     export NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_${final.stdenv.cc.suffixSalt}:-}"
     export NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_${final.stdenv.cc.suffixSalt}:-}"
 
-    bionicFixup() {
-      for output in ''${outputs:-out}; do
-        local dir="''${!output:-}"
-        if [ -n "$dir" ] && [ -d "$dir" ]; then
-          find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
-            if [ -f "$elf" ] && [ "$(od -An -N4 -tx1 "$elf" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
-              chmod +w "$elf" 2>/dev/null || true
-              ${final.buildPackages.patchelf}/bin/patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$elf" 2>/dev/null || true
-            fi
-          done
-        fi
-      done
-    }
-    postFixupHooks+=(bionicFixup)
+    # Suppress Nixpkgs automatic RPATH generation to preserve pure link-time RPATHs
+    export NIX_DONT_SET_RPATH=1
+    export NIX_DONT_SET_RPATH_${final.stdenv.cc.suffixSalt}=1
   '');
 
-  # Automatically equip target stdenv with Bionic flags, compatibility shims, and postFixup RPATH hook
+  # Automatically equip target stdenv with Bionic flags and setup hook
   stdenv = prev.stdenv.override (old: {
     extraNativeBuildInputs = (old.extraNativeBuildInputs or [ ]) ++ [ final.bionicFixupHook ];
   });
