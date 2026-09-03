@@ -159,7 +159,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          enable-hw-accel: true
+          disable-linux-hw-accel: false
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-metrics -no-snapshot-save -camera-back none
           script: ./scripts/ci-emulator-test.sh dist
