@@ -53,8 +53,8 @@ stdenv.mkDerivation (finalAttrs: {
     $AR cq libbz2.a blocksort.o huffman.o crctable.o randtable.o compress.o decompress.o bzlib.o
     $RANLIB libbz2.a
 
-    # 4. Link CLI executables against the shared libbz2.so
-    $CC $CFLAGS $NIX_CFLAGS_COMPILE $NIX_LDFLAGS -D_FILE_OFFSET_BITS=64 -o bzip2 bzip2.c -L. -lbz2
+    # 4. Link CLI executables
+    $CC $CFLAGS $NIX_CFLAGS_COMPILE $NIX_LDFLAGS -D_FILE_OFFSET_BITS=64 -o bzip2 bzip2.c blocksort.o huffman.o crctable.o randtable.o compress.o decompress.o bzlib.o
     $CC $CFLAGS $NIX_CFLAGS_COMPILE $NIX_LDFLAGS -D_FILE_OFFSET_BITS=64 -o bzip2recover bzip2recover.c
 
     runHook postBuild

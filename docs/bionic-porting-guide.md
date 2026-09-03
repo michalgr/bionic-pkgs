@@ -87,29 +87,19 @@ Rather than requiring every derivation to set repetitive compilation flags manua
 
 All target derivations built with `stdenv.mkDerivation` automatically receive:
 - **`NIX_CFLAGS_COMPILE`**: `-nostdlibinc -isystem ${bionic-compat}/include -isystem ${bionic.dev}/include -fno-emulated-tls -D__BIONIC_NO_PAGE_SIZE_MACRO`
-- **`NIX_LDFLAGS`**: `-L${bionic-compat}/lib -L${bionic.out}/lib -z max-page-size=16384 -z common-page-size=16384`
+- **`NIX_LDFLAGS`**: `-L${bionic-compat}/lib -L${bionic.out}/lib -z max-page-size=16384 -z common-page-size=16384 -rpath $ORIGIN/../lib:$ORIGIN:$ORIGIN/..:$ORIGIN/../.. --enable-new-dtags`
 
-### Dynamic Linker Path (`/system/bin/linker64` / `/system/bin/linker`) & `$ORIGIN` RPATH
+### Dynamic Linker Path (`/system/bin/linker64` / `/system/bin/linker`) & Pure Link-Time `$ORIGIN` RPATH
 Android binaries locate their dynamic linker at:
 - `/system/bin/linker64` (64-bit targets: `aarch64-android`, `x86_64-android`)
 - `/system/bin/linker` (32-bit targets: `armv7a-android`, `i686-android`)
 
-In `lib/bionic-compat.nix`, `bionicFixupHook` automatically ensures target ELF binaries have relative runpaths for device portability:
-```nix
-bionicFixup() {
-  for output in ''${outputs:-out}; do
-    local dir="''${!output:-}"
-    if [ -n "$dir" ] && [ -d "$dir" ]; then
-      find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
-        if [ -f "$elf" ] && [ "$(od -An -N4 -tx1 "$elf" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
-          chmod +w "$elf" 2>/dev/null || true
-          patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$elf" 2>/dev/null || true
-        fi
-      done
-    fi
-  done
-}
-```
+In `lib/bionic-compat.nix`, `bionic-pkgs` employs a **pure link-time RPATH model** and suppresses Nixpkgs' automatic host RPATH injection.
+
+#### Pure Link-Time RPATH Model & `NIX_DONT_SET_RPATH`
+1. **Link-Time Linker Flags**: `bionicFlags.ldflags` passes `-rpath $ORIGIN/../lib:$ORIGIN:$ORIGIN/..:$ORIGIN/../..` and `--enable-new-dtags` directly to the linker during initial compilation. This instructs the linker to emit portable `DT_RUNPATH` entries searching for shared libraries relative to the executable location.
+2. **Suppressing Auto-RPATH**: `bionicFixupHook` exports `NIX_DONT_SET_RPATH=1` and `NIX_DONT_SET_RPATH_${suffixSalt}=1`. This disables Nixpkgs' standard linker wrapper behavior that would otherwise pollute Android ELF binaries with host `/nix/store/...` paths.
+3. **Elimination of Post-Link Rewriting (`patchelf`)**: Post-link ELF binary modification tools like `patchelf` have been completely eliminated from the build flow. Post-link header rewriting risks corrupting or disrupting 16 KB memory page alignment (`-z max-page-size=16384`) required on Android 15+. Emitting relative RPATHs natively at link-time allows the linker to layout ELF sections and `PT_LOAD` segments with guaranteed 16 KB page alignment from the start.
 
 ---
 
@@ -182,7 +172,7 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    - **Resolution**: `<android/log.h>` and `liblog.so` are provided by the standalone `pkgs/libs/android-prebuilts` package and included in `buildInputs`, linking cleanly against Android's system `liblog.so`.
 4. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
    - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
-   - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
+   - `bionicFlags.ldflags` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
 5. **Runtime Standard Library Resolution (`PYTHONHOME`)**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"` and `export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"`.
 

@@ -56,7 +56,6 @@
           name = "bionic-pkgs-dev";
           packages = [
             pkgs.android-tools
-            pkgs.patchelf
             pkgs.llvmPackages.llvm
             pkgs.file
           ];
