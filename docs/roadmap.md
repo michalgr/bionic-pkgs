@@ -58,5 +58,5 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 ## 🤖 Phase 5: Developer Experience, ADB Automation & Caching
 - [x] Implement `nix run .#push-<pkg>` (and `.#push-<target>-<pkg>`) ADB push helpers with runtime dependency closure synchronization and launcher wrapper.
 - [x] `devShells` featuring cross-compilers, ADB binaries, and environment variables.
-- [ ] Automated integration test suite running on Android emulators in CI.
+- [x] Automated integration test suite running on Android emulators in CI (fast concurrent smoke test for `strace`/`python3` + full sysroot & eBPF test).
 - [ ] Enable Cachix binary cache substituters for prebuilt package distribution.
