@@ -153,10 +153,10 @@ To make testing binaries on Android hardware or emulators frictionless, every ex
 ## 7. CI/CD & Binary Caching Strategy
 
 ### GitHub Actions CI
-A GitHub Actions workflow (`.github/workflows/ci.yml`) will validate the cross-compilation matrix across host platforms:
-- `ubuntu-latest` (`x86_64-linux`)
-- `macos-latest` (`aarch64-darwin`)
-- ARM64 Linux runner / container (`aarch64-linux`)
+GitHub Actions workflows validate cross-compilation matrix compatibility and live Android runtime integrity:
+- **Matrix Build & Verification** (`.github/workflows/ci.yml`): Builds and tests the target cross-compilation matrix across host platforms (`ubuntu-latest` / `x86_64-linux`, `macos-latest` / `aarch64-darwin`).
+- **Fast Emulator Smoke Test** (`.github/workflows/fast-smoke.yml` & `scripts/ci-fast-smoke-test.sh`): A standalone, concurrent CI workflow running on `ubuntu-22.04` that deploys `strace` and `python3` directly via Flake Apps (`nix run .#push-x86_64-android-*`) into an Android x86_64 emulator (API 34). Exercises standalone C binaries (`strace`), multi-library dynamic RUNPATH closures (`python3` + `libffi`/`liblzma`/`libbz2`), Python stdlib & C-extensions (`_ctypes`, `_lzma`, `_bz2`, hashlib), and cross-tool tracing in under 5 minutes without waiting for heavyweight LLVM/BCC matrix builds.
+- **Full Sysroot & eBPF Emulator Verification** (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`): Executes after full matrix builds, deploying complete sysroots and static `bpftrace` archives to verify dynamic/static `bpftrace`, `bcc`, `bps`, `syscount`, `strace`, `python3`, and `elfutils` on device.
 
 ### Phased Binary Caching
 - **Design for Cacheability**: The architecture guarantees deterministic store paths and pure derivations, ensuring out-of-the-box compatibility with any Nix binary cache.

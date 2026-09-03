@@ -1,0 +1,61 @@
+name: Fast Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  fast-smoke:
+    name: Fast Android Emulator Smoke Test (x86_64)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+        with:
+          use-flakehub: false
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: bionic-pkgs
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Fast Static ELF Checks
+        run: |
+          nix build .#checks.x86_64-linux.check-elf-x86_64-android-strace \
+                    .#checks.x86_64-linux.check-elf-x86_64-android-python3 \
+                    .#checks.x86_64-linux.check-elf-aarch64-android-strace \
+                    .#checks.x86_64-linux.check-elf-aarch64-android-python3
+
+      - name: Enable KVM permissions
+        run: sudo chmod 666 /dev/kvm
+
+      - name: Run Emulator Smoke Test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          enable-hw-accel: true
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-metrics -no-snapshot-save -camera-back none
+          script: ./scripts/ci-fast-smoke-test.sh
