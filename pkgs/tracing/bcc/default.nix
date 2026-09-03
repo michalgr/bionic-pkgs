@@ -86,7 +86,8 @@ EOF
 
     # 3. Expose bps introspection executable
     if [ -f "$out/share/bcc/introspection/bps" ]; then
-      ln -sf ../share/bcc/introspection/bps $out/bin/bps
+      mv "$out/share/bcc/introspection/bps" "$out/bin/bps"
+      rmdir "$out/share/bcc/introspection" 2>/dev/null || true
     fi
 
     # 4. Generate standalone Android launchers for all BCC Python tools in bin/
