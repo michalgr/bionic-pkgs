@@ -40,6 +40,7 @@ stdenv.mkDerivation (finalAttrs: {
     "-DZSTD_MULTITHREAD_SUPPORT=ON"
     "-DZSTD_BUILD_TESTS=OFF"
     "-DZSTD_BUILD_CONTRIB=OFF"
+    "-DCMAKE_SKIP_INSTALL_RPATH=ON"
   ];
 
   doCheck = false;

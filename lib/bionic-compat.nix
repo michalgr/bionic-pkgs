@@ -51,6 +51,7 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+        NIX_LDFLAGS = (old.env.NIX_LDFLAGS or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
@@ -179,9 +180,26 @@ in
 
     # Suppress Nixpkgs automatic RPATH generation and post-link patchelf fixups to preserve pure link-time RPATHs
     export NIX_DONT_SET_RPATH=1
+    export NIX_DONT_SET_RPATH_FOR_TARGET=1
     export NIX_DONT_SET_RPATH_${final.stdenv.cc.suffixSalt}=1
+    export NIX_NO_SET_RPATH=1
+    export NIX_NO_SET_RPATH_FOR_TARGET=1
+    export NIX_NO_SET_RPATH_${final.stdenv.cc.suffixSalt}=1
     export dontPatchELF=1
     export dontShrinkRPATH=1
+
+    # Prevent CMake from adding $out/lib to RPATH during cmake install
+    export CMAKE_SKIP_INSTALL_RPATH=ON
+
+    # Prevent libtool from hardcoding $out/lib into binary RPATH during make install
+    bionicFixupLibtool() {
+      if [ -f libtool ]; then
+        substituteInPlace libtool \
+          --replace-warn 'hardcode_libdir_flag_spec="''${wl}-rpath ''${wl}$libdir"' 'hardcode_libdir_flag_spec=""' \
+          --replace-warn 'hardcode_libdir_flag_spec_CXX="''${wl}-rpath ''${wl}$libdir"' 'hardcode_libdir_flag_spec_CXX=""' || true
+      fi
+    }
+    postConfigureHooks+=(bionicFixupLibtool)
   '');
 
   # Automatically equip target stdenv with Bionic flags and setup hook
