@@ -12,7 +12,6 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       postInstall = ''
         mkdir -p $out/lib
@@ -34,7 +33,6 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
@@ -53,7 +51,6 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
