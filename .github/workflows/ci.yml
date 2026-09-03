@@ -136,7 +136,8 @@ jobs:
   emulator-test-x86_64:
     name: Android Emulator Test (x86_64)
     needs: matrix-build
-    runs-on: ubuntu-latest
+    # Use ubuntu-22.04 instead of ubuntu-latest to avoid KVM nesting / boot timeout flakes on 24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -151,9 +152,10 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          target: google_apis
+          target: default
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -camera-back none
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-metrics -no-snapshot-save -camera-back none
           script: ./scripts/ci-emulator-test.sh dist
