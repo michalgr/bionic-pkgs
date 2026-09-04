@@ -311,3 +311,18 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    adb shell chmod 755 /data/local/tmp/strace
    adb shell /data/local/tmp/strace -V
    ```
+
+---
+
+## 7. Standardized Archive & Runtime Bundle Generation
+
+For deploying aggregated runtime environments (sysroots) or standalone binary archives, `bionic-pkgs` provides standardized build helpers and staging scripts:
+
+1. **`makeArchive` (`pkgs/build-support/make-archive`)**:
+   Creates reproducible `.tar.gz` or `.tar.zst` tarballs from a directory or derivation output with bit-for-bit determinism flags (`--owner=0 --group=0 --numeric-owner --mtime='@1' --sort=name`).
+
+2. **`scripts/stage-runtime.sh`**:
+   Stages binary executables, shared libraries, and runtime share assets while stripping non-runtime artifacts (`*.a`, `*.la`, `*.o`, `pkgconfig/`, `cmake/`, `man`, `doc`). Automatically fixes linker script stubs and generates entrypoint launchers.
+
+3. **`runtimeArchive` (`pkgs/build-support/runtime-archive`)**:
+   High-level derivation helper that computes dependency closures, strips build-time Bionic stubs, stages runtime files via `stage-runtime.sh`, and outputs a deterministic archive using `makeArchive`.

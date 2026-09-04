@@ -18,6 +18,12 @@ let
 
     # Build Support Utilities
     verify-flags = targetPkgs.callPackage ./build-support/verify-flags { };
+    make-archive = targetPkgs.callPackage ./build-support/make-archive { };
+    makeArchive = self.make-archive;
+    runtime-archive = targetPkgs.callPackage ./build-support/runtime-archive {
+      makeArchive = self.makeArchive;
+    };
+    runtimeArchive = self.runtime-archive;
 
     # Diagnostics & System Tracing
     strace = targetPkgs.callPackage ./diagnostics/strace { };
@@ -49,6 +55,7 @@ let
 
     # Bundled Archives
     sysroot = targetPkgs.callPackage ./bundles/sysroot {
+      runtimeArchive = self.runtimeArchive;
       packages = [
         self.bpftrace
         self.python3
@@ -69,6 +76,7 @@ let
     };
 
     bpftrace-static-archive = targetPkgs.callPackage ./bundles/bpftrace-static-archive {
+      makeArchive = self.makeArchive;
       inherit (self) bpftrace-static;
     };
   };
