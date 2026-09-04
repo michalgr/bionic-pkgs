@@ -92,7 +92,7 @@ bionic-pkgs/
 │   ├── reversing/       # Disassemblers, binary analysis tools (radare2, rizin)
 │   ├── runtime/         # Interpreters, language engines (python3)
 │   ├── core/            # Core system utilities (tree, file, tmux, bash)
-│   └── libs/            # Shared libraries, polyfills (bionic-compat, libffi, elfutils, libbpf)
+│   └── libs/            # Shared libraries, polyfills (bionic, libffi, elfutils, libbpf)
 ```
 
 ---
