@@ -94,17 +94,23 @@ let
     let
       targetEntries = lib.concatMap (targetName:
         let pkgsForTarget = targetMatrix.${targetName};
-        in map (pkgName: {
-          name = "${targetName}-${pkgName}";
-          value = pkgsForTarget.${pkgName};
-        }) (builtins.attrNames pkgsForTarget)
+        in lib.concatMap (pkgName:
+          let pkg = pkgsForTarget.${pkgName};
+          in lib.optional (lib.isDerivation pkg) {
+            name = "${targetName}-${pkgName}";
+            value = pkg;
+          }
+        ) (builtins.attrNames pkgsForTarget)
       ) (builtins.attrNames targetMatrix);
 
       defaultEntries = if targetMatrix ? ${defaultTarget} then
-        map (pkgName: {
-          name = pkgName;
-          value = targetMatrix.${defaultTarget}.${pkgName};
-        }) (builtins.attrNames targetMatrix.${defaultTarget})
+        lib.concatMap (pkgName:
+          let pkg = targetMatrix.${defaultTarget}.${pkgName};
+          in lib.optional (lib.isDerivation pkg) {
+            name = pkgName;
+            value = pkg;
+          }
+        ) (builtins.attrNames targetMatrix.${defaultTarget})
       else [ ];
 
       defaultPackage = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
