@@ -20,7 +20,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 - [x] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
   - [x] `pkgs/runtime/python3`: Standalone minimal CLI runtime for Android.
   - [x] `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
-  - [x] `pkgs/libs/android-prebuilts`: Official Google Android NDK platform headers (`log.h`, `trace.h`, `zlib.h`, `jni.h`) and platform library stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
+  - [x] `pkgs/libs/bionic`: Unified Android 14+ / API 34 Bionic libc & NDK r27 sysroot with built-in shims and platform stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
   - [x] `pkgs/libs/xz`: Cross-compiled XZ Utils compression library (`liblzma`) and CLI tools (`xz`, `unxz`, `xzcat`, `lzma`) for Android.
   - [x] `pkgs/libs/zstd`: Cross-compiled Zstandard compression library (`libzstd`) and CLI tools (`zstd`, `unzstd`, `zstdcat`, `zstdmt`) for Android.
   - [x] `pkgs/libs/bzip2`: Cross-compiled bzip2 compression library (`libbz2`) and CLI tools (`bzip2`, `bunzip2`, `bzcat`) for Android.
