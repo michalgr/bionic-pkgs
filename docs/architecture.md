@@ -85,8 +85,15 @@ bionic-pkgs/
 ├── lib/
 │   ├── default.nix
 │   └── bionic-compat.nix
+├── scripts/
+│   ├── stage-runtime.sh      # Factored runtime staging, pruning, and launcher generation
+│   ├── fix-linker-scripts.sh # Linker script stub replacement helper
+│   ├── generate-launcher.sh  # Android runtime entrypoint launcher script generator
+│   └── check-elf.sh          # ELF alignment, dynamic linker, and dependency audit
 ├── pkgs/
 │   ├── default.nix
+│   ├── build-support/   # Verification hooks and archive builders (make-archive, runtime-archive)
+│   ├── bundles/         # Aggregated sysroot and static tool archive derivations
 │   ├── diagnostics/     # Debuggers, syscall monitors, crash dump tools (strace, gdb, lldb)
 │   ├── tracing/         # eBPF tools, kernel probes, performance analyzers (bcc, bpftrace)
 │   ├── reversing/       # Disassemblers, binary analysis tools (radare2, rizin)
@@ -161,3 +168,24 @@ GitHub Actions workflows validate cross-compilation matrix compatibility and liv
 ### Phased Binary Caching
 - **Design for Cacheability**: The architecture guarantees deterministic store paths and pure derivations, ensuring out-of-the-box compatibility with any Nix binary cache.
 - **Cachix Setup**: Cachix substituter configuration (`bionic-pkgs.cachix.org`) is actively integrated via `nixConfig` in `flake.nix`. GitHub CI is securely configured to push artifacts to this cache on successful matrix builds.
+
+---
+
+## 8. Deterministic Archive & Runtime Bundle Architecture
+
+`bionic-pkgs` uses a modular, 3-layer architecture for building reproducible runtime archives and deployment sysroots:
+
+1. **Layer 1: Low-Level Deterministic Tar Builder (`make-archive`)**
+   - **Location**: `pkgs/build-support/make-archive/default.nix`
+   - **Role**: Takes an existing directory or derivation output and packs it into a bit-for-bit reproducible archive (`.tar.gz`, `.tar.zst`, or `.tar`).
+   - **Determinism Flags**: Enforces owner/group (`--owner=0 --group=0`), numeric ownership (`--numeric-owner`), deterministic modification timestamp (`--mtime='@1'`), and lexicographical file ordering (`--sort=name`).
+
+2. **Layer 2: Factored Staging Script (`scripts/stage-runtime.sh`)**
+   - **Location**: `scripts/stage-runtime.sh`
+   - **Role**: Accepts a target staging directory and package store paths to aggregate binaries (`bin/`), shared libraries (`lib/`), and share assets (`share/`).
+   - **Pruning & Cleaning**: Strips non-runtime build artifacts (`*.a`, `*.la`, `*.o`, `pkgconfig/`, `cmake/`, `doc`, `man`, `info`, `locale`).
+   - **Fixups & Launchers**: Executes `scripts/fix-linker-scripts.sh` to resolve GNU linker script stubs and optionally calls `scripts/generate-launcher.sh` to create entrypoint wrappers (e.g., `python-launcher.sh`).
+
+3. **Layer 3: High-Level Runtime Bundle Builder (`runtime-archive`)**
+   - **Location**: `pkgs/build-support/runtime-archive/default.nix`
+   - **Role**: Computes package closures (`lib.closePropagation`), filters out build-time libc/platform stubs (`bionic`), stages runtime outputs via `scripts/stage-runtime.sh`, and emits a deterministic tarball via `make-archive`.
