@@ -77,7 +77,7 @@ Host outputs are generated dynamically via `flake-utils.lib.eachSystem bionicLib
 
 ## 4. Package Organization & Taxonomy
 
-Packages are organized in `pkgs/` by functional category:
+Packages are organized in `pkgs/` and `tests/` by functional category:
 
 ```
 bionic-pkgs/
@@ -89,7 +89,13 @@ bionic-pkgs/
 │   ├── stage-runtime.sh      # Factored runtime staging, pruning, and launcher generation
 │   ├── fix-linker-scripts.sh # Linker script stub replacement helper
 │   ├── generate-launcher.sh  # Android runtime entrypoint launcher script generator
+│   ├── ci-emulator-test.sh   # Sysroot and static bpftrace integration runner
 │   └── check-elf.sh          # ELF alignment, dynamic linker, and dependency audit
+├── tests/
+│   ├── lib/                  # Test framework (common.sh, adb-helpers.sh)
+│   ├── tools/                # Codified test scripts for each tool (test-<tool>.sh)
+│   ├── test-integration.sh   # Cross-tool cohabitation integration test suite
+│   └── run-device-tests.sh   # Master test orchestrator
 ├── pkgs/
 │   ├── default.nix
 │   ├── build-support/   # Verification hooks and archive builders (make-archive, runtime-archive)
@@ -157,13 +163,40 @@ To make testing binaries on Android hardware or emulators frictionless, every ex
 
 ---
 
-## 7. CI/CD & Binary Caching Strategy
+## 7. Modular On-Device Testing & Parallel CI Matrix
 
-### GitHub Actions CI
-GitHub Actions workflows validate cross-compilation matrix compatibility and live Android runtime integrity:
-- **Matrix Build & Verification** (`.github/workflows/ci.yml`): Builds and tests the target cross-compilation matrix across host platforms (`ubuntu-latest` / `x86_64-linux`, `macos-latest` / `aarch64-darwin`).
-- **Fast Emulator Smoke Test** (`.github/workflows/fast-smoke.yml` & `scripts/ci-fast-smoke-test.sh`): A standalone, concurrent CI workflow running on `ubuntu-22.04` that deploys `strace` and `python3` directly via Flake Apps (`nix run .#push-x86_64-android-*`) into an Android x86_64 emulator (API 34). Exercises standalone C binaries (`strace`), multi-library dynamic RUNPATH closures (`python3` + `libffi`/`liblzma`/`libbz2`), Python stdlib & C-extensions (`_ctypes`, `_lzma`, `_bz2`, hashlib), and cross-tool tracing in under 5 minutes without waiting for heavyweight LLVM/BCC matrix builds.
-- **Full Sysroot & eBPF Emulator Verification** (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`): Executes after full matrix builds, deploying complete sysroots and static `bpftrace` archives to verify dynamic/static `bpftrace`, `bcc`, `bps`, `syscount`, `strace`, `python3`, and `elfutils` on device.
+### Common Test Framework & Helpers (`tests/lib/`)
+- `tests/lib/common.sh`: Assertion functions (`assert_ok`, `assert_contains`, `assert_match`, `assert_exit_code`), test counter tracking (`TESTS_RUN`, `TESTS_PASSED`, `TESTS_FAILED`, `TESTS_SKIPPED`), ANSI colorized indicators (`PASS`/`FAIL`/`SKIP`), and summary reporting.
+- `tests/lib/adb-helpers.sh`: ADB invocation wrapper supporting `--serial`/`$ANDROID_SERIAL`, device readiness and `adb root` elevation, `tracefs`/`debugfs` mount helpers, and device architecture detection (`adb_get_arch`).
+
+### Codified Tool Test Scripts (`tests/tools/`)
+Each tool has a dedicated test script (`test-strace.sh`, `test-python.sh`, `test-radare2.sh`, `test-rizin.sh`, `test-elfutils.sh`, `test-bpftrace.sh`, `test-bcc.sh`) accepting `--bin <path_or_launcher>`:
+- **`strace`**: Version check, write syscall tracing, child process following (`-f`), openat/write file I/O tracing.
+- **`python3`**: Stdlib and platform inspection, built-in HACL* SHA-256/MD5 hashes, dynamic C-extensions (`_ctypes`, `_lzma`, `_bz2`), Bionic `libc.so` foreign function calls via `ctypes` (`getpid`, `time`), and compression round-trip.
+- **`radare2`**: Version check, `rasm2` instruction assembly/disassembly, `rabin2` binary format inspection, headless analysis (`aaa; afl`), and function disassembly (`s entry0; pdf`).
+- **`rizin`**: Version check, architecture-aware `rz-asm` assembly, `rz-bin` format inspection, headless analysis (`aa; afl`), entrypoint disassembly (`pdf`), and `rz-hash` SHA-256 inspection.
+- **`elfutils`**: Header inspection (`eu-readelf -h`), section headers (`-S`), dynamic entries/runpaths (`-d`), dynamic symbol extraction (`eu-nm -D`), and segment sizes (`eu-size`).
+- **`bpftrace`**: Version check, environment info (`--info`), syscount help, userspace BPF probes, and kernel tracepoint probes with graceful `SKIP` if kernel tracepoints/tracefs are unavailable. Supports both static (`bpftrace-static`) and dynamic sysroot installations.
+- **`bcc`**: Introspection utility (`bps`), Python `bcc` module import/version check, standalone tool help (`execsnoop -h`), and BPF C program compilation/execution (`bcc.BPF`) with graceful `SKIP` on missing kernel BPF features.
+
+### Integration Suite & Master Orchestrator (`tests/`)
+- `tests/test-integration.sh`: Cross-tool cohabitation integration test verifying `strace` tracing `python3`, `python3` executing BPF programs with `bcc`, `bpftrace` tracing syscalls, `eu-readelf` validating sysroot binaries, and `radare2`/`rizin` disassembling sysroot binaries.
+- `tests/run-device-tests.sh`: Master test orchestrator supporting `--tools <list|all>`, `--deploy-mode <push|sysroot>`, `--sysroot-dir <path>`, and `--serial <id>`.
+
+---
+
+## 8. CI/CD & Binary Caching Strategy
+
+### Parallel Per-Tool Matrix CI Workflow
+- **Parallel Tool Smoke Tests** (`.github/workflows/fast-smoke.yml`): Runs parallel matrix jobs across all 7 tools (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`) on `ubuntu-22.04` with KVM enabled (`/dev/kvm`).
+- Each matrix job:
+  1. Runs target static ELF checks: `nix build .#checks.x86_64-linux.check-elf-x86_64-android-<tool>`.
+  2. Boots an Android x86_64 emulator (`reactivecircus/android-emulator-runner@v2`, API 34).
+  3. Deploys the tool via `nix run .#push-x86_64-android-<tool>`.
+  4. Executes the codified test: `./tests/tools/test-<tool>.sh --bin /data/local/tmp/bionic-pkgs/<tool>/run.sh`.
+
+### Full Sysroot & eBPF Emulator Integration
+- **Matrix Build & Verification** (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`): Executes after full matrix builds, unpacking `sysroot-x86_64.tar.gz` and `bpftrace-static-x86_64.tar.gz` to verify standalone static `bpftrace`, master sysroot orchestrator (`run-device-tests.sh`), and cross-tool integration suite (`test-integration.sh`).
 
 ### Phased Binary Caching
 - **Design for Cacheability**: The architecture guarantees deterministic store paths and pure derivations, ensuring out-of-the-box compatibility with any Nix binary cache.
@@ -171,7 +204,7 @@ GitHub Actions workflows validate cross-compilation matrix compatibility and liv
 
 ---
 
-## 8. Deterministic Archive & Runtime Bundle Architecture
+## 9. Deterministic Archive & Runtime Bundle Architecture
 
 `bionic-pkgs` uses a modular, 3-layer architecture for building reproducible runtime archives and deployment sysroots:
 
