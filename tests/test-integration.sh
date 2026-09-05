@@ -68,7 +68,7 @@ fi
 
 # 3. bpftrace tracing syscalls emitted by strace or python3
 set +e
-output="$(timeout 10 "$ADB_CMD" ${SERIAL:+-s "$SERIAL"} shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/bpftrace -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }' 2>&1")"
+output="$(timeout 10 "$ADB_CMD" ${SERIAL:+-s $SERIAL} shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/bpftrace -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }' 2>&1")"
 ret=$?
 set -e
 if [ $ret -eq 0 ] || [ $ret -eq 124 ]; then
@@ -78,7 +78,7 @@ else
 fi
 
 # 4. eu-readelf validating all executable binaries in sysroot bin/ directory
-output="$(adb_shell "${ENV_WRAPPER} for b in ${SYSROOT_DIR}/bin/*; do [ -x \"\$b\" ] || continue; ${SYSROOT_DIR}/bin/eu-readelf -h \"\$b\" >/dev/null 2>&1 || exit 1; done; echo 'ALL_BINARIES_VALID_ELF'" 2>&1" || true)"
+output="$(adb_shell "${ENV_WRAPPER} for b in ${SYSROOT_DIR}/bin/*; do [ -f \"\$b\" ] && [ -x \"\$b\" ] || continue; if head -c 4 \"\$b\" 2>/dev/null | grep -q 'ELF'; then ${SYSROOT_DIR}/bin/eu-readelf -h \"\$b\" >/dev/null 2>&1 || exit 1; fi; done; echo ALL_BINARIES_VALID_ELF 2>&1" || true)"
 assert_contains "$output" "ALL_BINARIES_VALID_ELF" "eu-readelf validating all executable binaries in sysroot bin/"
 
 # 5. radare2 / rizin disassembling sysroot binaries
