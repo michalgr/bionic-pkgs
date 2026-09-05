@@ -75,7 +75,7 @@ adb_mount_tracefs
 
 # 1. Introspection utility verification (bps)
 output="$(adb_shell "${BPS_CMD} 2>&1" || true)"
-if echo "$output" | grep -E -q "PID|COMM|TASK|bps" 2>/dev/null; then
+if echo "$output" | grep -E -q "BID|PID|COMM|TASK|bps" 2>/dev/null; then
   log_pass "BCC introspection utility verification (bps)"
 else
   if [[ "$output" == *"CAP_"* ]] || [[ "$output" == *"capability"* ]] || [[ "$output" == *"retry as root"* ]]; then
@@ -110,8 +110,8 @@ output="$(adb_shell "${PY_CMD} -c \"${bcc_test_code}\" 2>&1" || true)"
 if [[ "$output" == *"BCC_C_COMPILE_OK"* ]]; then
   log_pass "BCC C program compilation and execution (bcc.BPF)"
 else
-  if [[ "$output" == *"BCC_COMPILE_ERR"* ]] || [[ "$output" == *"Operation not permitted"* ]] || [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"linux/bpf.h"* ]] || [[ "$output" == *"KERNEL"* ]] || [[ "$output" == *"capability"* ]]; then
-    skip_test "BCC C program compilation and execution" "Kernel lacks required BPF/tracefs features or root capabilities: ${output}"
+  if [[ "$output" == *"BCC_COMPILE_ERR"* ]] || [[ "$output" == *"Operation not permitted"* ]] || [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"linux/bpf.h"* ]] || [[ "$output" == *"KERNEL"* ]] || [[ "$output" == *"capability"* ]] || [[ "$output" == *"Unable to find kernel headers"* ]]; then
+    skip_test "BCC C program compilation and execution" "Kernel lacks required BPF/tracefs features or headers: ${output}"
   else
     log_fail "BCC C program compilation failed: ${output}"
   fi

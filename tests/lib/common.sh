@@ -84,7 +84,7 @@ assert_contains() {
     log_pass "$desc"
     return 0
   else
-    log_fail "$desc (substring '$needle' not found in output)"
+    log_fail "$desc (substring '$needle' not found in output: ${haystack})"
     return 1
   fi
 }
@@ -97,7 +97,7 @@ assert_match() {
     log_pass "$desc"
     return 0
   else
-    log_fail "$desc (pattern '$pattern' did not match string: '$string')"
+    log_fail "$desc (pattern '$pattern' did not match string: ${string})"
     return 1
   fi
 }

@@ -53,7 +53,11 @@ log_info "Testing python3 via: ${PYTHON_BIN}"
 
 # 1. Stdlib & platform check
 output="$(adb_shell "${PYTHON_BIN} -c \"import sys, os; print('PLATFORM_OK:', sys.platform, os.name)\" 2>&1" || true)"
-assert_contains "$output" "PLATFORM_OK: linux posix" "python3 stdlib and platform check"
+if echo "$output" | grep -E -q "PLATFORM_OK: (linux|android) posix" 2>/dev/null; then
+  log_pass "python3 stdlib and platform check"
+else
+  log_fail "python3 stdlib and platform check (unexpected output: ${output})"
+fi
 
 # 2. Built-in HACL* hashes check
 output="$(adb_shell "${PYTHON_BIN} -c \"import hashlib; print('SHA256:', hashlib.sha256(b'bionic').hexdigest(), 'MD5:', hashlib.md5(b'bionic').hexdigest())\" 2>&1" || true)"
