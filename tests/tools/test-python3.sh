@@ -61,7 +61,7 @@ fi
 
 # 2. Built-in HACL* hashes check
 output="$(adb_shell "${PYTHON_BIN} -c \"import hashlib; print('SHA256:', hashlib.sha256(b'bionic').hexdigest(), 'MD5:', hashlib.md5(b'bionic').hexdigest())\" 2>&1" || true)"
-assert_contains "$output" "SHA256: 3c5e" "python3 built-in hashlib sha256 check"
+assert_contains "$output" "SHA256: 1a0a" "python3 built-in hashlib sha256 check"
 assert_contains "$output" "MD5:" "python3 built-in hashlib md5 check"
 
 # 3. Dynamic C-extensions check
