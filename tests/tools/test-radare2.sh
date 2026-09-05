@@ -35,6 +35,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+adb_wait_and_root
+
 if [ -z "$RADARE2_BIN" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/radare2/run.sh ]" 2>/dev/null; then
     RADARE2_BIN="/data/local/tmp/bionic-pkgs/radare2/run.sh"

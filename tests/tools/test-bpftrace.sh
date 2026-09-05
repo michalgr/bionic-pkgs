@@ -35,6 +35,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+adb_wait_and_root
+
 if [ -z "$BPFTRACE_BIN" ]; then
   if adb_shell "[ -f /data/local/tmp/test-bpftrace-static/bin/bpftrace ]" 2>/dev/null; then
     BPFTRACE_BIN="/data/local/tmp/test-bpftrace-static/bin/bpftrace"
@@ -74,7 +76,15 @@ assert_contains "$output" "bpftrace" "bpftrace version check (-V)"
 
 # 2. Environment / Info check
 output="$(adb_shell "${BPFTRACE_CMD} --info 2>&1" || true)"
-assert_match "Build|Kernel|BFD|eBPF" "$output" "bpftrace environment info (--info)"
+if echo "$output" | grep -E -q "Build|Kernel|BFD|eBPF" 2>/dev/null; then
+  log_pass "bpftrace environment info (--info)"
+else
+  if [[ "$output" == *"CAP_"* ]] || [[ "$output" == *"root"* ]] || [[ "$output" == *"Permission denied"* ]]; then
+    skip_test "bpftrace environment info (--info)" "Requires root/capabilities: ${output}"
+  else
+    log_fail "bpftrace environment info (--info) failed: ${output}"
+  fi
+fi
 
 # 3. Companion tool verification (syscount)
 output="$(adb_shell "${SYSCOUNT_CMD} --help 2>&1" || true)"
@@ -85,9 +95,8 @@ output="$(adb_shell "${BPFTRACE_CMD} -e 'BEGIN { printf(\"bpftrace userspace ok\
 if [[ "$output" == *"bpftrace userspace ok"* ]]; then
   log_pass "bpftrace userspace-only BPF probe (BEGIN block)"
 else
-  # Check if BPF is supported by kernel at all
-  if [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"Operation not permitted"* ]] || [[ "$output" == *"bpf"* ]] || [[ "$output" == *"No such file or directory"* ]]; then
-    skip_test "bpftrace userspace-only BPF probe" "Kernel/environment lacks BPF support: ${output}"
+  if [[ "$output" == *"CAP_"* ]] || [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"Operation not permitted"* ]] || [[ "$output" == *"bpf"* ]] || [[ "$output" == *"No such file or directory"* ]]; then
+    skip_test "bpftrace userspace-only BPF probe" "Kernel/environment lacks BPF support or root capabilities: ${output}"
   else
     log_fail "bpftrace userspace-only BPF probe failed: ${output}"
   fi
@@ -95,15 +104,15 @@ fi
 
 # 5. Kernel tracepoint probe with graceful skip
 set +e
-output="$(timeout 15 adb_shell "${BPFTRACE_CMD} -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }' 2>&1")"
+output="$(timeout 15 "$ADB_CMD" ${SERIAL:+-s "$SERIAL"} shell "${BPFTRACE_CMD} -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }' 2>&1")"
 ret=$?
 set -e
 
 if [ $ret -eq 0 ] || [ $ret -eq 124 ]; then
   log_pass "bpftrace kernel tracepoint probe (tracepoint:raw_syscalls:sys_enter)"
 else
-  if [[ "$output" == *"ERROR"* ]] || [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"No such file or directory"* ]] || [[ "$output" == *"REQUIRED"* ]]; then
-    skip_test "bpftrace kernel tracepoint probe" "Kernel lacks tracepoint/BTF features or debugfs access"
+  if [[ "$output" == *"ERROR"* ]] || [[ "$output" == *"CAP_"* ]] || [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"No such file or directory"* ]] || [[ "$output" == *"REQUIRED"* ]]; then
+    skip_test "bpftrace kernel tracepoint probe" "Kernel lacks tracepoint/BTF features or debugfs/capability access"
   else
     log_fail "bpftrace kernel tracepoint probe failed with exit code $ret: $output"
   fi

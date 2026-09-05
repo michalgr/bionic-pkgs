@@ -68,7 +68,7 @@ fi
 
 # 3. bpftrace tracing syscalls emitted by strace or python3
 set +e
-output="$(timeout 10 adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/bpftrace -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }' 2>&1")"
+output="$(timeout 10 "$ADB_CMD" ${SERIAL:+-s "$SERIAL"} shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/bpftrace -e 'tracepoint:raw_syscalls:sys_enter { @[comm] = count(); } interval:s:1 { exit(); }' 2>&1")"
 ret=$?
 set -e
 if [ $ret -eq 0 ] || [ $ret -eq 124 ]; then

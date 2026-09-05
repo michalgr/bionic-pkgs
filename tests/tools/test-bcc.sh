@@ -35,6 +35,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+adb_wait_and_root
+
 if [ -z "$BCC_BIN" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/bcc/run.sh ]" 2>/dev/null; then
     BCC_BIN="/data/local/tmp/bionic-pkgs/bcc/run.sh"
@@ -73,7 +75,15 @@ adb_mount_tracefs
 
 # 1. Introspection utility verification (bps)
 output="$(adb_shell "${BPS_CMD} 2>&1" || true)"
-assert_match "PID|COMM|TASK|bps" "$output" "BCC introspection utility verification (bps)"
+if echo "$output" | grep -E -q "PID|COMM|TASK|bps" 2>/dev/null; then
+  log_pass "BCC introspection utility verification (bps)"
+else
+  if [[ "$output" == *"CAP_"* ]] || [[ "$output" == *"capability"* ]] || [[ "$output" == *"retry as root"* ]]; then
+    skip_test "BCC introspection utility verification (bps)" "Requires root/capabilities: ${output}"
+  else
+    log_fail "BCC introspection utility verification (bps) failed: ${output}"
+  fi
+fi
 
 # 2. Python BCC module verification
 output="$(adb_shell "${PY_CMD} -c \"import bcc; print('BCC_VERSION:', bcc.__version__)\" 2>&1" || true)"
@@ -100,8 +110,8 @@ output="$(adb_shell "${PY_CMD} -c \"${bcc_test_code}\" 2>&1" || true)"
 if [[ "$output" == *"BCC_C_COMPILE_OK"* ]]; then
   log_pass "BCC C program compilation and execution (bcc.BPF)"
 else
-  if [[ "$output" == *"BCC_COMPILE_ERR"* ]] || [[ "$output" == *"Operation not permitted"* ]] || [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"linux/bpf.h"* ]] || [[ "$output" == *"KERNEL"* ]]; then
-    skip_test "BCC C program compilation and execution" "Kernel lacks required BPF/tracefs features or headers: ${output}"
+  if [[ "$output" == *"BCC_COMPILE_ERR"* ]] || [[ "$output" == *"Operation not permitted"* ]] || [[ "$output" == *"Permission denied"* ]] || [[ "$output" == *"linux/bpf.h"* ]] || [[ "$output" == *"KERNEL"* ]] || [[ "$output" == *"capability"* ]]; then
+    skip_test "BCC C program compilation and execution" "Kernel lacks required BPF/tracefs features or root capabilities: ${output}"
   else
     log_fail "BCC C program compilation failed: ${output}"
   fi
