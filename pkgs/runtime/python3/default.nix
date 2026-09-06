@@ -42,7 +42,7 @@ stdenv.mkDerivation (finalAttrs: {
   postPatch = ''
     substituteInPlace Makefile.pre.in \
       --replace-warn 'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY))' \
-                     'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY)) -Wl,-rpath,\$ORIGIN/../..'
+                     'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY)) -Wl,-rpath,\$$ORIGIN/../..'
   '';
 
   # Bionic Porting Notes & Dependency Exclusions:
