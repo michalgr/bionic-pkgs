@@ -58,6 +58,6 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 ## 🤖 Phase 5: Developer Experience, ADB Automation & Modular Test Framework
 - [x] Implement `nix run .#push-<pkg>` (and `.#push-<target>-<pkg>`) ADB push helpers with runtime dependency closure synchronization and launcher wrapper.
 - [x] `devShells` featuring cross-compilers, ADB binaries, and environment variables.
-- [x] Modular on-device test framework (`tests/lib/`, `tests/tools/`, `tests/test-integration.sh`, `tests/run-device-tests.sh`) with codified tests for all 7 tools (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`).
-- [x] Parallel CI testing matrix across all 7 tools (`.github/workflows/fast-smoke.yml`) and full sysroot archive integration runner (`scripts/ci-emulator-test.sh`).
+- [x] Modular on-device test framework (`tests/lib/`, `tests/tools/`, `tests/test-integration.sh`, `tests/run-device-tests.sh`) with codified tests for ported packages (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`).
+- [x] Parallel CI testing matrix across ported packages (`.github/workflows/fast-smoke.yml`) and full sysroot archive integration runner (`scripts/ci-emulator-test.sh`).
 - [ ] Enable Cachix binary cache substituters for prebuilt package distribution.

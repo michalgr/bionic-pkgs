@@ -20,8 +20,7 @@ usage() {
 Usage: run-device-tests.sh [OPTIONS]
 
 Options:
-  --tools <list>          Comma-separated list of tools to test or 'all'
-                          (Available: strace, python3, radare2, rizin, elfutils, bpftrace, bcc)
+  --tools <list>          Comma-separated list of tools to test or 'all' (default: all)
   --deploy-mode <mode>    Deployment mode: 'push' or 'sysroot' (default: push)
   --sysroot-dir <path>    Sysroot path on device when deploy-mode=sysroot (default: /data/local/tmp/test-sysroot)
   -s, --serial <serial>   ADB serial number
@@ -58,11 +57,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-ALL_TOOLS=("strace" "python3" "radare2" "rizin" "elfutils" "bpftrace" "bcc")
 SELECTED_TOOLS=()
 
 if [ "$TOOLS_ARG" = "all" ]; then
-  SELECTED_TOOLS=("${ALL_TOOLS[@]}")
+  for script in "$ROOT_DIR"/tests/tools/test-*.sh; do
+    [ -f "$script" ] || continue
+    tool_name="$(basename "$script" .sh)"
+    tool_name="${tool_name#test-}"
+    # Avoid duplicate entry for aliases like python vs python3
+    if [ "$tool_name" = "python" ] && [ -f "$ROOT_DIR/tests/tools/test-python3.sh" ]; then
+      continue
+    fi
+    SELECTED_TOOLS+=("$tool_name")
+  done
 else
   IFS=',' read -ra ADDR <<< "$TOOLS_ARG"
   for item in "${ADDR[@]}"; do

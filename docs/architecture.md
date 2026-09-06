@@ -165,12 +165,14 @@ To make testing binaries on Android hardware or emulators frictionless, every ex
 
 ## 7. Modular On-Device Testing & Parallel CI Matrix
 
+`bionic-pkgs` includes an open, extensible on-device test framework designed to verify all ported CLI utilities and diagnostic tools on target Android devices or emulators.
+
 ### Common Test Framework & Helpers (`tests/lib/`)
 - `tests/lib/common.sh`: Assertion functions (`assert_ok`, `assert_contains`, `assert_match`, `assert_exit_code`), test counter tracking (`TESTS_RUN`, `TESTS_PASSED`, `TESTS_FAILED`, `TESTS_SKIPPED`), ANSI colorized indicators (`PASS`/`FAIL`/`SKIP`), and summary reporting.
 - `tests/lib/adb-helpers.sh`: ADB invocation wrapper supporting `--serial`/`$ANDROID_SERIAL`, device readiness and `adb root` elevation, `tracefs`/`debugfs` mount helpers, and device architecture detection (`adb_get_arch`).
 
 ### Codified Tool Test Scripts (`tests/tools/`)
-Each tool has a dedicated test script (`test-strace.sh`, `test-python.sh`, `test-radare2.sh`, `test-rizin.sh`, `test-elfutils.sh`, `test-bpftrace.sh`, `test-bcc.sh`) accepting `--bin <path_or_launcher>`:
+Every testable CLI package implements a dedicated test script under `tests/tools/test-<tool>.sh` accepting `--bin <path_or_launcher>`. Initial tool test scripts include:
 - **`strace`**: Version check, write syscall tracing, child process following (`-f`), openat/write file I/O tracing.
 - **`python3`**: Stdlib and platform inspection, built-in HACL* SHA-256/MD5 hashes, dynamic C-extensions (`_ctypes`, `_lzma`, `_bz2`), Bionic `libc.so` foreign function calls via `ctypes` (`getpid`, `time`), and compression round-trip.
 - **`radare2`**: Version check, `rasm2` instruction assembly/disassembly, `rabin2` binary format inspection, headless analysis (`aaa; afl`), and function disassembly (`s entry0; pdf`).
@@ -188,7 +190,7 @@ Each tool has a dedicated test script (`test-strace.sh`, `test-python.sh`, `test
 ## 8. CI/CD & Binary Caching Strategy
 
 ### Parallel Per-Tool Matrix CI Workflow
-- **Parallel Tool Smoke Tests** (`.github/workflows/fast-smoke.yml`): Runs parallel matrix jobs across all 7 tools (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`) on `ubuntu-22.04` with KVM enabled (`/dev/kvm`).
+- **Parallel Tool Smoke Tests** (`.github/workflows/fast-smoke.yml`): Runs parallel matrix jobs across ported packages and diagnostic suites (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`) on `ubuntu-22.04` with KVM enabled (`/dev/kvm`).
 - Each matrix job:
   1. Runs target static ELF checks: `nix build .#checks.x86_64-linux.check-elf-x86_64-android-<tool>`.
   2. Boots an Android x86_64 emulator (`reactivecircus/android-emulator-runner@v2`, API 34).

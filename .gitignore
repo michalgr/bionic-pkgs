@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 result*
+dist/
+dry_run_out/
