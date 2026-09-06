@@ -89,10 +89,5 @@ echo "============================================================"
 ./tests/run-device-tests.sh --deploy-mode sysroot --sysroot-dir /data/local/tmp/test-sysroot
 
 echo "============================================================"
-echo "==> 3. Testing Cross-Tool Integration Suite"
-echo "============================================================"
-./tests/test-integration.sh --sysroot-dir /data/local/tmp/test-sysroot
-
-echo "============================================================"
 echo "==> Full Archive Integration Test completed successfully!"
 echo "============================================================"

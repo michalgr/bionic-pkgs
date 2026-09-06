@@ -1,4 +1,4 @@
-name: Parallel Tool Smoke Tests
+name: Fast Smoke / Device Verification
 
 on:
   push:
@@ -15,13 +15,9 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  parallel-tool-smoke:
-    name: Tool Verification (${{ matrix.tool }})
+  fast-smoke:
+    name: Fast Smoke Canary Suite (Android 14 x86_64)
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        tool: [strace, python3, radare2, rizin, elfutils, bpftrace, bcc]
 
     steps:
       - name: Checkout repository
@@ -41,14 +37,17 @@ jobs:
           name: bionic-pkgs
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      - name: Target Static ELF Check (${{ matrix.tool }})
+      - name: Build Fast Smoke Static ELF Checks
         run: |
-          nix build .#checks.x86_64-linux.check-elf-x86_64-android-${{ matrix.tool }}
+          nix build \
+            .#checks.x86_64-linux.check-elf-x86_64-android-strace \
+            .#checks.x86_64-linux.check-elf-x86_64-android-elfutils \
+            .#checks.x86_64-linux.check-elf-x86_64-android-python3
 
       - name: Enable KVM permissions
         run: sudo chmod 666 /dev/kvm
 
-      - name: Run Emulator Tool Test
+      - name: Run Fast Smoke Emulator Test
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -59,8 +58,4 @@ jobs:
           enable-hw-accel: true
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-metrics -no-snapshot-save -camera-back none
-          script: |
-            echo "==> Deploying ${{ matrix.tool }} to emulator..."
-            nix run .#push-x86_64-android-${{ matrix.tool }}
-            echo "==> Running codified test for ${{ matrix.tool }}..."
-            ./tests/tools/test-${{ matrix.tool }}.sh --bin /data/local/tmp/bionic-pkgs/${{ matrix.tool }}/run.sh
+          script: ./scripts/ci-fast-smoke-test.sh

@@ -64,10 +64,6 @@ if [ "$TOOLS_ARG" = "all" ]; then
     [ -f "$script" ] || continue
     tool_name="$(basename "$script" .sh)"
     tool_name="${tool_name#test-}"
-    # Avoid duplicate entry for aliases like python vs python3
-    if [ "$tool_name" = "python" ] && [ -f "$ROOT_DIR/tests/tools/test-python3.sh" ]; then
-      continue
-    fi
     SELECTED_TOOLS+=("$tool_name")
   done
 else
