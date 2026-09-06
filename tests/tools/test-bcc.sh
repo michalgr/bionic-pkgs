@@ -55,19 +55,19 @@ log_info "Testing bcc via: ${BCC_BIN}"
 BIN_NAME="$(basename "$BCC_BIN")"
 if [ "$BIN_NAME" = "run.sh" ]; then
   BASE_DIR="$(dirname "$BCC_BIN")"
-  BPS_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/bps"
+  BPS_CMD="${BASE_DIR}/bin/bps"
   PY_CMD="${BCC_BIN}"
-  EXECSNOOP_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/execsnoop"
+  EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
 elif [ "$BIN_NAME" = "python-launcher.sh" ]; then
   BASE_DIR="$(dirname "$BCC_BIN")"
-  BPS_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/bps"
+  BPS_CMD="${BASE_DIR}/bin/bps"
   PY_CMD="${BCC_BIN}"
-  EXECSNOOP_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/execsnoop"
+  EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
 else
   BASE_DIR="$(dirname "$BCC_BIN")/.."
-  BPS_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/bps"
+  BPS_CMD="${BASE_DIR}/bin/bps"
   PY_CMD="${BASE_DIR}/python-launcher.sh"
-  EXECSNOOP_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/execsnoop"
+  EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
 fi
 
 # Ensure tracefs/debugfs mounted
