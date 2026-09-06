@@ -40,7 +40,7 @@ log_info "Running Cross-Tool Integration Suite on sysroot: ${SYSROOT_DIR}"
 adb_wait_and_root
 adb_mount_tracefs
 
-ENV_WRAPPER="export LD_LIBRARY_PATH=${SYSROOT_DIR}/lib:\${LD_LIBRARY_PATH:-}; export PATH=${SYSROOT_DIR}/bin:\${PATH};"
+ENV_WRAPPER="export PATH=${SYSROOT_DIR}/bin:\${PATH};"
 PY_LAUNCHER="${SYSROOT_DIR}/python-launcher.sh"
 
 # 1. strace tracing python3

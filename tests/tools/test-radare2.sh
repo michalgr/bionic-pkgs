@@ -54,13 +54,13 @@ BIN_NAME="$(basename "$RADARE2_BIN")"
 if [ "$BIN_NAME" = "run.sh" ]; then
   BASE_DIR="$(dirname "$RADARE2_BIN")"
   R2_CMD="${RADARE2_BIN}"
-  RASM2_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rasm2"
-  RABIN2_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rabin2"
+  RASM2_CMD="${BASE_DIR}/bin/rasm2"
+  RABIN2_CMD="${BASE_DIR}/bin/rabin2"
 else
   BASE_DIR="$(dirname "$RADARE2_BIN")/.."
-  R2_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${RADARE2_BIN}"
-  RASM2_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rasm2"
-  RABIN2_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rabin2"
+  R2_CMD="${RADARE2_BIN}"
+  RASM2_CMD="${BASE_DIR}/bin/rasm2"
+  RABIN2_CMD="${BASE_DIR}/bin/rabin2"
 fi
 
 # 1. Version check

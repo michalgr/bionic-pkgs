@@ -55,12 +55,12 @@ BIN_NAME="$(basename "$BPFTRACE_BIN")"
 if [ "$BIN_NAME" = "run.sh" ]; then
   BASE_DIR="$(dirname "$BPFTRACE_BIN")"
   BPFTRACE_CMD="${BPFTRACE_BIN}"
-  SYSCOUNT_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/syscount"
+  SYSCOUNT_CMD="${BASE_DIR}/bin/syscount"
 else
   BASE_DIR="$(dirname "$BPFTRACE_BIN")/.."
   if [ -d "${BASE_DIR}/lib" ]; then
-    BPFTRACE_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BPFTRACE_BIN}"
-    SYSCOUNT_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/syscount"
+    BPFTRACE_CMD="${BPFTRACE_BIN}"
+    SYSCOUNT_CMD="${BASE_DIR}/bin/syscount"
   else
     BPFTRACE_CMD="${BPFTRACE_BIN}"
     SYSCOUNT_CMD="$(dirname "$BPFTRACE_BIN")/syscount"

@@ -54,13 +54,13 @@ BIN_NAME="$(basename "$ELFUTILS_BIN")"
 if [ "$BIN_NAME" = "run.sh" ]; then
   BASE_DIR="$(dirname "$ELFUTILS_BIN")"
   READELF_CMD="${ELFUTILS_BIN}"
-  NM_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/eu-nm"
-  SIZE_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/eu-size"
+  NM_CMD="${BASE_DIR}/bin/eu-nm"
+  SIZE_CMD="${BASE_DIR}/bin/eu-size"
 else
   BASE_DIR="$(dirname "$ELFUTILS_BIN")/.."
-  READELF_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${ELFUTILS_BIN}"
-  NM_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/eu-nm"
-  SIZE_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/eu-size"
+  READELF_CMD="${ELFUTILS_BIN}"
+  NM_CMD="${BASE_DIR}/bin/eu-nm"
+  SIZE_CMD="${BASE_DIR}/bin/eu-size"
 fi
 
 TARGET_ELF="/system/bin/sh"

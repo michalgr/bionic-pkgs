@@ -54,15 +54,15 @@ BIN_NAME="$(basename "$RIZIN_BIN")"
 if [ "$BIN_NAME" = "run.sh" ]; then
   BASE_DIR="$(dirname "$RIZIN_BIN")"
   RZ_CMD="${RIZIN_BIN}"
-  RZ_ASM_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rz-asm"
-  RZ_BIN_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rz-bin"
-  RZ_HASH_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rz-hash"
+  RZ_ASM_CMD="${BASE_DIR}/bin/rz-asm"
+  RZ_BIN_CMD="${BASE_DIR}/bin/rz-bin"
+  RZ_HASH_CMD="${BASE_DIR}/bin/rz-hash"
 else
   BASE_DIR="$(dirname "$RIZIN_BIN")/.."
-  RZ_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${RIZIN_BIN}"
-  RZ_ASM_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rz-asm"
-  RZ_BIN_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rz-bin"
-  RZ_HASH_CMD="LD_LIBRARY_PATH=${BASE_DIR}/lib:\${LD_LIBRARY_PATH:-} ${BASE_DIR}/bin/rz-hash"
+  RZ_CMD="${RIZIN_BIN}"
+  RZ_ASM_CMD="${BASE_DIR}/bin/rz-asm"
+  RZ_BIN_CMD="${BASE_DIR}/bin/rz-bin"
+  RZ_HASH_CMD="${BASE_DIR}/bin/rz-hash"
 fi
 
 # 1. Version check
