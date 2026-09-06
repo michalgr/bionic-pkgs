@@ -1,4 +1,4 @@
-name: Verify Flags
+name: Audit / Toolchain Flags & Dependencies
 
 on:
   push:
@@ -15,12 +15,14 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  verify:
-    name: Verify Clang Flags (${{ matrix.os }})
+  audit:
+    name: Inspect & Audit (${{ matrix.system }} -> ${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
+        target: [aarch64-android, x86_64-android]
         include:
           - os: ubuntu-latest
             system: x86_64-linux
@@ -45,8 +47,11 @@ jobs:
           name: bionic-pkgs
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      - name: Build verify-flags Derivation
-        run: nix build .#aarch64-android.verify-flags
+      - name: Inspect & Verify Toolchain Flags
+        run: |
+          nix build .#${{ matrix.target }}.verify-flags
+          cat ./result/flags.log
 
-      - name: Report Flags
-        run: cat ./result/flags.log
+      - name: Audit Dependency Graph & List Projects
+        run: |
+          bash scripts/list-deps.sh "${{ matrix.target }}" "${{ matrix.system }}"

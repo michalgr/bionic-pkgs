@@ -89,6 +89,7 @@ bionic-pkgs/
 │   ├── stage-runtime.sh      # Factored runtime staging, pruning, and launcher generation
 │   ├── fix-linker-scripts.sh # Linker script stub replacement helper
 │   ├── generate-launcher.sh  # Android runtime entrypoint launcher script generator
+│   ├── ci-fast-smoke-test.sh # Fast smoke triad deployment and test runner
 │   ├── ci-emulator-test.sh   # Sysroot and static bpftrace integration runner
 │   └── check-elf.sh          # ELF alignment, dynamic linker, and dependency audit
 ├── tests/
@@ -189,16 +190,22 @@ Every testable CLI package implements a dedicated test script under `tests/tools
 
 ## 8. CI/CD & Binary Caching Strategy
 
-### Parallel Per-Tool Matrix CI Workflow
-- **Parallel Tool Smoke Tests** (`.github/workflows/fast-smoke.yml`): Runs parallel matrix jobs across ported packages and diagnostic suites (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`) on `ubuntu-22.04` with KVM enabled (`/dev/kvm`).
-- Each matrix job:
-  1. Runs target static ELF checks: `nix build .#checks.x86_64-linux.check-elf-x86_64-android-<tool>`.
-  2. Boots an Android x86_64 emulator (`reactivecircus/android-emulator-runner@v2`, API 34).
-  3. Deploys the tool via `nix run .#push-x86_64-android-<tool>`.
-  4. Executes the codified test: `./tests/tools/test-<tool>.sh --bin /data/local/tmp/bionic-pkgs/<tool>/run.sh`.
+### 2-Tier Testing Architecture
 
-### Full Sysroot & eBPF Emulator Integration
-- **Matrix Build & Verification** (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`): Executes after full matrix builds, unpacking `sysroot-x86_64.tar.gz` and `bpftrace-static-x86_64.tar.gz` to verify standalone static `bpftrace`, master sysroot orchestrator (`run-device-tests.sh`), and cross-tool integration suite (`test-integration.sh`).
+- **Tier 1: Fast Smoke / Device Verification** (`.github/workflows/fast-smoke.yml` & `scripts/ci-fast-smoke-test.sh`):
+  - Provides rapid canary verification (<3 minutes) by testing the core toolchain triad: `strace`, `elfutils`, and `python3` (covering Bionic syscalls/ptrace, multi-.so ELF/DWARF libraries, and dynamic C-extensions/FFI).
+  - Executes target static ELF checks (`check-elf-x86_64-android-*`).
+  - Boots a single Android API 34 x86_64 emulator instance (`ubuntu-22.04` with KVM), deploys all three packages, and invokes the test orchestrator (`tests/run-device-tests.sh --tools strace,elfutils,python3`).
+
+- **Tier 2: Full Matrix Build & Sysroot Integration** (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`):
+  - Executes full matrix builds across host platforms and Android target ABIs (`aarch64-android`, `x86_64-android`).
+  - Unpacks `sysroot-x86_64.tar.gz` and `bpftrace-static-x86_64.tar.gz` on an Android API 34 emulator instance to run standalone static `bpftrace`, master sysroot orchestrator (`run-device-tests.sh --deploy-mode sysroot`), and cross-tool integration suite (`test-integration.sh`).
+
+### Audit & Toolchain Inspection Workflow
+
+- **Audit / Toolchain Flags & Dependencies** (`.github/workflows/audit.yml`):
+  - Unified audit workflow running across host systems (`x86_64-linux`, `aarch64-darwin`) and target ABIs (`aarch64-android`, `x86_64-android`).
+  - Inspects and verifies toolchain flags (`verify-flags`) and generates project dependency graphs (`scripts/list-deps.sh`).
 
 ### Phased Binary Caching
 - **Design for Cacheability**: The architecture guarantees deterministic store paths and pure derivations, ensuring out-of-the-box compatibility with any Nix binary cache.
