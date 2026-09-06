@@ -98,22 +98,18 @@ Android binaries locate their dynamic linker at:
 - `/system/bin/linker64` (64-bit targets: `aarch64-android`, `x86_64-android`)
 - `/system/bin/linker` (32-bit targets: `armv7a-android`, `i686-android`)
 
-In `lib/bionic-compat.nix`, `bionicFixupHook` automatically ensures target ELF binaries have relative runpaths for device portability:
-```nix
-bionicFixup() {
-  for output in ''${outputs:-out}; do
-    local dir="''${!output:-}"
-    if [ -n "$dir" ] && [ -d "$dir" ]; then
-      find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
-        if [ -f "$elf" ] && [ "$(od -An -N4 -tx1 "$elf" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
-          chmod +w "$elf" 2>/dev/null || true
-          patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$elf" 2>/dev/null || true
-        fi
-      done
-    fi
-  done
-}
-```
+`bionic-pkgs` uses a pure link-time RPATH model and has completely eliminated post-link `patchelf` binary rewriting. Rewriting ELF headers post-link risks disrupting 16 KB memory page alignment (`-z max-page-size=16384`) required on Android 15+.
+
+In `lib/bionic-compat.nix`, link-time RPATH is automatically configured via `bionicFlags.ldflags` and `bionicFixupHook`:
+- `bionicFlags.ldflags`: Emits `"-rpath"` `"\\$ORIGIN/../lib:\\$ORIGIN:\\$ORIGIN/..:\\$ORIGIN/../.."` directly during linking.
+- `bionicFixupHook`: Suppresses Nixpkgs automatic RPATH generation and self-rpath injection, and prevents CMake from appending `$out/lib` during install:
+  ```bash
+  export NIX_DONT_SET_RPATH=1
+  export NIX_NO_SELF_RPATH=1
+  export dontPatchELF=1
+  export dontShrinkRPATH=1
+  export CMAKE_SKIP_INSTALL_RPATH=ON
+  ```
 
 ---
 
@@ -188,7 +184,7 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
    - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
    - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
 5. **Runtime Standard Library Resolution (`PYTHONHOME`)**:
-   - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"` and `export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"`.
+   - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"`.
 
 ### Case Study 3: `elfutils` & Platform `libz.so` (Minimal ELF & DWARF Tool Suite)
 `elfutils` provides core ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, `eu-size`, `eu-elfcmp`, `eu-elfcompress`, `eu-elflint`, `eu-elfclassify`, `eu-addr2line`, `eu-stack`, `eu-unstrip`) and DWARF debugging inspection (`libdw`, `libasm`).

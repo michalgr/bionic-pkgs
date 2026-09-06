@@ -12,7 +12,6 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       postInstall = ''
         mkdir -p $out/lib
@@ -34,7 +33,6 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
@@ -53,7 +51,7 @@ let
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-        NIX_CFLAGS_LINK = (old.env.NIX_CFLAGS_LINK or "") + " " + bionicFlags.ldflagsString;
+        NIX_LDFLAGS = (old.env.NIX_LDFLAGS or "") + " " + bionicFlags.ldflagsString;
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
@@ -127,6 +125,7 @@ let
     ldflags = [
       # Library search path for Bionic libc and linker script stubs
       "-L${final.bionic.out}/lib"
+      "-rpath" "\\$ORIGIN/../lib:\\$ORIGIN:\\$ORIGIN/..:\\$ORIGIN/../.."
       # Android 15+ 16 KB memory page alignment for ELF LOAD segments
       "-z" "max-page-size=16384"
       "-z" "common-page-size=16384"
@@ -169,7 +168,7 @@ in
   llvmPackages_21 = prev.llvmPackages_21.overrideScope (fixLlvmPackages { inherit bionicFlags final; });
 })
 // {
-  # Setup hook that injects Bionic compiler/linker flags and rewrites ELF RUNPATH
+  # Setup hook that injects Bionic compiler/linker flags and configures RPATH variables
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
   } (final.writeScript "bionic-fixup.sh" ''
@@ -177,20 +176,14 @@ in
     export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
     export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
 
-    bionicFixup() {
-      for output in ''${outputs:-out}; do
-        local dir="''${!output:-}"
-        if [ -n "$dir" ] && [ -d "$dir" ]; then
-          find "$dir" -type f \( -perm -0100 -o -name "*.so*" \) -print0 | while IFS= read -r -d "" elf; do
-            if [ -f "$elf" ] && [ "$(od -An -N4 -tx1 "$elf" 2>/dev/null | tr -d ' \n')" = "7f454c46" ]; then
-              chmod +w "$elf" 2>/dev/null || true
-              ${final.buildPackages.patchelf}/bin/patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' "$elf" 2>/dev/null || true
-            fi
-          done
-        fi
-      done
-    }
-    postFixupHooks+=(bionicFixup)
+    # Suppress Nixpkgs automatic RPATH generation and self-rpath injection
+    export NIX_DONT_SET_RPATH=1
+    export NIX_NO_SELF_RPATH=1
+    export dontPatchELF=1
+    export dontShrinkRPATH=1
+
+    # Prevent CMake from appending $out/lib to RPATH during make/ninja install
+    export CMAKE_SKIP_INSTALL_RPATH=ON
   '');
 
   # Automatically equip target stdenv with Bionic flags, compatibility shims, and postFixup RPATH hook
