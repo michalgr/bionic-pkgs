@@ -101,7 +101,7 @@ Android binaries locate their dynamic linker at:
 `bionic-pkgs` uses a pure link-time RPATH model and has completely eliminated post-link `patchelf` binary rewriting. Rewriting ELF headers post-link risks disrupting 16 KB memory page alignment (`-z max-page-size=16384`) required on Android 15+.
 
 In `lib/bionic-compat.nix`, link-time RPATH is automatically configured via `bionicFlags.ldflags` and `bionicFixupHook`:
-- `bionicFlags.ldflags`: Emits `"-rpath"` `"\\$ORIGIN/../lib:\\$ORIGIN:\\$ORIGIN/..:\\$ORIGIN/../.."` directly during linking.
+- `bionicFlags.ldflags`: Emits `"-rpath"` `"\\$ORIGIN/../lib"` directly during linking, strictly hardening RPATH against Untrusted Search Path vulnerabilities (CWE-426/CWE-427).
 - `bionicFixupHook`: Suppresses Nixpkgs automatic RPATH generation and self-rpath injection, prevents CMake from appending `$out/lib` during install, and patches generated `libtool` scripts to clear `hardcode_libdir_flag_spec`:
   ```bash
   export NIX_DONT_SET_RPATH=1
@@ -193,8 +193,10 @@ Python 3 on Android provides a standalone CLI scripting runtime and C interopera
 4. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
    - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
    - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
-5. **Runtime Standard Library Resolution (`PYTHONHOME`)**:
+5. **Runtime Standard Library Resolution (`PYTHONHOME`) & Scoped Extension RPATH**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"`.
+   - CPython extension modules located in `prefix/lib/python3.13/lib-dynload/` require an additional `$ORIGIN/../..` runpath to locate `libpython3.13.so` and `libffi.so` in `prefix/lib`.
+   - In `pkgs/runtime/python3/default.nix`, `Makefile.pre.in` is patched via `postPatch` to append `-Wl,-rpath,\$ORIGIN/../..` strictly to `MODULE_LDFLAGS_SHARED`, ensuring `$ORIGIN/../..` remains strictly confined within `prefix/lib`.
 
 ### Case Study 3: `elfutils` & Platform `libz.so` (Minimal ELF & DWARF Tool Suite)
 `elfutils` provides core ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, `eu-size`, `eu-elfcmp`, `eu-elfcompress`, `eu-elflint`, `eu-elfclassify`, `eu-addr2line`, `eu-stack`, `eu-unstrip`) and DWARF debugging inspection (`libdw`, `libasm`).

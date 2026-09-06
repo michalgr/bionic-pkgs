@@ -116,12 +116,37 @@ for elf_file in "${elf_files[@]}"; do
     done
 
     # 5. Check RPATH / RUNPATH Verification
-    rpath=$(llvm-readelf -d "$elf_file" 2>/dev/null | grep -E 'RUNPATH|RPATH' || true)
-    if [ -n "$rpath" ]; then
-      echo "RPATH/RUNPATH: $rpath"
+    raw_rpath=$(llvm-readelf -d "$elf_file" 2>/dev/null | awk -F'[' '/\(RUNPATH\)|\(RPATH\)/ {print $2}' | tr -d ']' || true)
+    rel_dir=$(dirname "$rel_path")
+
+    if [ -n "$raw_rpath" ]; then
+      echo "RPATH/RUNPATH: $raw_rpath"
+      IFS=':' read -ra rpath_entries <<< "$raw_rpath"
+      for entry in "${rpath_entries[@]}"; do
+        [ -z "$entry" ] && continue
+        case "$entry" in
+          \$ORIGIN*|\${ORIGIN}*)
+            suffix="${entry#\$ORIGIN}"
+            suffix="${suffix#\${ORIGIN\}}"
+            norm_path=$(realpath -m "/VIRTUAL_ROOT/${rel_dir}${suffix}")
+            case "$norm_path" in
+              /VIRTUAL_ROOT/lib|/VIRTUAL_ROOT/lib/*)
+                ;;
+              *)
+                echo "ERROR: Unsafe RPATH entry '$entry' in $rel_path resolves to '$norm_path' (outside package lib/)!" >&2
+                exit 1
+                ;;
+            esac
+            ;;
+          *)
+            echo "ERROR: RPATH entry '$entry' in $rel_path does not start with \$ORIGIN!" >&2
+            exit 1
+            ;;
+        esac
+      done
     fi
 
-    if echo "$rpath" | grep -q "/nix/store"; then
+    if echo "$raw_rpath" | grep -q "/nix/store"; then
       echo "ERROR: Binary RPATH/RUNPATH contains host /nix/store path in $rel_path!" >&2
       exit 1
     fi
@@ -139,7 +164,7 @@ for elf_file in "${elf_files[@]}"; do
     done < <(llvm-readelf -d "$elf_file" 2>/dev/null | awk -F'[' '/\(NEEDED\)/ {print $2}' | tr -d ']' || true)
 
     if [ "$has_non_system_deps" -eq 1 ]; then
-      if [ -z "$rpath" ] || ! echo "$rpath" | grep -q '\$ORIGIN'; then
+      if [ -z "$raw_rpath" ] || ! echo "$raw_rpath" | grep -q '\$ORIGIN'; then
         echo "ERROR: Binary $rel_path has non-system dependencies but RPATH/RUNPATH does not contain \$ORIGIN!" >&2
         exit 1
       fi

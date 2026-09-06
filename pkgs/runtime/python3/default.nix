@@ -39,6 +39,12 @@ stdenv.mkDerivation (finalAttrs: {
     bzip2
   ];
 
+  postPatch = ''
+    substituteInPlace Makefile.pre.in \
+      --replace-warn 'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY))' \
+                     'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY)) -Wl,-rpath,\$ORIGIN/../..'
+  '';
+
   # Bionic Porting Notes & Dependency Exclusions:
   # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.13).
   # 2. Shared libpython (--enable-shared, --without-static-libpython) is required on Android.
