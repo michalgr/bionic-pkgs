@@ -102,13 +102,23 @@ Android binaries locate their dynamic linker at:
 
 In `lib/bionic-compat.nix`, link-time RPATH is automatically configured via `bionicFlags.ldflags` and `bionicFixupHook`:
 - `bionicFlags.ldflags`: Emits `"-rpath"` `"\\$ORIGIN/../lib:\\$ORIGIN:\\$ORIGIN/..:\\$ORIGIN/../.."` directly during linking.
-- `bionicFixupHook`: Suppresses Nixpkgs automatic RPATH generation and self-rpath injection, and prevents CMake from appending `$out/lib` during install:
+- `bionicFixupHook`: Suppresses Nixpkgs automatic RPATH generation and self-rpath injection, prevents CMake from appending `$out/lib` during install, and patches generated `libtool` scripts to clear `hardcode_libdir_flag_spec`:
   ```bash
   export NIX_DONT_SET_RPATH=1
   export NIX_NO_SELF_RPATH=1
   export dontPatchELF=1
   export dontShrinkRPATH=1
   export CMAKE_SKIP_INSTALL_RPATH=ON
+
+  patchLibtoolRpath() {
+    find . -name "libtool" -type f | while IFS= read -r lt; do
+      if [ -f "$lt" ]; then
+        sed -i 's/hardcode_libdir_flag_spec=.*/hardcode_libdir_flag_spec=""/g' "$lt"
+        sed -i 's/hardcode_libdir_flag_spec_CXX=.*/hardcode_libdir_flag_spec_CXX=""/g' "$lt"
+      fi
+    done
+  }
+  postConfigureHooks+=(patchLibtoolRpath)
   ```
 
 ---

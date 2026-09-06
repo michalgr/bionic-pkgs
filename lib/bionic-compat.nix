@@ -184,6 +184,17 @@ in
 
     # Prevent CMake from appending $out/lib to RPATH during make/ninja install
     export CMAKE_SKIP_INSTALL_RPATH=ON
+
+    # Prevent Libtool from hardcoding $out/lib into RPATH during linking
+    patchLibtoolRpath() {
+      find . -name "libtool" -type f | while IFS= read -r lt; do
+        if [ -f "$lt" ]; then
+          sed -i 's/hardcode_libdir_flag_spec=.*/hardcode_libdir_flag_spec=""/g' "$lt"
+          sed -i 's/hardcode_libdir_flag_spec_CXX=.*/hardcode_libdir_flag_spec_CXX=""/g' "$lt"
+        fi
+      done
+    }
+    postConfigureHooks+=(patchLibtoolRpath)
   '');
 
   # Automatically equip target stdenv with Bionic flags, compatibility shims, and postFixup RPATH hook
