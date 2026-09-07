@@ -271,11 +271,20 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Rewritten to `libdir=''${prefix}/lib` in `postPatch`.
 5. **Decoupled Python Module & Dynamic Runtime Resolution**:
    - Rather than embedding a duplicate target Python 3 interpreter and standard library inside BCC's output `$out`, `bcc` installs its pure Python module into `$out/lib/python3.13/site-packages/bcc/`.
-   - Tool wrappers in `$out/bin/` (`execsnoop`, `opensnoop`, etc.) dynamically locate a Python 3 interpreter (from `$BASE_DIR/bin/python3`, `$BASE_DIR/../python3/run.sh`, `$BASE_DIR/../python3/bin/python3`, or `$PATH`) and set `PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"` and `LD_LIBRARY_PATH`, preserving Nix isolation while supporting both standalone push deployments and sysroot cohabitation.
-6. **Bionic C Library Dynamic Loading in `ctypes` (`libc.so` vs `libc.so.6`/`librt.so.1`)**:
+   - Tool wrappers in `$out/bin/` (`execsnoop`, `opensnoop`, etc.) dynamically locate a Python 3 interpreter (from `$BASE_DIR/bin/python3`, `$BASE_DIR/../python3/run.sh`, `$BASE_DIR/../python3/bin/python3`, or `$PATH`) and set `PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"` with POSIX-safe expansion (`${PYTHONPATH:+:$PYTHONPATH}`), preserving Nix isolation while supporting both standalone push deployments and sysroot cohabitation.
+   - To prevent untrusted library traversal and current working directory injection vulnerabilities (CWE-426), path traversals outside package boundaries (`$BASE_DIR/../lib`) and trailing colons in `LD_LIBRARY_PATH` are completely eliminated.
+6. **Hermetic `libbcc.so` Dynamic Loading via `ctypes`**:
+   - In `src/python/bcc/libbcc.py`, `libbcc.so` loading was patched via `postPatch` to resolve `libbcc.so` relative to `__file__`:
+     ```python
+     _rel_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "libbcc.so"))
+     _so_path = _rel_path if os.path.isfile(_rel_path) else "libbcc.so.0"
+     lib = ct.CDLL(_so_path, use_errno=True)
+     ```
+   - Because `libbcc.so` contains `DT_RUNPATH = $ORIGIN/../lib` (pointing to `$out/lib`), passing its explicit path to `dlopen()` allows Bionic's dynamic linker (`/system/bin/linker64`) to automatically resolve all transitive dependencies (`libbpf.so`, `libelf.so`, etc.) without relying on ambient or insecure `LD_LIBRARY_PATH` environment variables.
+7. **Bionic C Library Dynamic Loading in `ctypes` (`libc.so` vs `libc.so.6`/`librt.so.1`)**:
    - `src/python/bcc/perf.py` and `src/python/bcc/__init__.py` invoked `ctypes.CDLL('libc.so.6')` and `ctypes.CDLL('librt.so.1')`.
    - Patched via `postPatch` to reference Bionic's unified `libc.so`.
-7. **macOS Host Isolation for Nested NATIVE Tablegen Builds (`--build-id=sha1`)**:
+8. **macOS Host Isolation for Nested NATIVE Tablegen Builds (`--build-id=sha1`)**:
    - Nixpkgs sets `env.LDFLAGS = "-Wl,--build-id=sha1"` whenever the target (`hostPlatform`) is not Darwin.
    - When cross-compiling LLVM on a macOS build machine (`aarch64-darwin`), LLVM's CMake build invokes a nested CMake instance (`build/NATIVE`) using the host compiler (`clang-wrapper`) and Apple's linker (`cctools` / `ld64`) to build host `llvm-tblgen` and `llvm-config-native`.
    - This nested native CMake inherited the ambient `LDFLAGS="-Wl,--build-id=sha1"` environment variable, causing the host compiler check (`testCCompiler.c`) to fail on Darwin with `ld: unknown option: --build-id=sha1`.
