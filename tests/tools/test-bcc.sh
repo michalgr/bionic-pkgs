@@ -55,9 +55,15 @@ log_info "Testing bcc via: ${BCC_BIN}"
 BIN_NAME="$(basename "$BCC_BIN")"
 if [ "$BIN_NAME" = "run.sh" ]; then
   BASE_DIR="$(dirname "$BCC_BIN")"
-  BPS_CMD="${BASE_DIR}/bin/bps"
-  PY_CMD="${BCC_BIN}"
+  BPS_CMD="${BASE_DIR}/run.sh"
   EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
+  if adb_shell "[ -x /data/local/tmp/bionic-pkgs/python3/run.sh ]" 2>/dev/null; then
+    PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages:\${PYTHONPATH:-}\" /data/local/tmp/bionic-pkgs/python3/run.sh"
+  elif adb_shell "[ -x ${BASE_DIR}/../python3/run.sh ]" 2>/dev/null; then
+    PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages:\${PYTHONPATH:-}\" ${BASE_DIR}/../python3/run.sh"
+  else
+    PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages:\${PYTHONPATH:-}\" python3"
+  fi
 elif [ "$BIN_NAME" = "python-launcher.sh" ]; then
   BASE_DIR="$(dirname "$BCC_BIN")"
   BPS_CMD="${BASE_DIR}/bin/bps"
@@ -65,8 +71,16 @@ elif [ "$BIN_NAME" = "python-launcher.sh" ]; then
   EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
 else
   BASE_DIR="$(dirname "$BCC_BIN")/.."
-  BPS_CMD="${BASE_DIR}/bin/bps"
-  PY_CMD="${BASE_DIR}/python-launcher.sh"
+  if [ -f "${BASE_DIR}/bin/bps" ]; then
+    BPS_CMD="${BASE_DIR}/bin/bps"
+  else
+    BPS_CMD="${BCC_BIN}"
+  fi
+  if [ -f "${BASE_DIR}/python-launcher.sh" ]; then
+    PY_CMD="${BASE_DIR}/python-launcher.sh"
+  else
+    PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages:\${PYTHONPATH:-}\" python3"
+  fi
   EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
 fi
 
