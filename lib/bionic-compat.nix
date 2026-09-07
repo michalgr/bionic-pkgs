@@ -55,9 +55,10 @@ let
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
+        (lib.cmakeBool "LIBCXX_ENABLE_STATIC_ABI_LIBRARY" true)
       ];
       postInstall = (old.postInstall or "") + ''
-        ln -sf libc++.so $out/lib/libc++_shared.so
+        ln -sf libc++.so.1 $out/lib/libc++_shared.so
         ln -sf libc++.a $out/lib/libc++_static.a
       '';
     });
