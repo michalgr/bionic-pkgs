@@ -27,6 +27,13 @@ stdenv.mkDerivation (finalAttrs: {
     "--disable-examples"
   ];
 
+  # Android Bionic porting shims:
+  # 1. -D__STDC_ISO_10646__=200009L: Bionic wchar_t uses UTF-32/ISO 10646, but wchar.h doesn't define __STDC_ISO_10646__.
+  # 2. -DHAVE_SIZE_MAX: Prevents sys.h from redefining SIZE_MAX which conflicts with Bionic stdint.h.
+  env = {
+    NIX_CFLAGS_COMPILE = "-D__STDC_ISO_10646__=200009L -DHAVE_SIZE_MAX";
+  };
+
   enableParallelBuilding = true;
 
   meta = {
