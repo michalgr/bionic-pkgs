@@ -166,8 +166,8 @@ EOF
     echo "INPUT(libdl.so)" > "$out/lib/libdl.a"
     echo "INPUT(libm.so)" > "$out/lib/libm.a"
     echo "INPUT(libc.so)" > "$out/lib/libc.a"
-    echo "INPUT(-lz)" > "$out/lib/libz.a"
-    echo "INPUT(-llog)" > "$out/lib/liblog.a"
+    echo "INPUT(libz.so)" > "$out/lib/libz.a"
+    echo "INPUT(liblog.so)" > "$out/lib/liblog.a"
 
     # =========================================================================
     # 5. Pkg-config Definitions for Android Platform zlib
