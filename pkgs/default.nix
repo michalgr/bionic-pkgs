@@ -35,7 +35,7 @@ let
       inherit (self) elfutils;
     };
     bcc = targetPkgs.callPackage ./tracing/bcc {
-      inherit (self) elfutils libbpf python3;
+      inherit (self) elfutils libbpf;
     };
     bpftrace = targetPkgs.callPackage ./tracing/bpftrace {
       inherit (self) elfutils libbpf bcc cereal xz zstd bzip2 libffi;

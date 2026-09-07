@@ -13,7 +13,6 @@
   llvmPackages,
   elfutils,
   libbpf,
-  python3,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -43,7 +42,6 @@ stdenv.mkDerivation (finalAttrs: {
     llvmPackages.libcxx
     elfutils
     libbpf
-    python3
   ];
 
   postPatch = ''
@@ -73,34 +71,41 @@ stdenv.mkDerivation (finalAttrs: {
   postInstall = ''
     mkdir -p $out/bin $out/lib/python3.13/site-packages/bcc
 
-    # 1. Bundle Python 3 runtime binary and standard library from target python3 package
-    cp -a ${python3}/bin/python3* $out/bin/
-    ln -sf python3 $out/bin/python
-    cp -a ${python3}/lib/python3.13/* $out/lib/python3.13/
-
-    # 2. Install bcc Python module and version file
+    # 1. Install bcc Python module and version file
     cp -a ../src/python/bcc/* $out/lib/python3.13/site-packages/bcc/
     cat << EOF > $out/lib/python3.13/site-packages/bcc/version.py
 __version__ = "${finalAttrs.version}"
 EOF
 
-    # 3. Expose bps introspection executable
+    # 2. Expose bps introspection executable
     if [ -f "$out/share/bcc/introspection/bps" ]; then
       mv "$out/share/bcc/introspection/bps" "$out/bin/bps"
       rmdir "$out/share/bcc/introspection" 2>/dev/null || true
     fi
 
-    # 4. Generate standalone Android launchers for all BCC Python tools in bin/
+    # 3. Generate standalone Android launchers for all BCC Python tools in bin/
     for tool in $out/share/bcc/tools/*; do
       if [ -x "$tool" ] && [ ! -d "$tool" ]; then
         tool_name="$(basename "$tool")"
         cat << 'EOF' > "$out/bin/$tool_name"
 #!/system/bin/sh
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$SCRIPT_DIR/../lib:$LD_LIBRARY_PATH"
-export PYTHONHOME="$SCRIPT_DIR"
-export PYTHONPATH="$SCRIPT_DIR/lib/python3.13/site-packages:$PYTHONPATH"
-exec "$SCRIPT_DIR/bin/python3" "$SCRIPT_DIR/share/bcc/tools/$(basename "$0")" "$@"
+BASE_DIR="$SCRIPT_DIR"
+
+if [ -x "$BASE_DIR/bin/python3" ]; then
+  PY_EXEC="$BASE_DIR/bin/python3"
+elif [ -x "$BASE_DIR/../python3/run.sh" ]; then
+  PY_EXEC="$BASE_DIR/../python3/run.sh"
+elif [ -x "$BASE_DIR/../python3/bin/python3" ]; then
+  PY_EXEC="$BASE_DIR/../python3/bin/python3"
+else
+  PY_EXEC="python3"
+fi
+
+export LD_LIBRARY_PATH="$BASE_DIR/lib:$BASE_DIR/../lib:''${LD_LIBRARY_PATH:-}"
+export PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages:''${PYTHONPATH:-}"
+
+exec "$PY_EXEC" "$BASE_DIR/share/bcc/tools/$(basename "$0")" "$@"
 EOF
         chmod 755 "$out/bin/$tool_name"
       fi
@@ -116,6 +121,6 @@ EOF
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;
     maintainers = [ ];
-    mainProgram = "python3";
+    mainProgram = "bps";
   };
 })

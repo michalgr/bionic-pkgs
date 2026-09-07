@@ -269,9 +269,9 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 4. **Fixing Pkgconfig Prefix Path Concatenation (`libbcc.pc`)**:
    - `libbcc.pc.in` defined `libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@`. Because Nix CMake sets `CMAKE_INSTALL_LIBDIR` to an absolute `/nix/store/...` path, this created invalid double slashes (`//`).
    - Rewritten to `libdir=''${prefix}/lib` in `postPatch`.
-5. **Python 3 Runtime Bundling & Standalone Tool Launchers**:
-   - On Android devices without `/usr/bin/env python`, BCC tools cannot run out-of-the-box.
-   - BCC derivation copies the target `python3` binary and standard library into `$out/lib/python3.13` and installs wrapper scripts into `$out/bin/` (`execsnoop`, `opensnoop`, etc.) that configure `PYTHONHOME`, `PYTHONPATH`, and `LD_LIBRARY_PATH` and execute via `/system/bin/sh`.
+5. **Decoupled Python Module & Dynamic Runtime Resolution**:
+   - Rather than embedding a duplicate target Python 3 interpreter and standard library inside BCC's output `$out`, `bcc` installs its pure Python module into `$out/lib/python3.13/site-packages/bcc/`.
+   - Tool wrappers in `$out/bin/` (`execsnoop`, `opensnoop`, etc.) dynamically locate a Python 3 interpreter (from `$BASE_DIR/bin/python3`, `$BASE_DIR/../python3/run.sh`, `$BASE_DIR/../python3/bin/python3`, or `$PATH`) and set `PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"` and `LD_LIBRARY_PATH`, preserving Nix isolation while supporting both standalone push deployments and sysroot cohabitation.
 6. **Bionic C Library Dynamic Loading in `ctypes` (`libc.so` vs `libc.so.6`/`librt.so.1`)**:
    - `src/python/bcc/perf.py` and `src/python/bcc/__init__.py` invoked `ctypes.CDLL('libc.so.6')` and `ctypes.CDLL('librt.so.1')`.
    - Patched via `postPatch` to reference Bionic's unified `libc.so`.

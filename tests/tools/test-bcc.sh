@@ -53,21 +53,24 @@ log_info "Testing bcc via: ${BCC_BIN}"
 
 # Determine base directory and wrapper helper for bps and python
 BIN_NAME="$(basename "$BCC_BIN")"
-if [ "$BIN_NAME" = "run.sh" ]; then
+if [ "$BIN_NAME" = "run.sh" ] || [ "$BIN_NAME" = "python-launcher.sh" ]; then
   BASE_DIR="$(dirname "$BCC_BIN")"
-  BPS_CMD="${BASE_DIR}/bin/bps"
-  PY_CMD="${BCC_BIN}"
-  EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
-elif [ "$BIN_NAME" = "python-launcher.sh" ]; then
-  BASE_DIR="$(dirname "$BCC_BIN")"
-  BPS_CMD="${BASE_DIR}/bin/bps"
-  PY_CMD="${BCC_BIN}"
-  EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
 else
   BASE_DIR="$(dirname "$BCC_BIN")/.."
+fi
+
+EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
+
+if adb_shell "[ -f '${BASE_DIR}/bin/bps' ]" 2>/dev/null; then
   BPS_CMD="${BASE_DIR}/bin/bps"
-  PY_CMD="${BASE_DIR}/python-launcher.sh"
-  EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
+else
+  BPS_CMD="${BCC_BIN}"
+fi
+
+if adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
+  PY_CMD="LD_LIBRARY_PATH=\"${BASE_DIR}/lib:${BASE_DIR}/../lib:\${LD_LIBRARY_PATH:-}\" ${BASE_DIR}/python-launcher.sh"
+else
+  PY_CMD="LD_LIBRARY_PATH=\"${BASE_DIR}/lib:${BASE_DIR}/../lib:\${LD_LIBRARY_PATH:-}\" PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages:\${PYTHONPATH:-}\" python3"
 fi
 
 # Ensure tracefs/debugfs mounted
