@@ -8,7 +8,7 @@ Cross-compiling C/C++ applications for Android's **Bionic libc** differs signifi
 
 1. **Combined `libc.so` (No `libpthread`, `librt`, `libutil`, `libresolv`, `libcrypt`)**:
    - In Bionic, POSIX threads (`pthread_*`), real-time timers (`clock_gettime`), dynamic loading (`dlopen`), and standard utilities are compiled directly into `libc.so`. (`libdl.so` and `libm.so` exist as stub libraries on device).
-   - **Fix**: Strip `-lpthread -lrt -lutil -lresolv -lcrypt -lnsl` from `LDFLAGS` and build configurations, or provide GNU linker script stubs (`INPUT(-lc)`) inside `bionic.out/lib`.
+   - **Fix**: Strip `-lpthread -lrt -lutil -lresolv -lcrypt -lnsl` from `LDFLAGS` and build configurations, or provide GNU linker script stubs (`INPUT(libc.so)`) inside `bionic.out/lib`.
 
 2. **Missing or Non-Standard POSIX APIs**:
    - **No Thread Cancellation**: `pthread_cancel()`, `pthread_testcancel()`, and `pthread_setcancelstate()` do **not** exist in Bionic. Multithreaded software must use atomic flags or signal handling for cooperative termination.
@@ -56,7 +56,7 @@ In `bionic-pkgs`:
 ### Unified Bionic Sysroot Package (`pkgs/libs/bionic`)
 `bionic-pkgs` consolidates core Bionic libc, NDK r27 platform sysroot headers (`<android/log.h>`, `<android/trace.h>`, `<android/sync.h>`, `<zlib.h>`, `<jni.h>`, etc.), architecture-specific platform stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.), and built-in compatibility shims into a single unified package `pkgs/libs/bionic` (`final.bionic`).
 
-1. **GNU Linker Script Shims**: Provides `INPUT(-lc)` stubs directly inside `bionic.out/lib` for `libpthread.so`, `libpthread.a`, `librt.so`, `librt.a`, `libutil.so`, `libutil.a`, `libresolv.so`, `libresolv.a`, `libcrypt.so`, `libcrypt.a`.
+1. **GNU Linker Script Shims**: Provides `INPUT(libc.so)` stubs directly inside `bionic.out/lib` for `libpthread.so`, `libpthread.a`, `librt.so`, `librt.a`, `libutil.so`, `libutil.a`, `libresolv.so`, `libresolv.a`, `libcrypt.so`, `libcrypt.a`.
 2. **Header Shims via `#include_next`**: Wraps Bionic headers cleanly within the sysroot:
    - `<netinet/in.h>`: Injects `typedef uint32_t in_addr_t;`.
    - `<arpa/inet.h>`: Guarantees `<netinet/in.h>` is parsed before Bionic's `<arpa/inet.h>`.
@@ -67,6 +67,14 @@ In `bionic-pkgs`:
 3. **Platform Shared Library Stubs**: Unpacks official Android NDK platform headers and architecture-specific platform shared library stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
 
 Packages no longer need to depend on standalone `android-prebuilts` or `bionic-compat` in `buildInputs`; the Bionic sysroot is supplied transparently by `stdenv`, and `zlib` maps directly to `final.bionic`.
+
+### Platform Semi-Static Linking Architecture
+In `bionic-pkgs`, our architecture embraces a **Platform Semi-Static Linking Model**: third-party dependencies are statically linked into target binaries, while core platform dependencies (`libc`, `libm`, `libdl`, `libz`, `liblog`) dynamically bind to Android's `/system/lib64/` platform libraries.
+
+To enforce this cleanly across static and dynamic build modes, `pkgs/libs/bionic` provides GNU linker script stubs (`.a` files) for platform libraries (`libc.a`, `libdl.a`, `libm.a`, `libz.a`, `liblog.a`, `libpthread.a`, etc.) containing exact `.so` filename directives (e.g. `INPUT(libc.so)`, `INPUT(libz.so)`, `INPUT(liblog.so)`).
+
+**Why Exact Filenames over `-l` Search Flags (`INPUT(-lz)`)**:
+Using search-flag syntax like `INPUT(-lz)` or `INPUT(-llog)` instructs the linker to run its standard library search algorithm. When a build system (such as CMake or Autotools) links in `-Bstatic` mode, the linker searches for `libz.a`, finds the stub file, and then evaluates `INPUT(-lz)`. Because `-Bstatic` is active, the search algorithm looks strictly for static archives (`libz.a`), re-encountering the same `.a` stub file. This causes linker loops or build failures with errors such as `attempted static link of dynamic object libz.so`. Specifying exact `.so` filenames (`INPUT(libz.so)`, `INPUT(liblog.so)`) forces the linker to directly resolve the dynamic platform object regardless of whether `-Bstatic` is enabled.
 
 ### Stripping Unneeded System Libraries (`-lpthread`, `-lrt`, `-lutil`)
 When Autotools or CMake scripts try to link `-lpthread` or `-lrt`:
