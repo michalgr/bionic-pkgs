@@ -60,8 +60,8 @@ let
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
         "-DLIBCXX_EXTRA_LIBRARIES=unwind"
-        "-DCMAKE_SHARED_LINKER_FLAGS=-lunwind"
-        "-DCMAKE_MODULE_LINKER_FLAGS=-lunwind"
+        "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--whole-archive,${lfinal.libunwind}/lib/libunwind.a,--no-whole-archive"
+        "-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--whole-archive,${lfinal.libunwind}/lib/libunwind.a,--no-whole-archive"
       ];
       postInstall = (old.postInstall or "") + ''
         ln -sf libc++.so.1 $out/lib/libc++.so
