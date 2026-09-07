@@ -125,7 +125,7 @@ let
     ldflags = [
       # Library search path for Bionic libc and linker script stubs
       "-L${final.bionic.out}/lib"
-      "-rpath" "\\$ORIGIN/../lib:\\$ORIGIN:\\$ORIGIN/..:\\$ORIGIN/../.."
+      "-rpath" "\\$ORIGIN/../lib"
       # Android 15+ 16 KB memory page alignment for ELF LOAD segments
       "-z" "max-page-size=16384"
       "-z" "common-page-size=16384"

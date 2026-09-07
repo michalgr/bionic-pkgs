@@ -156,9 +156,9 @@ To make testing binaries on Android hardware or emulators frictionless, every ex
   1. **Runtime Closure Query**: The push app queries the package's runtime closure (`nix-store -qR` or Flake closure export).
   2. **Library Synchronization**: Shared libraries are staged to `/data/local/tmp/bionic-pkgs/<pkg>/lib/`.
   3. **Binary Staging**: Pushes the main binary to `/data/local/tmp/bionic-pkgs/<pkg>/bin/` and guarantees executable permissions (`chmod 755`).
-  4. **Relative `$ORIGIN` Runpaths & Environment Wrapper**:
+  4. **Hardened Relative `$ORIGIN` Runpaths & Environment Wrapper**:
      - Android's dynamic linker does not recognize host `/nix/store/...` paths.
-     - Derivations configure `DT_RUNPATH` with `$ORIGIN/../lib:$ORIGIN/lib`.
+     - Derivations configure `DT_RUNPATH` strictly with `$ORIGIN/../lib` to eliminate search path escaping and prevent library hijacking vulnerabilities (CWE-426/CWE-427). Nested Python C-extension modules scope `$ORIGIN/../..` exclusively via `MODULE_LDFLAGS_SHARED` to resolve libraries inside `prefix/lib`.
      - The push app generates a wrapper script exporting `LD_LIBRARY_PATH=/data/local/tmp/bionic-pkgs/<pkg>/lib` as a fallback.
   5. **Direct ADB Execution**: Optionally executes the binary interactively via `adb shell`.
 

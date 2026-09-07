@@ -36,5 +36,5 @@ Before declaring any package complete or bug fixed:
    - **Dynamic Dependencies & Runpaths**: Run `llvm-readelf -d <binary>` and verify:
      - Needed libraries link against Bionic (`libc.so`, `libm.so`, `libdl.so`) or staged packages.
      - glibc-specific libraries (`libpthread.so`, `librt.so`, `libutil.so`, `libresolv.so`, `libcrypt.so`) are **NOT** present.
-     - `DT_RUNPATH` uses relative origin paths (e.g. `$ORIGIN/../lib:$ORIGIN/lib`) rather than host `/nix/store/...` paths.
+     - `DT_RUNPATH` uses relative origin paths (strictly `$ORIGIN/../lib` for standard binaries, or scoped `$ORIGIN/../..` for nested Python extension modules) rather than host `/nix/store/...` paths.
 3. Test push functionality and verify execution on an Android device or emulator via ADB in `/data/local/tmp/`.
