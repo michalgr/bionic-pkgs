@@ -17,7 +17,7 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-XwVzNJ13xKSJZxkc3WY03Xql9jmMalf+A3zAJpbWCZ8=";
   };
 
-  buildInputs = [
+  propagatedBuildInputs = [
     ncurses
   ];
 

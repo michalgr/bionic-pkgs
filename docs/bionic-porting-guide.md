@@ -177,23 +177,30 @@ long page_size = sysconf(_SC_PAGESIZE);
    - Bionic defines `#define __unused __attribute__((__unused__))` in `<sys/cdefs.h>`. When Linux UAPI headers like `<asm/stat.h>` declare fields named `__unused`, compilation fails with syntax errors.
    - **Resolution**: Wrap `<asm/stat.h>` in `pkgs/libs/bionic` with `#pragma push_macro("__unused")` / `#undef __unused` / `#include_next <asm/stat.h>` / `#pragma pop_macro("__unused")`.
 
-### Case Study 2: `python3` & `libffi` (Minimal Standalone Runtime)
-Python 3 on Android provides a standalone CLI scripting runtime and C interoperability via `ctypes`.
+### Case Study 2: `python3`, `libffi`, `libedit` & `sqlite3` (Standalone Runtime & REPL)
+Python 3 on Android provides a standalone CLI scripting runtime, C interoperability via `ctypes`, interactive REPL history, and SQLite database inspection.
 
-1. **Minimal Dependency Architecture**:
-   - Upstream Linux Python distributions pull heavy dependency graphs (Tcl/Tk, readline, sqlite, gdbm, dbm, OpenSSL, libxcrypt, etc.).
-   - For an efficient, portable Android runtime, optional modules are disabled (`--without-readline`, `--without-curses`, `--without-sqlite3`, `--without-gdbm`, `--without-dbm`, `--without-tkinter`, `--disable-test-modules`).
+1. **Minimal Dependency Architecture & Interactive REPL / SQLite Support**:
+   - Upstream Linux Python distributions pull heavy dependency graphs (Tcl/Tk, gdbm, dbm, OpenSSL, libxcrypt, etc.).
+   - Interactive line editing and command history are enabled using NetBSD `libedit` (`--with-readline=editline`) backed by `ncurses` (propagated via `propagatedBuildInputs = [ ncurses ];` to ensure `libncurses.so` is included in sysroot bundles).
+   - Database inspection capabilities are enabled via `sqlite` (`--with-sqlite3`).
+   - Heavy optional GUI and database modules remain disabled (`--without-curses`, `--without-gdbm`, `--without-dbm`, `--without-tkinter`, `--disable-test-modules`).
    - Hash algorithm support (`_hashlib` / `hashlib`) is fulfilled without OpenSSL via `--with-builtin-hashlib-hashes=md5,sha1,sha2,sha3,blake2` which compiles internal C implementations (HACL*).
-   - Only `libffi` is retained as an external dependency to power `_ctypes` for native C library interaction.
-2. **Cross-Compilation via `--with-build-python`**:
+   - `libffi` is retained to power `_ctypes` for native C library interaction.
+2. **NetBSD `libedit` Bionic Porting Shims**:
+   - `libedit` requires specific Bionic compiler flags (`NIX_CFLAGS_COMPILE = "-D__STDC_ISO_10646__=200009L -DHAVE_SIZE_MAX -DNBBY=8"`):
+     - `-D__STDC_ISO_10646__=200009L`: Bionic `wchar_t` uses UTF-32/ISO 10646, but `<wchar.h>` lacks the macro definition.
+     - `-DHAVE_SIZE_MAX`: Prevents `sys.h` from redefining `SIZE_MAX`, which conflicts with Bionic `<stdint.h>`.
+     - `-DNBBY=8`: Bionic `<sys/param.h>` lacks the BSD `NBBY` (Number of Bits per BYte) macro required by `src/vis.c`.
+3. **Cross-Compilation via `--with-build-python`**:
    - CPython 3.11+ cross-compilation requires a native host Python interpreter matching the target major and minor version (e.g., `buildPackages.python313`).
-3. **Android System Logging (`<android/log.h>` & `liblog.so`)**:
+4. **Android System Logging (`<android/log.h>` & `liblog.so`)**:
    - Python's lifecycle initialization on Android includes `<android/log.h>` for `__android_log_write()`.
    - **Resolution**: `<android/log.h>` and `liblog.so` are supplied by `pkgs/libs/bionic` (provided transparently by `stdenv`), linking cleanly against Android's system `liblog.so`.
-4. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
+5. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
    - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
    - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
-5. **Runtime Standard Library Resolution (`PYTHONHOME`) & Scoped Extension RPATH**:
+6. **Runtime Standard Library Resolution (`PYTHONHOME`) & Scoped Extension RPATH**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"`.
    - CPython extension modules located in `prefix/lib/python3.13/lib-dynload/` require an additional `$ORIGIN/../..` runpath to locate `libpython3.13.so` and `libffi.so` in `prefix/lib`.
    - In `pkgs/runtime/python3/default.nix`, `Makefile.pre.in` is patched via `postPatch` to append `-Wl,-rpath,\$ORIGIN/../..` strictly to `MODULE_LDFLAGS_SHARED`, ensuring `$ORIGIN/../..` remains strictly confined within `prefix/lib`.
