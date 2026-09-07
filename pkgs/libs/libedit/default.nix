@@ -5,6 +5,7 @@
   lib,
   stdenv,
   fetchurl,
+  ncurses,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -15,6 +16,10 @@ stdenv.mkDerivation (finalAttrs: {
     url = "https://www.thrysoee.dk/editline/libedit-${finalAttrs.version}.tar.gz";
     hash = "sha256-XwVzNJ13xKSJZxkc3WY03Xql9jmMalf+A3zAJpbWCZ8=";
   };
+
+  buildInputs = [
+    ncurses
+  ];
 
   configureFlags = [
     "--enable-shared"
