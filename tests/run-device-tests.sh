@@ -84,7 +84,22 @@ log_info "Deploy Mode:  ${DEPLOY_MODE}"
 [ "$DEPLOY_MODE" = "sysroot" ] && log_info "Sysroot Dir:  ${SYSROOT_DIR}"
 
 adb_wait_and_root
-adb_mount_tracefs
+
+should_mount_tracefs=0
+if [ "$TOOLS_ARG" = "all" ]; then
+  should_mount_tracefs=1
+else
+  for tool in "${SELECTED_TOOLS[@]}"; do
+    if [ "$tool" = "bpftrace" ] || [ "$tool" = "bcc" ]; then
+      should_mount_tracefs=1
+      break
+    fi
+  done
+fi
+
+if [ "$should_mount_tracefs" -eq 1 ]; then
+  adb_mount_tracefs
+fi
 
 OVERALL_EXIT=0
 

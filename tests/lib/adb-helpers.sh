@@ -40,9 +40,8 @@ adb_wait_and_root() {
 
 adb_mount_tracefs() {
   log_info "Mounting kernel tracefs / debugfs..."
-  adb_shell "setenforce 0 2>/dev/null || true"
-  adb_shell "mount -t tracefs nodev /sys/kernel/tracing 2>/dev/null || true"
-  adb_shell "mount -t debugfs nodev /sys/kernel/debug 2>/dev/null || true"
+  adb_shell "grep -q '/sys/kernel/tracing' /proc/mounts || mount -t tracefs nodev /sys/kernel/tracing 2>/dev/null || true"
+  adb_shell "grep -q '/sys/kernel/debug' /proc/mounts || mount -t debugfs nodev /sys/kernel/debug 2>/dev/null || true"
 }
 
 adb_get_arch() {

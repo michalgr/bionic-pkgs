@@ -4,6 +4,12 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+source "$ROOT_DIR/tests/lib/common.sh"
+source "$ROOT_DIR/tests/lib/adb-helpers.sh"
+
 DRY_RUN=0
 DIR="dist/"
 
@@ -51,18 +57,8 @@ echo "============================================================"
 echo "==> Deploying Full Sysroot and Static bpftrace Archives"
 echo "============================================================"
 
-echo "Waiting for ADB device..."
-adb wait-for-device
-
-echo "Elevating permissions and mounting tracefs/debugfs..."
-adb root 2>/dev/null || true
-until [ "$(adb shell id -u 2>/dev/null | tr -d '\r\n')" = "0" ]; do
-  sleep 1
-done
-adb wait-for-device
-adb shell setenforce 0 2>/dev/null || true
-adb shell "mount -t tracefs nodev /sys/kernel/tracing 2>/dev/null || true"
-adb shell "mount -t debugfs nodev /sys/kernel/debug 2>/dev/null || true"
+adb_wait_and_root
+adb_mount_tracefs
 
 echo "Cleaning up previous test deployments..."
 adb shell "rm -rf /data/local/tmp/test-bpftrace-static /data/local/tmp/test-sysroot"
