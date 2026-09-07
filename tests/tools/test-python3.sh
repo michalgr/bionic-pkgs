@@ -76,4 +76,12 @@ assert_contains "$output" "CTYPES_BIONIC_OK: True True" "python3 Bionic ctypes l
 output="$(adb_shell "${PYTHON_BIN} -c \"import lzma, bz2; data = b'bionic'*100; assert lzma.decompress(lzma.compress(data)) == data; assert bz2.decompress(bz2.compress(data)) == data; print('COMPRESS_OK')\" 2>&1" || true)"
 assert_contains "$output" "COMPRESS_OK" "python3 in-memory compression round-trip (lzma, bz2)"
 
+# 6. Readline module check
+output="$(adb_shell "${PYTHON_BIN} -c \"import readline; print('READLINE_OK')\" 2>&1" || true)"
+assert_contains "$output" "READLINE_OK" "python3 readline module check"
+
+# 7. SQLite3 database support check
+output="$(adb_shell "${PYTHON_BIN} -c \"import sqlite3; con = sqlite3.connect(':memory:'); con.execute('create table t(x);'); con.commit(); print('SQLITE3_OK')\" 2>&1" || true)"
+assert_contains "$output" "SQLITE3_OK" "python3 sqlite3 database support check"
+
 print_summary

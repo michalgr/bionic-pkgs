@@ -8,6 +8,8 @@ let
     # Core Compatibility Libraries & Shims
     bionic = targetPkgs.bionic;
     libffi = targetPkgs.callPackage ./libs/libffi { };
+    libedit = targetPkgs.callPackage ./libs/libedit { };
+    sqlite = targetPkgs.callPackage ./libs/sqlite { };
     xz = targetPkgs.callPackage ./libs/xz { };
     zstd = targetPkgs.callPackage ./libs/zstd { };
     bzip2 = targetPkgs.callPackage ./libs/bzip2 { };
@@ -50,7 +52,7 @@ let
 
     # Runtime Environments & Interpreters
     python3 = targetPkgs.callPackage ./runtime/python3 {
-      inherit (self) libffi xz bzip2;
+      inherit (self) libffi libedit sqlite xz bzip2;
     };
 
     # Bundled Archives
@@ -66,6 +68,8 @@ let
         self.bcc
         self.libbpf
         self.libffi
+        self.libedit
+        self.sqlite
         self.xz
         self.zstd
         self.bzip2
