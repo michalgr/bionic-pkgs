@@ -48,6 +48,10 @@ let
       buildInputs = (old.buildInputs or [ ]) ++ [
         final.bionic.dev
         final.bionic.out
+        lfinal.libunwind
+      ];
+      propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
+        lfinal.libunwind
       ];
       env = (old.env or { }) // {
         NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
@@ -55,6 +59,9 @@ let
       };
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
+        "-DLIBCXX_EXTRA_LIBRARIES=unwind"
+        "-DCMAKE_SHARED_LINKER_FLAGS=-lunwind"
+        "-DCMAKE_MODULE_LINKER_FLAGS=-lunwind"
       ];
       postInstall = (old.postInstall or "") + ''
         ln -sf libc++.so.1 $out/lib/libc++.so
