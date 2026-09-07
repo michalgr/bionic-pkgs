@@ -7,7 +7,6 @@
   bash,
   makeArchive,
   stageRuntimeScript ? ../../../scripts/stage-runtime.sh,
-  fixLinkerScripts ? ../../../scripts/fix-linker-scripts.sh,
   generateLauncher ? ../../../scripts/generate-launcher.sh,
 }:
 
@@ -50,7 +49,6 @@ let
     buildCommand = ''
       bash ${stageRuntimeScript} \
         --stage "$out" \
-        --fix-linker-scripts ${fixLinkerScripts} \
         --generate-launcher ${generateLauncher} \
         ${lib.optionalString (launcherProgram != null) "--launcher ${launcherProgram}"} \
         ${lib.optionalString (launcherName != null) "--launcher-name ${launcherName}"} \

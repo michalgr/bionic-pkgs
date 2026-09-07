@@ -57,7 +57,8 @@ let
         (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")
       ];
       postInstall = (old.postInstall or "") + ''
-        ln -sf libc++.so $out/lib/libc++_shared.so
+        ln -sf libc++.so.1 $out/lib/libc++.so
+        ln -sf libc++.so.1 $out/lib/libc++_shared.so
         ln -sf libc++.a $out/lib/libc++_static.a
       '';
     });
