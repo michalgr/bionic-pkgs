@@ -53,6 +53,12 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-warn "ct.CDLL('libc.so.6'" "ct.CDLL('libc.so'"
     substituteInPlace src/python/bcc/__init__.py \
       --replace-warn "ct.CDLL('librt.so.1'" "ct.CDLL('libc.so'"
+    substituteInPlace src/python/bcc/libbcc.py \
+      --replace-warn "import ctypes as ct" "import os
+import ctypes as ct" \
+      --replace-warn 'lib = ct.CDLL("libbcc.so.0", use_errno=True)' '_rel_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "libbcc.so"))
+_so_path = _rel_path if os.path.isfile(_rel_path) else "libbcc.so.0"
+lib = ct.CDLL(_so_path, use_errno=True)'
   '';
 
   cmakeFlags = [
@@ -102,8 +108,8 @@ else
   PY_EXEC="python3"
 fi
 
-export LD_LIBRARY_PATH="$BASE_DIR/lib:$BASE_DIR/../lib:''${LD_LIBRARY_PATH:-}"
-export PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages:''${PYTHONPATH:-}"
+export LD_LIBRARY_PATH="$BASE_DIR/lib''${LD_LIBRARY_PATH:+:''$LD_LIBRARY_PATH}"
+export PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages''${PYTHONPATH:+:''$PYTHONPATH}"
 
 exec "$PY_EXEC" "$BASE_DIR/share/bcc/tools/$(basename "$0")" "$@"
 EOF
