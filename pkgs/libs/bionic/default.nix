@@ -64,65 +64,18 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     # Bionic defines in_addr_t and struct in_addr in <bits/in_addr.h>.
     # We coordinate with UAPI <linux/libc-compat.h> via __UAPI_DEF_IN_ADDR so
     # kernel headers (e.g. bundled in strace) do not trigger struct in_addr redefinitions.
-    cat << 'EOF' > "$dev/include/bits/in_addr.h"
-#pragma once
-
-#include <sys/cdefs.h>
-#include <stdint.h>
-
-#if !defined(_BIONIC_IN_ADDR_T_DEFINED) && !defined(__in_addr_t_defined)
-#define _BIONIC_IN_ADDR_T_DEFINED 1
-#define __in_addr_t_defined 1
-typedef uint32_t in_addr_t;
-#endif
-
-#if !defined(_STRUCT_IN_ADDR) && (!defined(__UAPI_DEF_IN_ADDR) || __UAPI_DEF_IN_ADDR == 0)
-#define _STRUCT_IN_ADDR 1
-#ifndef __UAPI_DEF_IN_ADDR
-#define __UAPI_DEF_IN_ADDR 0
-#endif
-#ifndef _NETINET_IN_H
-#define _NETINET_IN_H 1
-#endif
-struct in_addr {
-  in_addr_t s_addr;
-};
-#endif
-EOF
+    mkdir -p "$dev/include/bits"
+    cp ${./include/bits/in_addr.h} "$dev/include/bits/in_addr.h"
 
     echo -e '\n#include <bits/in_addr.h>' >> "$dev/include/sys/types.h"
 
     # (b) GNU gettext / <libintl.h> No-op Macro Shims
     # Android Bionic libc omits GNU gettext. We provide standard no-op macro definitions
     # so software including <libintl.h> compiles cleanly without requiring external gettext.
-    cat << 'EOF' > "$dev/include/libintl.h"
-#pragma once
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#define gettext(Msgid) ((char *)(Msgid))
-#define dgettext(Domainname, Msgid) ((char *)(Msgid))
-#define dcgettext(Domainname, Msgid, Category) ((char *)(Msgid))
-#define ngettext(Singular, Plural, N) ((char *)((N) == 1 ? (Singular) : (Plural)))
-#define dngettext(Domainname, Singular, Plural, N) ((char *)((N) == 1 ? (Singular) : (Plural)))
-#define dcngettext(Domainname, Singular, Plural, N, Category) ((char *)((N) == 1 ? (Singular) : (Plural)))
-#define textdomain(Domainname) ((char *)(Domainname))
-#define bindtextdomain(Domainname, Dirname) ((char *)(Dirname))
-#define bind_textdomain_codeset(Domainname, Codeset) ((char *)(Codeset))
-
-#ifdef __cplusplus
-}
-#endif
-EOF
+    cp ${./include/libintl.h} "$dev/include/libintl.h"
 
     # (c) <fnmatch.h> GNU Extension FNM_EXTMATCH (required by elfutils)
-    cat << 'EOF' >> "$dev/include/fnmatch.h"
-
-#ifndef FNM_EXTMATCH
-#define FNM_EXTMATCH 0
-#endif
-EOF
+    cat ${./include/fnmatch.h} >> "$dev/include/fnmatch.h"
 
     # =========================================================================
     # 3. Install Platform Shared Libraries and CRT Objects
@@ -172,20 +125,9 @@ EOF
     # =========================================================================
     # 5. Pkg-config Definitions for Android Platform zlib
     # =========================================================================
-    cat << EOF > "$dev/lib/pkgconfig/zlib.pc"
-prefix=$out
-exec_prefix=\''${prefix}
-libdir=\''${prefix}/lib
-sharedlibdir=\''${prefix}/lib
-includedir=$dev/include
-
-Name: zlib
-Description: Android platform zlib compression library
-Version: 1.3.2
-Requires:
-Libs: -L\''${libdir} -lz
-Cflags: -I\''${includedir}
-EOF
+    substitute ${./pkgconfig/zlib.pc.in} "$dev/lib/pkgconfig/zlib.pc" \
+      --subst-var-by out "$out" \
+      --subst-var-by dev "$dev"
     cp "$dev/lib/pkgconfig/zlib.pc" "$dev/share/pkgconfig/zlib.pc"
   '';
 
