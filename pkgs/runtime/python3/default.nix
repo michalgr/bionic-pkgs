@@ -1,5 +1,5 @@
 # pkgs/runtime/python3/default.nix
-# Minimal Python 3 runtime for Android 14+ (Bionic libc) with libffi (ctypes).
+# Minimal Python 3 runtime for Android 14+ (Bionic libc) with libffi, libedit, and sqlite3.
 
 {
   lib,
@@ -8,6 +8,8 @@
   buildPackages,
   pkg-config,
   libffi,
+  libedit,
+  sqlite,
   xz,
   bzip2,
 }:
@@ -22,7 +24,7 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   # Native tooling for build machine:
-  # 1. pkg-config: Finds target libffi for _ctypes extension module.
+  # 1. pkg-config: Finds target libffi, libedit, sqlite3 for extension modules.
   nativeBuildInputs = [
     pkg-config
   ];
@@ -32,9 +34,11 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
-  # Minimal dependency set: libffi (for ctypes), xz (for lzma), bzip2 (for bz2), and android-prebuilts (<android/log.h>)
+  # Dependency set: libffi (for ctypes), libedit (interactive REPL history), sqlite (for sqlite3), xz (for lzma), bzip2 (for bz2)
   buildInputs = [
     libffi
+    libedit
+    sqlite
     xz
     bzip2
   ];
@@ -48,8 +52,7 @@ stdenv.mkDerivation (finalAttrs: {
   # Bionic Porting Notes & Dependency Exclusions:
   # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.13).
   # 2. Shared libpython (--enable-shared, --without-static-libpython) is required on Android.
-  # 3. Minimal dependency architecture: heavy optional dependencies (readline, curses, sqlite3,
-  #    gdbm, dbm, tkinter, idle, test modules) are disabled to produce a fast, standalone runtime.
+  # 3. Interactive REPL navigation & database support enabled via libedit (--with-readline=editline) and sqlite3.
   # 4. Built-in hashes (--with-builtin-hashlib-hashes): Uses internal HACL* C implementations
   #    so hashlib works without requiring OpenSSL.
   # 5. Native Android logging: Uses <android/log.h> and liblog.so from android-prebuilts.
@@ -59,9 +62,9 @@ stdenv.mkDerivation (finalAttrs: {
     "--without-static-libpython"
     "--without-ensurepip"
     "--with-system-ffi"
-    "--without-readline"
+    "--with-readline=editline"
     "--without-curses"
-    "--without-sqlite3"
+    "--with-sqlite3"
     "--without-gdbm"
     "--without-dbm"
     "--without-tkinter"
@@ -81,7 +84,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "High-level programming language with dynamic typing and minimal dependency set (libffi, lzma, bz2) for Android (Bionic)";
+    description = "High-level programming language with dynamic typing and support for libffi, libedit, sqlite3, lzma, bz2 for Android (Bionic)";
     homepage = "https://www.python.org/";
     license = lib.licenses.psfl;
     platforms = lib.platforms.linux;
