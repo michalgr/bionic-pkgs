@@ -180,6 +180,7 @@ Every testable CLI package implements a dedicated test script under `tests/tools
 - **`elfutils`**: Header inspection (`eu-readelf -h`), section headers (`-S`), dynamic entries/runpaths (`-d`), dynamic symbol extraction (`eu-nm -D`), and segment sizes (`eu-size`).
 - **`bpftrace`**: Version check, environment info (`--info`), syscount help, userspace BPF probes, and kernel tracepoint probes with graceful `SKIP` if kernel tracepoints/tracefs are unavailable. Supports both static (`bpftrace-static`) and dynamic sysroot installations.
 - **`bcc`**: Introspection utility (`bps`), Python `bcc` module import/version check, standalone tool help (`execsnoop -h`), and BPF C program compilation/execution (`bcc.BPF`) with graceful `SKIP` on missing kernel BPF features.
+- **`lldb`**: Version check for `lldb` CLI and companion `lldb-server`, batch execution/process tracing (`--batch`), target image inspection (`target create` / `image list`), breakpoint setting (`breakpoint set -n main`), and control flow.
 
 ### Integration Suite & Master Orchestrator (`tests/`)
 - `tests/test-integration.sh`: Cross-tool cohabitation integration test verifying `strace` tracing `python3`, `python3` executing BPF programs with `bcc`, `bpftrace` tracing syscalls, `eu-readelf` validating sysroot binaries, and `radare2`/`rizin` disassembling sysroot binaries.

@@ -41,7 +41,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/tracing/libbpf`: Core BPF object loader library.
 - [ ] **`pkgs/diagnostics/` (Debuggers)**:
   - `pkgs/diagnostics/gdb`: GDB & `gdbserver` cross-compiled for Bionic.
-  - `pkgs/diagnostics/lldb`: LLVM native target debugger.
+  - [x] `pkgs/diagnostics/lldb`: LLVM native target debugger & `lldb-server`.
 
 ---
 
@@ -58,6 +58,6 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 ## 🤖 Phase 5: Developer Experience, ADB Automation & Modular Test Framework
 - [x] Implement `nix run .#push-<pkg>` (and `.#push-<target>-<pkg>`) ADB push helpers with runtime dependency closure synchronization and launcher wrapper.
 - [x] `devShells` featuring cross-compilers, ADB binaries, and environment variables.
-- [x] Modular on-device test framework (`tests/lib/`, `tests/tools/`, `tests/test-integration.sh`, `tests/run-device-tests.sh`) with codified tests for ported packages (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`).
+- [x] Modular on-device test framework (`tests/lib/`, `tests/tools/`, `tests/test-integration.sh`, `tests/run-device-tests.sh`) with codified tests for ported packages (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`, `lldb`).
 - [x] 2-tier CI testing matrix: Tier 1 Fast Smoke with single emulator instance (`strace`, `elfutils`, `python3` via `.github/workflows/fast-smoke.yml`), Tier 2 Full Sysroot Integration runner (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`), and unified Audit workflow (`.github/workflows/audit.yml`).
 - [ ] Enable Cachix binary cache substituters for prebuilt package distribution.
