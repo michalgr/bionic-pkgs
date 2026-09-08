@@ -77,10 +77,6 @@ if [ -z "$PYTHON_BIN" ]; then
     PYTHON_BIN="${BASE_DIR}/bin/python3"
   elif adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
     PYTHON_BIN="${BASE_DIR}/python-launcher.sh"
-  elif adb_shell "[ -x '${BASE_DIR}/../python3/bin/python3' ]" 2>/dev/null; then
-    PYTHON_BIN="${BASE_DIR}/../python3/bin/python3"
-  elif adb_shell "[ -x '${BASE_DIR}/../python3/run.sh' ]" 2>/dev/null; then
-    PYTHON_BIN="${BASE_DIR}/../python3/run.sh"
   fi
 fi
 
@@ -92,8 +88,8 @@ if [ -n "$PYTHON_BIN" ]; then
     PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${PYTHON_BIN}'"
   fi
 else
-  ENV_PREFIX=""
-  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" python3"
+  log_fail "Python 3 interpreter not found in ${BASE_DIR} and --python-bin was not specified."
+  exit 1
 fi
 
 # Ensure tracefs/debugfs mounted
