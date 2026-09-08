@@ -269,9 +269,10 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 4. **Fixing Pkgconfig Prefix Path Concatenation (`libbcc.pc`)**:
    - `libbcc.pc.in` defined `libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@`. Because Nix CMake sets `CMAKE_INSTALL_LIBDIR` to an absolute `/nix/store/...` path, this created invalid double slashes (`//`).
    - Rewritten to `libdir=''${prefix}/lib` in `postPatch`.
-5. **Decoupled Python Module & Dynamic Runtime Resolution**:
+5. **Decoupled Python Module & Hardened Runtime Resolution**:
    - Rather than embedding a duplicate target Python 3 interpreter and standard library inside BCC's output `$out`, `bcc` installs its pure Python module into `$out/lib/python3.13/site-packages/bcc/`.
-   - Tool wrappers in `$out/bin/` (`execsnoop`, `opensnoop`, etc.) dynamically locate a Python 3 interpreter (from `$BASE_DIR/bin/python3`, `$BASE_DIR/../python3/run.sh`, `$BASE_DIR/../python3/bin/python3`, or `$PATH`) and set `PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"` with POSIX-safe expansion (`${PYTHONPATH:+:$PYTHONPATH}`), preserving Nix isolation while supporting both standalone push deployments and sysroot cohabitation.
+   - Tool wrappers in `$out/bin/` (`execsnoop`, `opensnoop`, etc.) strictly enforce fail-closed Python interpreter resolution: checking explicit `BCC_PYTHON_BIN` override, staged sysroot Python (`$BASE_DIR/bin/python3`), and staged push-deployment Python (`$BASE_DIR/../python3/bin/python3`). Fallbacks to mutable `run.sh` or untrusted ambient `PATH` (`python3`) are completely eliminated (CWE-426/CWE-427). If no valid interpreter is found, wrappers exit with status 1 and write a clear error message to stderr.
+   - Wrappers set `PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"` hermetically without appending ambient `${PYTHONPATH}`, preventing untrusted module injection during elevated execution (root / CAP_BPF).
    - To prevent untrusted library traversal and dynamic linker search path injection vulnerabilities (CWE-426), ambient `LD_LIBRARY_PATH` environment variable exports have been completely eliminated across all wrapper scripts, launcher generators, and test runners in favor of hermetic relative `DT_RUNPATH` resolution.
 6. **Hermetic `libbcc.so` Dynamic Loading via `ctypes`**:
    - In `src/python/bcc/libbcc.py`, `libbcc.so` loading was patched via `postPatch` to resolve `libbcc.so` relative to `__file__`:
