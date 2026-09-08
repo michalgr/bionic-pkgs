@@ -108,7 +108,6 @@ else
   PY_EXEC="python3"
 fi
 
-export LD_LIBRARY_PATH="$BASE_DIR/lib''${LD_LIBRARY_PATH:+:''$LD_LIBRARY_PATH}"
 export PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages''${PYTHONPATH:+:''$PYTHONPATH}"
 
 exec "$PY_EXEC" "$BASE_DIR/share/bcc/tools/$(basename "$0")" "$@"

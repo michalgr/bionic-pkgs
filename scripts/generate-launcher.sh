@@ -18,7 +18,6 @@ else
   BASE_DIR="\$SCRIPT_DIR"
 fi
 
-export LD_LIBRARY_PATH="\$BASE_DIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
 export PATH="\$BASE_DIR/bin:\$PATH"
 
 for py_dir in "\$BASE_DIR"/lib/python3.*; do
