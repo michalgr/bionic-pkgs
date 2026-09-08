@@ -291,6 +291,32 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - This nested native CMake inherited the ambient `LDFLAGS="-Wl,--build-id=sha1"` environment variable, causing the host compiler check (`testCCompiler.c`) to fail on Darwin with `ld: unknown option: --build-id=sha1`.
    - **Resolution**: In `lib/bionic-compat.nix`, `libllvm` overrides `env.LDFLAGS = ""` to prevent ambient leakage into host subprojects, and passes `-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=sha1`, `-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1`, and `-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1` explicitly in `cmakeFlags` for target binaries.
 
+### Case Study 7: `lldb` & `lldb-server` (LLVM Native Debugger for Bionic)
+`lldb` and companion `lldb-server` provide native debugging and remote tracing capabilities on Android.
+
+1. **Host `lldb-tblgen` Derivation (Bypassing NATIVE Subproject)**:
+   - LLDB standalone builds attempt to create a nested NATIVE cross-target using `llvm_create_cross_target(lldb NATIVE ...)` to compile host tablegen tools (`lldb-tblgen`).
+   - In Nix cross-compilation, this nested subproject picks up target Bionic sysroots (via `find_package(ZLIB)`), poisoning host compiler includes and failing on macOS Darwin hosts (`-arch arm64` flags).
+   - In `lldb/CMakeLists.txt`, LLDB skips the nested NATIVE target if `LLDB_TABLEGEN_EXE` is set.
+   - **Resolution**: Defined a dedicated helper derivation `lldb-tblgen` in `pkgs/diagnostics/lldb/default.nix` using `buildPackages.stdenv.mkDerivation` linking `buildPackages.llvmPackages.{libllvm,libclang}`, and passed `-DLLDB_TABLEGEN_EXE=${lldb-tblgen}/bin/lldb-tblgen` and `-DLLDB_TABLEGEN=${lldb-tblgen}/bin/lldb-tblgen` in `cmakeFlags`.
+
+2. **Un-guarding NetBSD Editline Header on Android (`Editline.h`)**:
+   - `include/lldb/Host/Editline.h` guarded `#include <histedit.h>` with `#if !defined(_WIN32) && !defined(__ANDROID__)`, assuming Android lacks editline support.
+   - **Resolution**: Substituted `#if !defined(_WIN32) && !defined(__ANDROID__)` with `#if !defined(_WIN32)` in `postPatch` to enable NetBSD `libedit` on Android.
+
+3. **Build-Time Python Script for `SBLanguages.h`**:
+   - LLDB executes `scripts/generate-sbapi-dwarf-enum.py` to generate `SBLanguages.h` from LLVM's `Dwarf.def`. When `-DLLDB_ENABLE_PYTHON=OFF`, CMake leaves `${Python3_EXECUTABLE}` empty.
+   - **Resolution**: Added `buildPackages.python3` to `nativeBuildInputs`, passed `-DPython3_EXECUTABLE=${buildPackages.python3.interpreter}` in `cmakeFlags`, and substituted `COMMAND "${Python3_EXECUTABLE}"` in `source/API/CMakeLists.txt` with `COMMAND "${buildPackages.python3.interpreter}"`.
+
+4. **Android Host Platform Detection & `HostInfoAndroid.cpp`**:
+   - In `include/lldb/Host/HostInfo.h`, `HOST_INFO_TYPE` is set to `HostInfoAndroid` when `__ANDROID__` is defined.
+   - In `source/Host/CMakeLists.txt`, `android/HostInfoAndroid.cpp` was only built if `CMAKE_SYSTEM_NAME MATCHES "Android"`. Under Nix cross-compilation, `CMAKE_SYSTEM_NAME` evaluates to `Linux`.
+   - **Resolution**: Passed `(lib.cmakeBool "ANDROID" true)` in `cmakeFlags` and substituted `if (CMAKE_SYSTEM_NAME MATCHES "Android")` with `if (ANDROID OR CMAKE_SYSTEM_NAME MATCHES "Android")` in `source/Host/CMakeLists.txt`.
+
+5. **Origin-Relative RPATH without `/nix/store` Leakage**:
+   - Passed `-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON` and `-DCMAKE_SKIP_INSTALL_RPATH=ON` in `cmakeFlags` to prevent CMake from overwriting link-time RPATHs during install.
+   - Executed `patchelf` in `postFixup` to normalize ELF RUNPATH to `$ORIGIN/../lib` for binaries and `$ORIGIN` for shared libraries.
+
 ### Case Study 6: `bpftrace` & `bpftrace-static` (High-Level Dynamic Tracing Language & Tools)
 `bpftrace` compiles high-level tracing scripts into eBPF bytecode via Clang/LLVM, attaching to kernel tracepoints, kprobes, uprobes, and intervals. We provide two builds:
 - **`bpftrace` (Dynamic default)**: Built with `STATIC_LINKING=OFF` against shared LLVM/Clang and BCC libraries (`libLLVM.so`, `libclang-cpp.so`, `libbcc.so`, `libbpf.so`, etc.). Dynamic dependencies are synchronized from the package dependency closure into the device staging directory via `scripts/adb-push.sh` and resolved at runtime through relative `$ORIGIN/../lib` runpaths.

@@ -41,7 +41,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/tracing/libbpf`: Core BPF object loader library.
 - [ ] **`pkgs/diagnostics/` (Debuggers)**:
   - `pkgs/diagnostics/gdb`: GDB & `gdbserver` cross-compiled for Bionic.
-  - `pkgs/diagnostics/lldb`: LLVM native target debugger.
+  - [x] `pkgs/diagnostics/lldb`: LLVM native target debugger (`lldb`, `lldb-server`, `lldb-dap`).
 
 ---
 
