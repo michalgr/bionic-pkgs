@@ -291,6 +291,21 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - This nested native CMake inherited the ambient `LDFLAGS="-Wl,--build-id=sha1"` environment variable, causing the host compiler check (`testCCompiler.c`) to fail on Darwin with `ld: unknown option: --build-id=sha1`.
    - **Resolution**: In `lib/bionic-compat.nix`, `libllvm` overrides `env.LDFLAGS = ""` to prevent ambient leakage into host subprojects, and passes `-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=sha1`, `-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1`, and `-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1` explicitly in `cmakeFlags` for target binaries.
 
+### Case Study 7: `lldb` & `lldb-server` (LLVM Debugger Suite)
+`lldb` and `lldb-server` provide native debugging, process tracing, registers/memory inspection, and breakpoint control on Android 14+ devices.
+
+1. **Pure Native ELF Execution (Eliminating `makeWrapper`)**:
+   - Upstream Nixpkgs' LLDB derivation wraps binaries via `wrapProgram`, producing bash scripts with `#!/nix/store/.../bin/bash` shebangs.
+   - On Android devices, `/nix/store` and host `bash` do not exist. We override `makeWrapper = null` and filter out host shell wrapper hooks (`make-wrapper`, `make-shell-wrapper`), keeping `bin/lldb`, `bin/lldb-server`, and `bin/lldb-argdumper` as pure native ELF executables.
+2. **Feature Isolation & Hermetic Configuration**:
+   - Optional scripting languages (Python, Lua) and XML parsing (`libxml2`) are disabled (`-DLLDB_ENABLE_PYTHON=OFF -DLLDB_ENABLE_LUA=OFF -DLLDB_ENABLE_LIBXML2=OFF`) to eliminate cross-compilation leaks and host SWIG/Python header dependencies.
+3. **Command Line Editing & History via NetBSD Editline**:
+   - Line editing in interactive LLDB prompts is enabled via NetBSD `libedit` (`-DLLDB_ENABLE_LIBEDIT=ON`) linked against target `ncurses` (`-DLLDB_ENABLE_CURSES=ON`).
+4. **DWARF 5 Compressed Debug Info Decompression**:
+   - Compression backends (`-DLLDB_ENABLE_LZMA=ON -DLLDB_ENABLE_ZSTD=ON`) link against `pkgs/libs/xz` (`liblzma`) and `pkgs/libs/zstd` (`libzstd`) to inspect DWARF debug sections.
+5. **Memory Alignment & Pure Link-Time RPATH**:
+   - Standard `bionicFlags` automatically passes `-z max-page-size=16384` and `-rpath $ORIGIN/../lib`, ensuring 16 KB memory page alignment and relative dynamic library resolution on device.
+
 ### Case Study 6: `bpftrace` & `bpftrace-static` (High-Level Dynamic Tracing Language & Tools)
 `bpftrace` compiles high-level tracing scripts into eBPF bytecode via Clang/LLVM, attaching to kernel tracepoints, kprobes, uprobes, and intervals. We provide two builds:
 - **`bpftrace` (Dynamic default)**: Built with `STATIC_LINKING=OFF` against shared LLVM/Clang and BCC libraries (`libLLVM.so`, `libclang-cpp.so`, `libbcc.so`, `libbpf.so`, etc.). Dynamic dependencies are synchronized from the package dependency closure into the device staging directory via `scripts/adb-push.sh` and resolved at runtime through relative `$ORIGIN/../lib` runpaths.

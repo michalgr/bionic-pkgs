@@ -18,8 +18,10 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 - [x] **`pkgs/diagnostics/` (System Diagnostics & Tracing)**:
   - [x] `pkgs/diagnostics/strace`: Full syscall decoding, MPERS support, and verified live on Android 14+ devices.
 - [x] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
-  - [x] `pkgs/runtime/python3`: Standalone minimal CLI runtime for Android.
+  - [x] `pkgs/runtime/python3`: Standalone minimal CLI runtime for Android with interactive REPL history and SQLite support.
   - [x] `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
+  - [x] `pkgs/libs/libedit`: Cross-compiled NetBSD Editline library providing interactive line editing and command history for REPLs.
+  - [x] `pkgs/libs/sqlite`: Embedded SQLite database engine.
   - [x] `pkgs/libs/bionic`: Unified Android 14+ / API 34 Bionic libc & NDK r27 sysroot with built-in shims and platform stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
   - [x] `pkgs/libs/xz`: Cross-compiled XZ Utils compression library (`liblzma`) and CLI tools (`xz`, `unxz`, `xzcat`, `lzma`) for Android.
   - [x] `pkgs/libs/zstd`: Cross-compiled Zstandard compression library (`libzstd`) and CLI tools (`zstd`, `unzstd`, `zstdcat`, `zstdmt`) for Android.
@@ -41,7 +43,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/tracing/libbpf`: Core BPF object loader library.
 - [ ] **`pkgs/diagnostics/` (Debuggers)**:
   - `pkgs/diagnostics/gdb`: GDB & `gdbserver` cross-compiled for Bionic.
-  - `pkgs/diagnostics/lldb`: LLVM native target debugger.
+  - [x] `pkgs/diagnostics/lldb`: LLVM native target debugger (LLDB & `lldb-server`).
 
 ---
 
