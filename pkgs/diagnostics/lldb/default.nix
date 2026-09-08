@@ -72,12 +72,13 @@ baseLldb.overrideAttrs (old: {
     "-DLLVM_ENABLE_TERMINFO=OFF"
     "-DLLDB_INCLUDE_TESTS=OFF"
   ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    "-DLLVM_NATIVE_BUILD=${buildPackages.llvmPackages.llvm.out}"
     "-DLLVM_TABLEGEN=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
     "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
     "-DCLANG_TABLEGEN=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
     "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
     "-DNATIVE_LLVM_DIR=${buildPackages.llvmPackages.libllvm.dev}/lib/cmake/llvm"
-    "-DNATIVE_Clang_DIR=${buildPackages.llvmPackages.libclang.dev}/lib/cmake/clang"
+    "-DNATIVE_Clang_DIR=${buildPackages.llvmPackages.clang-unwrapped.out}/lib/cmake/clang"
   ];
 
   # Eliminate host wrapProgram and install checks

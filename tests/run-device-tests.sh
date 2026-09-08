@@ -73,6 +73,7 @@ else
     case "$cleaned" in
       python) cleaned="python3" ;;
       r2) cleaned="radare2" ;;
+      lldb) cleaned="lldb" ;;
     esac
     [ -n "$cleaned" ] && SELECTED_TOOLS+=("$cleaned")
   done
@@ -122,6 +123,7 @@ for tool in "${SELECTED_TOOLS[@]}"; do
       python3) TOOL_BIN="${SYSROOT_DIR}/python-launcher.sh" ;;
       elfutils) TOOL_BIN="${SYSROOT_DIR}/bin/eu-readelf" ;;
       bcc) TOOL_BIN="${SYSROOT_DIR}/python-launcher.sh" ;;
+      lldb) TOOL_BIN="${SYSROOT_DIR}/bin/lldb" ;;
       *) TOOL_BIN="${SYSROOT_DIR}/bin/${tool}" ;;
     esac
   fi
