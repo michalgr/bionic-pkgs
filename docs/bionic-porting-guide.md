@@ -315,6 +315,23 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 6. **Standalone Companion Tools (`share/bpftrace/tools/*.bt`)**:
    - Generated wrapper scripts in `$out/bin/` (`execsnoop`, `opensnoop`, `runqlat`, `biosnoop`, `pidpersec`, `syscount`, `tcpconnect`, etc.) that execute via `/system/bin/sh` without setting `LD_LIBRARY_PATH`, relying on `bpftrace`'s embedded relative `DT_RUNPATH` (`$ORIGIN/../lib`).
 
+### Case Study 7: `lldb` & `lldb-server` (LLVM Native Debugger for Bionic)
+`lldb`, `lldb-server`, and `lldb-dap` provide standalone native debugging and process inspection capabilities on Android.
+
+1. **Pure Native ELF Executables (Eliminating Host Shell Wrappers)**:
+   - Upstream Nixpkgs wraps `lldb` using `wrapProgram $out/bin/lldb` via `makeWrapper`, injecting a host shell shebang (`#!/nix/store/.../bin/bash`).
+   - On Android devices, `/nix/store` and host `bash` do not exist. We set `makeWrapper = null` and filter out `make-wrapper` / `make-shell-wrapper` from `nativeBuildInputs` to preserve pure ELF executables (`bin/lldb`, `bin/lldb-server`, `bin/lldb-dap`, `bin/lldb-argdumper`).
+2. **Standalone Cross-Compilation TableGen & Native CMake Directories**:
+   - `LLDBStandalone.cmake` checks for `LLVM_TABLEGEN` and `CLANG_TABLEGEN` during cross-compilation. Passing `-DLLVM_TABLEGEN` and `-DCLANG_TABLEGEN` pointing to host build tools (`buildPackages.llvmPackages.llvm.out` and `clang-unwrapped.out`) bypasses native tablegen build errors.
+   - Supplying `-DNATIVE_LLVM_DIR` and `-DNATIVE_Clang_DIR` satisfies `llvm_create_cross_target(lldb NATIVE ...)` without needing a full host LLVM tree build.
+3. **Hermetic Feature Isolation**:
+   - Disabling optional script interpreters (`-DLLDB_ENABLE_PYTHON=OFF`, `-DLLDB_ENABLE_LUA=OFF`) and XML parsing (`-DLLDB_ENABLE_LIBXML2=OFF`) yields a lightweight standalone debugger suite.
+4. **Interactive Line Editing & Compression Integration**:
+   - Enabling NetBSD Editline (`-DLLDB_ENABLE_LIBEDIT=ON`) backed by `pkgs/libs/libedit` and `ncurses` provides command-line history in interactive sessions.
+   - Compression options (`-DLLDB_ENABLE_LZMA=ON -DLLDB_ENABLE_ZSTD=ON`) link against `pkgs/libs/xz` and `pkgs/libs/zstd` for DWARF 5 decompression.
+5. **Memory Page Alignment & Link-Time RPATH**:
+   - Standard `bionicFlags` automatically passes `-z max-page-size=16384` and `-rpath $ORIGIN/../lib`, ensuring 16 KB page alignment for Android 15+ and hermetic shared library resolution without `LD_LIBRARY_PATH`.
+
 ---
 
 ## 6. Testing & Verifying Cross-Compiled Binaries
