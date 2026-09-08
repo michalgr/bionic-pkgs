@@ -68,7 +68,7 @@ baseLldb.overrideAttrs (old: {
   meta = (old.meta or { }) // {
     description = "Next-generation high-performance debugger (LLDB & lldb-server) for Android (Bionic)";
     homepage = "https://lldb.llvm.org/";
-    license = lib.licenses.asl20-llvm;
+    license = lib.licenses.asl20;
     platforms = lib.platforms.linux;
     mainProgram = "lldb";
   };

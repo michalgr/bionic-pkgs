@@ -73,6 +73,7 @@ else
     case "$cleaned" in
       python) cleaned="python3" ;;
       r2) cleaned="radare2" ;;
+      lldb-server) cleaned="lldb" ;;
     esac
     [ -n "$cleaned" ] && SELECTED_TOOLS+=("$cleaned")
   done
