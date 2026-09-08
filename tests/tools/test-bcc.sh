@@ -72,23 +72,28 @@ else
   BPS_CMD="${BCC_BIN}"
 fi
 
-if [ -n "$PYTHON_BIN" ] && adb_shell "[ -x '${PYTHON_BIN}' ]" 2>/dev/null; then
-  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${PYTHON_BIN}'"
-elif adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
-  PY_CMD="${BASE_DIR}/python-launcher.sh"
-elif adb_shell "[ -x '${BASE_DIR}/bin/python3' ]" 2>/dev/null; then
-  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${BASE_DIR}/bin/python3'"
-elif adb_shell "[ -x '${BASE_DIR}/../python3/bin/python3' ]" 2>/dev/null; then
-  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${BASE_DIR}/../python3/bin/python3'"
-elif adb_shell "[ -x '${BASE_DIR}/../python3/run.sh' ]" 2>/dev/null; then
-  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${BASE_DIR}/../python3/run.sh'"
-else
-  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" python3"
+if [ -z "$PYTHON_BIN" ]; then
+  if adb_shell "[ -x '${BASE_DIR}/bin/python3' ]" 2>/dev/null; then
+    PYTHON_BIN="${BASE_DIR}/bin/python3"
+  elif adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
+    PYTHON_BIN="${BASE_DIR}/python-launcher.sh"
+  elif adb_shell "[ -x '${BASE_DIR}/../python3/bin/python3' ]" 2>/dev/null; then
+    PYTHON_BIN="${BASE_DIR}/../python3/bin/python3"
+  elif adb_shell "[ -x '${BASE_DIR}/../python3/run.sh' ]" 2>/dev/null; then
+    PYTHON_BIN="${BASE_DIR}/../python3/run.sh"
+  fi
 fi
 
-ENV_PREFIX=""
 if [ -n "$PYTHON_BIN" ]; then
   ENV_PREFIX="BCC_PYTHON_BIN='${PYTHON_BIN}' "
+  if [ "$PYTHON_BIN" = "${BASE_DIR}/python-launcher.sh" ]; then
+    PY_CMD="${PYTHON_BIN}"
+  else
+    PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${PYTHON_BIN}'"
+  fi
+else
+  ENV_PREFIX=""
+  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" python3"
 fi
 
 # Ensure tracefs/debugfs mounted

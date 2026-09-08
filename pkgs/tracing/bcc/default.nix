@@ -102,11 +102,9 @@ if [ -n "''${BCC_PYTHON_BIN:-}" ] && [ -x "$BCC_PYTHON_BIN" ]; then
   PY_EXEC="$BCC_PYTHON_BIN"
 elif [ -x "$BASE_DIR/bin/python3" ]; then
   PY_EXEC="$BASE_DIR/bin/python3"
-elif [ -x "$BASE_DIR/../python3/bin/python3" ]; then
-  PY_EXEC="$BASE_DIR/../python3/bin/python3"
 else
   echo "Error: Python 3 interpreter not found for BCC tools." >&2
-  echo "Expected at $BASE_DIR/bin/python3 or $BASE_DIR/../python3/bin/python3." >&2
+  echo "Expected at $BASE_DIR/bin/python3." >&2
   echo "Set BCC_PYTHON_BIN=/path/to/python3 to specify an explicit interpreter." >&2
   exit 1
 fi
