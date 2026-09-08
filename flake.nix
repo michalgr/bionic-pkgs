@@ -17,9 +17,17 @@
   outputs = { self, nixpkgs, flake-utils }:
     let
       bionicLib = import ./lib { inherit (nixpkgs) lib; };
+      bionicCompat = import ./lib/bionic-compat.nix { inherit (nixpkgs) lib; };
       packageSetFn = import ./pkgs;
     in
-    flake-utils.lib.eachSystem bionicLib.supportedSystems (system:
+    {
+      overlays.default = final: prev:
+        (prev.lib.optionalAttrs (prev.stdenv.hostPlatform.isAndroid or false) (bionicCompat final prev))
+        // (prev.lib.optionalAttrs (prev.stdenv.hostPlatform.isAndroid or false) {
+          bionicPkgs = packageSetFn { targetPkgs = final; };
+        });
+    }
+    // flake-utils.lib.eachSystem bionicLib.supportedSystems (system:
       let
         pkgs = import nixpkgs { inherit system; };
 
