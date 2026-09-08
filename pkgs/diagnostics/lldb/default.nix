@@ -4,6 +4,7 @@
 {
   lib,
   stdenv,
+  buildPackages,
   llvmPackages,
   libedit,
   ncurses,
@@ -42,11 +43,15 @@ baseLldb.overrideAttrs (old: {
       lib.hasInfix "swig" name ||
       lib.hasInfix "lua" name
     )
-  ) (old.nativeBuildInputs or [ ]);
+  ) (old.nativeBuildInputs or [ ]) ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    buildPackages.llvmPackages.llvm
+    buildPackages.llvmPackages.clang-unwrapped
+  ];
 
   # Hermetic CMake configuration for Bionic
   cmakeFlags = (lib.filter (flag:
-    !(lib.hasPrefix "-DLLVM_EXTERNAL_LIT" flag)
+    !(lib.hasPrefix "-DLLVM_EXTERNAL_LIT" flag) &&
+    !(lib.hasPrefix "-DLLVM_NATIVE_BUILD" flag)
   ) (old.cmakeFlags or [ ])) ++ [
     "-DLLDB_ENABLE_LUA=OFF"
     "-DLLDB_ENABLE_LIBXML2=OFF"
@@ -57,6 +62,10 @@ baseLldb.overrideAttrs (old: {
     "-DLLDB_ENABLE_ZSTD=ON"
     "-DLLVM_ENABLE_TERMINFO=OFF"
     "-DLLDB_INCLUDE_TESTS=OFF"
+  ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    "-DLLVM_NATIVE_BUILD=${buildPackages.llvmPackages.llvm.dev or buildPackages.llvmPackages.llvm}"
+    "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm}/bin/llvm-tblgen"
+    "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped}/bin/clang-tblgen"
   ];
 
   # Eliminate host wrapProgram and install checks
