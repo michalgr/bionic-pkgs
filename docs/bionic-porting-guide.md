@@ -315,6 +315,29 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 6. **Standalone Companion Tools (`share/bpftrace/tools/*.bt`)**:
    - Generated wrapper scripts in `$out/bin/` (`execsnoop`, `opensnoop`, `runqlat`, `biosnoop`, `pidpersec`, `syscount`, `tcpconnect`, etc.) that execute via `/system/bin/sh` without setting `LD_LIBRARY_PATH`, relying on `bpftrace`'s embedded relative `DT_RUNPATH` (`$ORIGIN/../lib`).
 
+### Case Study 7: `lldb` & `lldb-server` (LLVM Debugger & Companion Server)
+`lldb` provides high-performance native debugging, target image inspection, breakpoint management, and process control on Android 14+ (Bionic libc) alongside companion `lldb-server` and `lldb-dap`.
+
+1. **Dedicated Host `lldb-tblgen` Helper Derivation**:
+   - Upstream LLDB standalone cross-compilation attempts to build host tablegen tools using a nested CMake NATIVE subproject (`llvm_create_cross_target`). In Nix cross-compilation, this subproject incorrectly inherits target sysroot flags and fails.
+   - LLDB skips this nested subproject if `LLDB_TABLEGEN_EXE` is set.
+   - We create a dedicated host helper derivation `lldb-tblgen` using `buildPackages.stdenv.mkDerivation` linking `buildPackages.llvmPackages.{libllvm,libclang}`.
+   - To resolve Clang's split-output directory layout in Nix without patching, we pass `"-DCLANG_RESOURCE_DIR=../../../../${buildPackages.llvmPackages.libclang.lib}"` in `lldb-tblgen`'s `cmakeFlags`.
+   - We pass `-DLLDB_TABLEGEN_EXE=${lldb-tblgen}/bin/lldb-tblgen` and `-DLLDB_TABLEGEN=${lldb-tblgen}/bin/lldb-tblgen` to target LLDB.
+2. **NetBSD `libedit` Integration on Android**:
+   - `include/lldb/Host/Editline.h` guards `#include <histedit.h>` with `#if !defined(_WIN32) && !defined(__ANDROID__)`.
+   - Substituted `#if !defined(_WIN32) && !defined(__ANDROID__)` with `#if !defined(_WIN32)` in `postPatch` to enable NetBSD `libedit` command-line history and interactive editing on Android.
+3. **Build-Time Python for `SBLanguages.h` Generation**:
+   - When `-DLLDB_ENABLE_PYTHON=OFF`, LLDB still requires a build-time Python interpreter to generate `SBLanguages.h` from LLVM's `Dwarf.def` via `generate-sbapi-dwarf-enum.py`.
+   - Upstream `source/API/CMakeLists.txt` already references `COMMAND "${Python3_EXECUTABLE}"`.
+   - We add `buildPackages.python3` to `nativeBuildInputs` and pass `"-DPython3_EXECUTABLE=${buildPackages.python3.interpreter}"` in `cmakeFlags` without source patching.
+4. **Android Host Platform Detection**:
+   - We pass `(lib.cmakeBool "ANDROID" true)` in `cmakeFlags`.
+   - We substitute `if (CMAKE_SYSTEM_NAME MATCHES "Android")` with `if (ANDROID OR CMAKE_SYSTEM_NAME MATCHES "Android")` in `source/Host/CMakeLists.txt` so `android/HostInfoAndroid.cpp` is properly included when cross-compiling.
+5. **Zero `patchelf` & Zero `postFixup` RPATH Preservation**:
+   - Link-time RPATH is automatically configured to `-rpath $ORIGIN/../lib` by `bionicFlags.ldflags` in `lib/bionic-compat.nix`.
+   - To prevent CMake from rewriting or leaking host `/nix/store/...` paths during installation, we pass `-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON` and `-DCMAKE_SKIP_INSTALL_RPATH=ON` in `cmakeFlags`.
+
 ---
 
 ## 6. Testing & Verifying Cross-Compiled Binaries

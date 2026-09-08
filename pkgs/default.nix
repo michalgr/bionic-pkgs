@@ -24,6 +24,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
 
   # Diagnostics & System Tracing
   strace = self.callPackage ./diagnostics/strace { };
+  lldb = self.callPackage ./diagnostics/lldb { };
 
   # Tracing & Kernel Diagnostics
   libbpf = self.callPackage ./tracing/libbpf { };
@@ -42,6 +43,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   sysroot = self.callPackage ./bundles/sysroot {
     packages = [
       self.bpftrace
+      self.lldb
       self.python3
       self.strace
       self.elfutils
