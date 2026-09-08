@@ -11,12 +11,17 @@ source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
 BCC_BIN=""
+PYTHON_BIN="${PYTHON_BIN:-${BCC_PYTHON_BIN:-}}"
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --bin)
       BCC_BIN="$2"
+      shift 2
+      ;;
+    --python-bin)
+      PYTHON_BIN="$2"
       shift 2
       ;;
     -s|--serial)
@@ -67,10 +72,23 @@ else
   BPS_CMD="${BCC_BIN}"
 fi
 
-if adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
+if [ -n "$PYTHON_BIN" ] && adb_shell "[ -x '${PYTHON_BIN}' ]" 2>/dev/null; then
+  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${PYTHON_BIN}'"
+elif adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
   PY_CMD="${BASE_DIR}/python-launcher.sh"
+elif adb_shell "[ -x '${BASE_DIR}/bin/python3' ]" 2>/dev/null; then
+  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${BASE_DIR}/bin/python3'"
+elif adb_shell "[ -x '${BASE_DIR}/../python3/bin/python3' ]" 2>/dev/null; then
+  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${BASE_DIR}/../python3/bin/python3'"
+elif adb_shell "[ -x '${BASE_DIR}/../python3/run.sh' ]" 2>/dev/null; then
+  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${BASE_DIR}/../python3/run.sh'"
 else
-  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\${PYTHONPATH:+:\$PYTHONPATH}\" python3"
+  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" python3"
+fi
+
+ENV_PREFIX=""
+if [ -n "$PYTHON_BIN" ]; then
+  ENV_PREFIX="BCC_PYTHON_BIN='${PYTHON_BIN}' "
 fi
 
 # Ensure tracefs/debugfs mounted
@@ -93,7 +111,7 @@ output="$(adb_shell "${PY_CMD} -c \"import bcc; print('BCC_VERSION:', bcc.__vers
 assert_contains "$output" "BCC_VERSION:" "Python BCC module import and version check"
 
 # 3. Standalone tool help verification
-output="$(adb_shell "${EXECSNOOP_CMD} -h 2>&1" || true)"
+output="$(adb_shell "${ENV_PREFIX}${EXECSNOOP_CMD} -h 2>&1" || true)"
 assert_match "execsnoop|USAGE|options|Trace" "$output" "BCC standalone tool help verification (execsnoop -h)"
 
 # 4. BPF C program compilation and execution using bcc.BPF
