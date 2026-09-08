@@ -63,7 +63,7 @@ baseLldb.overrideAttrs (old: {
     "-DLLVM_ENABLE_TERMINFO=OFF"
     "-DLLDB_INCLUDE_TESTS=OFF"
   ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
-    "-DLLVM_NATIVE_BUILD=${buildPackages.llvmPackages.llvm.dev or buildPackages.llvmPackages.llvm}"
+    "-DLLVM_NATIVE_BUILD=${buildPackages.llvmPackages.llvm}"
     "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm}/bin/llvm-tblgen"
     "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped}/bin/clang-tblgen"
   ];
