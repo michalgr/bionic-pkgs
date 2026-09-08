@@ -68,9 +68,9 @@ else
 fi
 
 if adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
-  PY_CMD="LD_LIBRARY_PATH=\"${BASE_DIR}/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}\" ${BASE_DIR}/python-launcher.sh"
+  PY_CMD="${BASE_DIR}/python-launcher.sh"
 else
-  PY_CMD="LD_LIBRARY_PATH=\"${BASE_DIR}/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}\" PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\${PYTHONPATH:+:\$PYTHONPATH}\" python3"
+  PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\${PYTHONPATH:+:\$PYTHONPATH}\" python3"
 fi
 
 # Ensure tracefs/debugfs mounted

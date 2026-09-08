@@ -104,7 +104,6 @@ endif()'
         cat << 'EOF' > "$out/bin/$tool_name"
 #!/system/bin/sh
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-export LD_LIBRARY_PATH="$SCRIPT_DIR/lib''${LD_LIBRARY_PATH:+:''$LD_LIBRARY_PATH}"
 exec "$SCRIPT_DIR/bin/bpftrace" "$SCRIPT_DIR/share/bpftrace/tools/$(basename "$0").bt" "$@"
 EOF
         chmod 755 "$out/bin/$tool_name"

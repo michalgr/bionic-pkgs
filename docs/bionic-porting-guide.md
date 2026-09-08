@@ -272,7 +272,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 5. **Decoupled Python Module & Dynamic Runtime Resolution**:
    - Rather than embedding a duplicate target Python 3 interpreter and standard library inside BCC's output `$out`, `bcc` installs its pure Python module into `$out/lib/python3.13/site-packages/bcc/`.
    - Tool wrappers in `$out/bin/` (`execsnoop`, `opensnoop`, etc.) dynamically locate a Python 3 interpreter (from `$BASE_DIR/bin/python3`, `$BASE_DIR/../python3/run.sh`, `$BASE_DIR/../python3/bin/python3`, or `$PATH`) and set `PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"` with POSIX-safe expansion (`${PYTHONPATH:+:$PYTHONPATH}`), preserving Nix isolation while supporting both standalone push deployments and sysroot cohabitation.
-   - To prevent untrusted library traversal and current working directory injection vulnerabilities (CWE-426), path traversals outside package boundaries (`$BASE_DIR/../lib`) and trailing colons in `LD_LIBRARY_PATH` are completely eliminated.
+   - To prevent untrusted library traversal and dynamic linker search path injection vulnerabilities (CWE-426), ambient `LD_LIBRARY_PATH` environment variable exports have been completely eliminated across all wrapper scripts, launcher generators, and test runners in favor of hermetic relative `DT_RUNPATH` resolution.
 6. **Hermetic `libbcc.so` Dynamic Loading via `ctypes`**:
    - In `src/python/bcc/libbcc.py`, `libbcc.so` loading was patched via `postPatch` to resolve `libbcc.so` relative to `__file__`:
      ```python
@@ -312,7 +312,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 5. **Embedded Standard Library via Host `xxd` (`Embed.cmake`)**:
    - `bpftrace` uses `xxd` to convert stdlib BPF scripts into C arrays embedded into the `bpftrace` binary. Added `xxd` to `nativeBuildInputs`.
 6. **Standalone Companion Tools (`share/bpftrace/tools/*.bt`)**:
-   - Generated wrapper scripts in `$out/bin/` (`execsnoop`, `opensnoop`, `runqlat`, `biosnoop`, `pidpersec`, `syscount`, `tcpconnect`, etc.) that execute via `/system/bin/sh`.
+   - Generated wrapper scripts in `$out/bin/` (`execsnoop`, `opensnoop`, `runqlat`, `biosnoop`, `pidpersec`, `syscount`, `tcpconnect`, etc.) that execute via `/system/bin/sh` without setting `LD_LIBRARY_PATH`, relying on `bpftrace`'s embedded relative `DT_RUNPATH` (`$ORIGIN/../lib`).
 
 ---
 
