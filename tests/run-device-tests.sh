@@ -126,8 +126,13 @@ for tool in "${SELECTED_TOOLS[@]}"; do
     esac
   fi
 
+  EXTRA_ARGS=()
+  if [ "$DEPLOY_MODE" = "push" ] && [ "$tool" = "bcc" ]; then
+    EXTRA_ARGS+=(--python-bin "/data/local/tmp/bionic-pkgs/python3/bin/python3")
+  fi
+
   set +e
-  "$TEST_SCRIPT" --bin "$TOOL_BIN" ${SERIAL:+-s "$SERIAL"}
+  "$TEST_SCRIPT" --bin "$TOOL_BIN" ${SERIAL:+-s "$SERIAL"} "${EXTRA_ARGS[@]}"
   res=$?
   set -e
 
