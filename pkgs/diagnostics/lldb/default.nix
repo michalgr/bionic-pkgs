@@ -44,14 +44,15 @@ baseLldb.overrideAttrs (old: {
       lib.hasInfix "lua" name
     )
   ) (old.nativeBuildInputs or [ ]) ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
-    buildPackages.llvmPackages.llvm
-    buildPackages.llvmPackages.clang-unwrapped
+    buildPackages.llvmPackages.llvm.out
+    buildPackages.llvmPackages.clang-unwrapped.out
   ];
 
   # Hermetic CMake configuration for Bionic
   cmakeFlags = (lib.filter (flag:
     !(lib.hasPrefix "-DLLVM_EXTERNAL_LIT" flag) &&
-    !(lib.hasPrefix "-DLLVM_NATIVE_BUILD" flag)
+    !(lib.hasPrefix "-DLLVM_NATIVE_BUILD" flag) &&
+    !(lib.hasPrefix "-DLLVM_TABLEGEN" flag)
   ) (old.cmakeFlags or [ ])) ++ [
     "-DLLDB_ENABLE_LUA=OFF"
     "-DLLDB_ENABLE_LIBXML2=OFF"
@@ -63,9 +64,10 @@ baseLldb.overrideAttrs (old: {
     "-DLLVM_ENABLE_TERMINFO=OFF"
     "-DLLDB_INCLUDE_TESTS=OFF"
   ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
-    "-DLLVM_NATIVE_BUILD=${buildPackages.llvmPackages.llvm}"
-    "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm}/bin/llvm-tblgen"
-    "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped}/bin/clang-tblgen"
+    "-DLLVM_TABLEGEN=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
+    "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
+    "-DCLANG_TABLEGEN=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
+    "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
   ];
 
   # Eliminate host wrapProgram and install checks
