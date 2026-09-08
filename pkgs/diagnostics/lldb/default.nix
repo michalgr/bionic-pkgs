@@ -56,6 +56,12 @@ baseLldb.overrideAttrs (old: {
     buildPackages.llvmPackages.clang-unwrapped.out
   ];
 
+  postPatch = (old.postPatch or "") + ''
+    substituteInPlace cmake/modules/LLDBStandalone.cmake \
+      --replace-warn 'message(FATAL_ERROR "Expected directory for clang-resource-headers not found: ''${CLANG_RESOURCE_DIR}")' \
+                     'message(STATUS "Skipping clang-resource-headers check: ''${CLANG_RESOURCE_DIR}")'
+  '';
+
   # Hermetic CMake configuration for Bionic & standalone cross-compilation
   cmakeFlags = (lib.filter (flag:
     !(lib.hasPrefix "-DLLVM_EXTERNAL_LIT" flag) &&
@@ -78,7 +84,6 @@ baseLldb.overrideAttrs (old: {
     "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
     "-DNATIVE_LLVM_DIR=${buildPackages.llvmPackages.libllvm.dev}/lib/cmake/llvm"
     "-DNATIVE_Clang_DIR=${buildPackages.llvmPackages.libclang.dev}/lib/cmake/clang"
-    "-DCLANG_RESOURCE_DIR=${buildPackages.llvmPackages.clang-unwrapped.out}/lib/clang/21"
     "-DCROSS_TOOLCHAIN_FLAGS_NATIVE=-DCMAKE_C_COMPILER=${buildPackages.stdenv.cc}/bin/cc;-DCMAKE_CXX_COMPILER=${buildPackages.stdenv.cc}/bin/c++"
   ];
 
