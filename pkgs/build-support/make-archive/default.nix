@@ -38,6 +38,7 @@ stdenv.mkDerivation {
   buildCommand = ''
     mkdir -p "$out"
     tar --owner=0 --group=0 --numeric-owner --mtime='@1' --sort=name \
+      --mode=u+w --hard-dereference \
       ${compressionFlag} "$out/${archiveName}" -C "$src" .
   '';
 
