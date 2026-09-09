@@ -37,8 +37,13 @@ stdenv.mkDerivation {
 
   buildCommand = ''
     mkdir -p "$out"
+    stageDir=$(mktemp -d)
+    cp -al "$src/." "$stageDir/"
+    find "$stageDir" -type d -exec chmod 755 {} +
     tar --owner=0 --group=0 --numeric-owner --mtime='@1' --sort=name \
-      ${compressionFlag} "$out/${archiveName}" -C "$src" .
+      --hard-dereference \
+      ${compressionFlag} "$out/${archiveName}" -C "$stageDir" .
+    rm -rf "$stageDir"
   '';
 
   meta = {
