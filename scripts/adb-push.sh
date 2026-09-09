@@ -252,9 +252,8 @@ stage_dep_libs() {
     if [ -d "$py_dir" ]; then
       local py_base
       py_base="$(basename "$py_dir")"
-      if [ ! -d "$STAGE_DIR/lib/$py_base" ]; then
-        cp -a "$py_dir" "$STAGE_DIR/lib/"
-      fi
+      mkdir -p "$STAGE_DIR/lib/$py_base"
+      cp -a "$py_dir/." "$STAGE_DIR/lib/$py_base/"
     fi
   done
 }
