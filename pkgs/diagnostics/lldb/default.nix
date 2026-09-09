@@ -98,7 +98,7 @@ baseLldb.overrideAttrs (old: {
     "-DPython3_LIBRARY=${python3}/lib/libpython${lib.versions.majorMinor python3.version}.so"
     "-DPython3_LIBRARIES=${python3}/lib/libpython${lib.versions.majorMinor python3.version}.so"
     "-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON"
-    "-DCMAKE_SKIP_INSTALL_RPATH=ON"
+    "-DCMAKE_SKIP_RPATH=ON"
     "-DLLDB_ENABLE_LUA=OFF"
     "-DLLDB_ENABLE_LIBXML2=OFF"
     "-DLLDB_ENABLE_PYTHON=ON"

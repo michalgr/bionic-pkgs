@@ -121,9 +121,16 @@ for elf_file in "${elf_files[@]}"; do
 
     if [ -n "$raw_rpath" ]; then
       echo "RPATH/RUNPATH: $raw_rpath"
+      if [[ "$raw_rpath" =~ ^: ]] || [[ "$raw_rpath" =~ :$ ]] || [[ "$raw_rpath" =~ :: ]] || [ "$raw_rpath" = ":" ]; then
+        echo "ERROR: Empty RPATH entry (leading, trailing, or consecutive colon) found in RPATH '$raw_rpath' of $rel_path!" >&2
+        exit 1
+      fi
       IFS=':' read -ra rpath_entries <<< "$raw_rpath"
       for entry in "${rpath_entries[@]}"; do
-        [ -z "$entry" ] && continue
+        if [ -z "$entry" ]; then
+          echo "ERROR: Empty RPATH entry found in RPATH '$raw_rpath' of $rel_path!" >&2
+          exit 1
+        fi
         case "$entry" in
           \$ORIGIN*|\${ORIGIN}*)
             suffix="${entry#\$ORIGIN}"

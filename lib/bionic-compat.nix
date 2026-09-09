@@ -183,8 +183,8 @@ in
     export dontPatchELF=1
     export dontShrinkRPATH=1
 
-    # Prevent CMake from appending $out/lib to RPATH during make/ninja install
-    export CMAKE_SKIP_INSTALL_RPATH=ON
+    # Prevent CMake from injecting build-tree RPATHs or performing install-time RPATH rewrites
+    export CMAKE_SKIP_RPATH=ON
 
     # Prevent Libtool from hardcoding $out/lib into RPATH during linking
     patchLibtoolRpath() {
