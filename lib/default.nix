@@ -82,14 +82,14 @@ let
       };
     };
 
-  # Evaluates packages for all target architectures
-  mkTargetMatrix = { nixpkgs, system, packageSetFn }:
+  # Evaluates packages for target architectures
+  mkTargetMatrix = { nixpkgs, system, packageSetFn, targets ? supportedTargets }:
     builtins.listToAttrs (map (targetName: {
       name = targetName;
       value = packageSetFn {
         targetPkgs = mkAndroidPkgs { inherit nixpkgs system targetName; };
       };
-    }) supportedTargets);
+    }) targets);
 
   # Helper to determine if a package is a runnable application
   isRunnableApp = pkg:
@@ -133,8 +133,10 @@ let
     builtins.listToAttrs (targetEntries ++ defaultEntries) // defaultPackage;
 
   # Automatically generates ADB push apps from targetMatrix
-  generateApps = { hostPkgs, targetMatrix, defaultTarget ? "aarch64-android" }:
+  generateApps = { hostPkgs ? null, nixpkgs ? null, system ? null, targetMatrix, defaultTarget ? "aarch64-android" }:
     let
+      effectiveHostPkgs = if hostPkgs != null then hostPkgs else import nixpkgs { inherit system; };
+
       targetAppEntries = lib.concatMap (targetName:
         let pkgsForTarget = targetMatrix.${targetName};
         in lib.concatMap (pkgName:
@@ -142,7 +144,8 @@ let
           in lib.optional (isRunnableApp pkg) {
             name = "push-${targetName}-${pkgName}";
             value = mkAdbPushApp {
-              inherit hostPkgs targetName pkgName pkg;
+              hostPkgs = effectiveHostPkgs;
+              inherit targetName pkgName pkg;
             };
           }
         ) (builtins.attrNames pkgsForTarget)
@@ -154,7 +157,8 @@ let
           in lib.optional (isRunnableApp pkg) {
             name = "push-${pkgName}";
             value = mkAdbPushApp {
-              inherit hostPkgs pkgName pkg;
+              hostPkgs = effectiveHostPkgs;
+              inherit pkgName pkg;
               targetName = defaultTarget;
             };
           }
@@ -164,7 +168,7 @@ let
       defaultApp = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
         then {
           default = mkAdbPushApp {
-            inherit hostPkgs;
+            hostPkgs = effectiveHostPkgs;
             targetName = defaultTarget;
             pkgName = "strace";
             pkg = targetMatrix.${defaultTarget}.strace;
@@ -186,8 +190,10 @@ let
     '';
 
   # Automatically generates checks for all target matrix packages
-  generateChecks = { hostPkgs, targetMatrix }:
+  generateChecks = { hostPkgs ? null, nixpkgs ? null, system ? null, targetMatrix }:
     let
+      effectiveHostPkgs = if hostPkgs != null then hostPkgs else import nixpkgs { inherit system; };
+
       checkEntries = lib.concatMap (targetName:
         let pkgsForTarget = targetMatrix.${targetName};
         in lib.concatMap (pkgName:
@@ -195,13 +201,55 @@ let
           in lib.optional (isCheckablePkg pkg) {
             name = "check-elf-${targetName}-${pkgName}";
             value = mkElfCheck {
-              inherit hostPkgs targetName pkgName pkg;
+              hostPkgs = effectiveHostPkgs;
+              inherit targetName pkgName pkg;
             };
           }
         ) (builtins.attrNames pkgsForTarget)
       ) (builtins.attrNames targetMatrix);
     in
     builtins.listToAttrs checkEntries;
+
+  # Creates default devShell for target matrix environment
+  mkDevShell = { hostPkgs ? null, nixpkgs ? null, system ? null, targetMatrix ? null, defaultTarget ? "aarch64-android" }:
+    let
+      pkgs = if hostPkgs != null then hostPkgs else import nixpkgs { inherit system; };
+      sysName = if system != null then system else pkgs.stdenv.hostPlatform.system;
+    in
+    pkgs.mkShell {
+      name = "bionic-pkgs-dev";
+      packages = [
+        pkgs.android-tools
+        pkgs.llvmPackages.llvm
+        pkgs.file
+      ];
+
+      shellHook = ''
+        echo "bionic-pkgs development shell"
+        echo "Host: ${sysName} | Default target: ${defaultTarget}"
+        echo ""
+        echo "Commands:"
+        echo "  nix build .#strace                      # Build strace for ${defaultTarget}"
+        echo "  nix build .#x86_64-android.strace       # Build strace for x86_64-android"
+        echo "  nix run .#push-strace                   # Push to connected ADB device"
+      '';
+    };
+
+  # Encapsulates flake output matrix generation
+  mkFlakeOutputs = { nixpkgs, packageSetFn, systems ? supportedSystems, targets ? supportedTargets, defaultTarget ? "aarch64-android" }:
+    eachSystem systems (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        targetMatrix = mkTargetMatrix { inherit nixpkgs system packageSetFn targets; };
+      in
+      {
+        packages = generatePackages { inherit targetMatrix defaultTarget; };
+        legacyPackages = targetMatrix;
+        apps = generateApps { inherit nixpkgs system targetMatrix defaultTarget; };
+        checks = generateChecks { inherit nixpkgs system targetMatrix; };
+        devShells.default = mkDevShell { inherit nixpkgs system targetMatrix defaultTarget; };
+      }
+    );
 
 in
 {
@@ -217,5 +265,7 @@ in
     mkTargetMatrix
     generatePackages
     generateApps
-    generateChecks;
+    generateChecks
+    mkDevShell
+    mkFlakeOutputs;
 }

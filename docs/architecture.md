@@ -117,26 +117,17 @@ The repository dynamically maps package definitions across the matrix:
 ```nix
 {
   outputs = { self, nixpkgs }:
-    bionicLib.eachSystem bionicLib.supportedSystems (system: {
-      # Flat packages per host system: packages.${system}.${pkgName} and packages.${system}.${targetName}-${pkgName}
-      # Shorthand CLI: nix build .#${packageName}
-      # Explicit CLI:  nix build .#${targetName}-${packageName}
-      packages = { ... };
-
-      # Hierarchical package matrix: legacyPackages.${system}.${targetName}.${packageName}
-      # Shorthand CLI: nix build .#${targetName}.${packageName}
-      # Explicit CLI:  nix build .#legacyPackages.${system}.${targetName}.${packageName}
-      legacyPackages = { ... };
-
-      # ADB Push helpers (pushes binaries + runtime library closures):
-      # Shorthand CLI: nix run .#push-${packageName}
-      # Explicit CLI:  nix run .#push-${targetName}-${packageName}
-      apps = { ... };
-
-      # Development Shells configured with cross compilers and ADB tools:
-      # CLI: nix develop
-      devShells = { ... };
-    });
+    let
+      bionicLib = import ./lib { inherit (nixpkgs) lib; };
+      packageSetFn = import ./pkgs;
+    in
+    {
+      # Default overlay for downstream Nix consumers
+      overlays.default = ...;
+    }
+    // bionicLib.mkFlakeOutputs {
+      inherit nixpkgs packageSetFn;
+    };
 }
 ```
 
