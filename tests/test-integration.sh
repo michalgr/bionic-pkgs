@@ -88,4 +88,17 @@ assert_match "entry|main|sym" "$output" "radare2 disassembling sysroot binary ($
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/rizin -q -c 'aa; afl' ${SYSROOT_DIR}/bin/strace 2>&1" || true)"
 assert_match "entry|main|sym" "$output" "rizin disassembling sysroot binary (${SYSROOT_DIR}/bin/strace)"
 
+# 6. lldb and companion lldb-server cohabiting in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lldb --version 2>&1" || true)"
+assert_contains "$output" "lldb version" "lldb version check (--version)"
+
+output="$(adb_shell "${SYSROOT_DIR}/bin/lldb-server v 2>&1 || ${SYSROOT_DIR}/bin/lldb-server version 2>&1" || true)"
+assert_match "lldb-server|version" "$output" "lldb-server version check"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lldb --batch -o \"script import sys; print('lldb+python integration ok')\" -o \"quit\" 2>&1" || true)"
+assert_contains "$output" "lldb+python integration ok" "lldb embedded python scripting in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lldb --batch -o \"target create ${SYSROOT_DIR}/bin/strace\" -o \"image list\" -o \"quit\" 2>&1" || true)"
+assert_contains "$output" "strace" "lldb target inspection of sysroot binary"
+
 print_summary
