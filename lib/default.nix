@@ -27,6 +27,19 @@ let
     "aarch64-darwin"
   ];
 
+  # Native helper to map outputs over supported host systems
+  eachSystem = systems: f:
+    let
+      perSystem = lib.genAttrs systems f;
+    in
+    {
+      packages = lib.mapAttrs (_: s: s.packages or { }) perSystem;
+      legacyPackages = lib.mapAttrs (_: s: s.legacyPackages or { }) perSystem;
+      apps = lib.mapAttrs (_: s: s.apps or { }) perSystem;
+      checks = lib.mapAttrs (_: s: s.checks or { }) perSystem;
+      devShells = lib.mapAttrs (_: s: s.devShells or { }) perSystem;
+    };
+
   # Helper to instantiate nixpkgs with Bionic cross-compilation overlays
   mkAndroidPkgs = { nixpkgs, system, targetName }:
     let
@@ -197,6 +210,7 @@ in
     supportedTargets
     defaultTarget
     supportedSystems
+    eachSystem
     mkAndroidPkgs
     mkAdbPushApp
     mkElfCheck

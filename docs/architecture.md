@@ -23,7 +23,7 @@ By leveraging **Nix Flakes**, `bionic-pkgs` turns cross-compilation into pure fu
 ## 2. Platform Matrix
 
 ### Supported Host Architectures (`buildPlatform` / `hostPlatform`)
-Host outputs are generated dynamically via `flake-utils.lib.eachSystem bionicLib.supportedSystems`:
+Host outputs are generated dynamically via `bionicLib.eachSystem bionicLib.supportedSystems`:
 | Host Flake System ID | Architecture | OS | Typical Hardware / Environments |
 | :--- | :--- | :--- | :--- |
 | `aarch64-linux` | ARM64 (64-bit) | Linux | Docker/Podman/OrbStack/Lima containers on Apple Silicon Macs, AWS Graviton, Asahi Linux, Raspberry Pi 4/5 |
@@ -116,8 +116,8 @@ The repository dynamically maps package definitions across the matrix:
 
 ```nix
 {
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachSystem bionicLib.supportedSystems (system: {
+  outputs = { self, nixpkgs }:
+    bionicLib.eachSystem bionicLib.supportedSystems (system: {
       # Flat packages per host system: packages.${system}.${pkgName} and packages.${system}.${targetName}-${pkgName}
       # Shorthand CLI: nix build .#${packageName}
       # Explicit CLI:  nix build .#${targetName}-${packageName}
