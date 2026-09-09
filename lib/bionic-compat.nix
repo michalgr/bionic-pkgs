@@ -141,9 +141,6 @@ in
   # Custom Android 14+ (API 34) Bionic libc & NDK r27 sysroot with built-in shims
   bionic = final.callPackage ../pkgs/libs/bionic { };
 
-  # OpenSSL 3.6.3 for Android Bionic targets
-  openssl = final.callPackage ../pkgs/libs/openssl { };
-  openssl_3 = final.openssl;
 
   # Map zlib to Android platform NDK stubs so all packages bind directly to /system/lib64/libz.so
   zlib = final.bionic // {
