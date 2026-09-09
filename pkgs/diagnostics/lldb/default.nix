@@ -10,6 +10,7 @@
   ncurses,
   xz,
   zstd,
+  libffi,
 }:
 
 let
@@ -55,6 +56,7 @@ baseLldb.overrideAttrs (old: {
     libedit
     xz
     zstd
+    libffi
     llvmPackages.libllvm
     llvmPackages.libcxx
     (lib.getLib llvmPackages.libclang)
