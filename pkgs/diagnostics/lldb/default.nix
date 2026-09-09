@@ -60,18 +60,12 @@ baseLldb.overrideAttrs (old: {
     (lib.getLib llvmPackages.libclang)
   ];
 
-  # Filter out host wrapper hooks, swig, and lua
-  nativeBuildInputs = lib.filter (p:
-    p != null && !(
-      let name = p.name or p.pname or ""; in
-      lib.hasInfix "make-shell-wrapper" name ||
-      lib.hasInfix "make-wrapper" name ||
-      lib.hasInfix "swig" name ||
-      lib.hasInfix "lua" name
-    )
-  ) (old.nativeBuildInputs or [ ]) ++ [
+  # Explicit host build-time tools (cross-compilation is always active for Android targets)
+  nativeBuildInputs = [
+    buildPackages.cmake
+    buildPackages.ninja
+    buildPackages.which
     buildPackages.python3
-  ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
     buildPackages.llvmPackages.llvm.out
     buildPackages.llvmPackages.clang-unwrapped.out
     lldb-tblgen
@@ -106,7 +100,6 @@ baseLldb.overrideAttrs (old: {
     "-DLLDB_ENABLE_ZSTD=ON"
     "-DLLVM_ENABLE_TERMINFO=OFF"
     "-DLLDB_INCLUDE_TESTS=OFF"
-  ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
     "-DLLVM_TABLEGEN=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
     "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
     "-DCLANG_TABLEGEN=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
