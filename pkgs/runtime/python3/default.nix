@@ -12,6 +12,7 @@
   sqlite,
   xz,
   bzip2,
+  openssl,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -34,13 +35,14 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
-  # Dependency set: libffi (for ctypes), libedit (interactive REPL history), sqlite (for sqlite3), xz (for lzma), bzip2 (for bz2)
+  # Dependency set: libffi (for ctypes), libedit (interactive REPL history), sqlite (for sqlite3), xz (for lzma), bzip2 (for bz2), openssl (for ssl/hashlib)
   buildInputs = [
     libffi
     libedit
     sqlite
     xz
     bzip2
+    openssl
   ];
 
   postPatch = ''
@@ -53,8 +55,7 @@ stdenv.mkDerivation (finalAttrs: {
   # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.13).
   # 2. Shared libpython (--enable-shared, --without-static-libpython) is required on Android.
   # 3. Interactive REPL navigation & database support enabled via libedit (--with-readline=editline) and sqlite3.
-  # 4. Built-in hashes (--with-builtin-hashlib-hashes): Uses internal HACL* C implementations
-  #    so hashlib works without requiring OpenSSL.
+  # 4. OpenSSL enabled via --with-openssl for full SSL/TLS and cryptographic hash support (_ssl, _hashlib).
   # 5. Native Android logging: Uses <android/log.h> and liblog.so from android-prebuilts.
   configureFlags = [
     "--with-build-python=${buildPackages.python313}/bin/python3.13"
@@ -69,7 +70,7 @@ stdenv.mkDerivation (finalAttrs: {
     "--without-dbm"
     "--without-tkinter"
     "--disable-test-modules"
-    "--with-builtin-hashlib-hashes=md5,sha1,sha2,sha3,blake2"
+    "--with-openssl=${openssl.dev or openssl}"
     "ac_cv_file__dev_ptmx=yes"
     "ac_cv_file__dev_ptc=no"
   ];
