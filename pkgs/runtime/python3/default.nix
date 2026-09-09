@@ -35,7 +35,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   # Dependency set: libffi (for ctypes), libedit (interactive REPL history), sqlite (for sqlite3), xz (for lzma), bzip2 (for bz2)
-  buildInputs = [
+  propagatedBuildInputs = [
     libffi
     libedit
     sqlite
