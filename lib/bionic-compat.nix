@@ -184,7 +184,10 @@ in
     export dontShrinkRPATH=1
 
     # Prevent CMake from injecting build-tree RPATHs or performing install-time RPATH rewrites
-    export CMAKE_SKIP_RPATH=ON
+    addCmakeSkipRpath() {
+      cmakeFlagsArray+=("-DCMAKE_SKIP_RPATH=ON")
+    }
+    preConfigureHooks+=(addCmakeSkipRpath)
 
     # Prevent Libtool from hardcoding $out/lib into RPATH during linking
     patchLibtoolRpath() {
