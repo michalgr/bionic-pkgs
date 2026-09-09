@@ -30,7 +30,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   postPatch = ''
     substituteInPlace support/shobj-conf \
-      --replace-warn '-Wl,-rpath,$(libdir)' '-Wl,-rpath,\$ORIGIN/../lib'
+      --replace-warn '-Wl,-rpath,$(libdir)' '-Wl,-rpath,\$$ORIGIN/../lib'
   '';
 
   enableParallelBuilding = true;
