@@ -78,4 +78,12 @@ assert_contains "$output" "/system/bin/sh" "lldb target image inspection"
 output="$(adb_shell "${LLDB_BIN} --batch -o 'file /system/bin/echo' -o 'breakpoint set -n main' -o 'run test' -o 'continue' -o 'quit' 2>&1" || true)"
 assert_match "Breakpoint|stopped|exited" "$output" "lldb breakpoint set and control flow"
 
+# 6. Python interpreter execution in LLDB batch mode
+output="$(adb_shell "${LLDB_BIN} --batch -o 'script print(1234 + 5678)' 2>&1" || true)"
+assert_contains "$output" "6912" "lldb python script execution"
+
+# 7. LLDB module import and API access
+output="$(adb_shell "${LLDB_BIN} --batch -o 'script import lldb; print(lldb.debugger.GetVersionString())' 2>&1" || true)"
+assert_contains "$output" "lldb version" "lldb python module import and API access"
+
 print_summary

@@ -337,6 +337,14 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 5. **Zero `patchelf` & Zero `postFixup` RPATH Preservation**:
    - Link-time RPATH is automatically configured to `-rpath $ORIGIN/../lib` by `bionicFlags.ldflags` in `lib/bionic-compat.nix`.
    - To prevent CMake from rewriting or leaking host `/nix/store/...` paths during installation, we pass `-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON` and `-DCMAKE_SKIP_INSTALL_RPATH=ON` in `cmakeFlags`.
+6. **Python Scripting Enablement & Cross-Compilation Variables**:
+   - Enabling Python scripting (`-DLLDB_ENABLE_PYTHON=ON`) requires SWIG (`buildPackages.swig`) to generate `LLDBWrapPython.cpp` at build time.
+   - Target Python headers and shared library paths (`Python3_INCLUDE_DIR`, `Python3_LIBRARY`, `Python3_LIBRARIES`) are supplied to CMake's `FindPython3` module so `liblldb.so` dynamically links against target `libpython3.13.so`.
+   - Upstream LLDB cross-compilation checks require setting three mandatory CMake path variables:
+     - `-DLLDB_PYTHON_RELATIVE_PATH=lib/python3.13/site-packages`
+     - `-DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3`
+     - `-DLLDB_PYTHON_EXT_SUFFIX=.cpython-313-<arch>-linux-android.so`
+   - Adding `python3` to LLDB's `buildInputs` ensures `adb-push.sh` and sysroot bundles automatically aggregate `libpython3.13.so` and Python standard library paths into the device deployment directory.
 
 ---
 
