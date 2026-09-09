@@ -11,6 +11,7 @@
   xz,
   zstd,
   libffi,
+  python3,
 }:
 
 let
@@ -57,6 +58,7 @@ baseLldb.overrideAttrs (old: {
     xz
     zstd
     libffi
+    python3
     llvmPackages.libllvm
     llvmPackages.libcxx
     (lib.getLib llvmPackages.libclang)
@@ -68,6 +70,7 @@ baseLldb.overrideAttrs (old: {
     buildPackages.ninja
     buildPackages.which
     buildPackages.python3
+    buildPackages.swig
     buildPackages.llvmPackages.llvm.out
     buildPackages.llvmPackages.clang-unwrapped.out
     lldb-tblgen
@@ -91,11 +94,19 @@ baseLldb.overrideAttrs (old: {
   ) (old.cmakeFlags or [ ])) ++ [
     (lib.cmakeBool "ANDROID" true)
     "-DPython3_EXECUTABLE=${buildPackages.python3.interpreter}"
+    "-DPython3_INCLUDE_DIR=${python3}/include/python${lib.versions.majorMinor python3.version}"
+    "-DPython3_LIBRARY=${python3}/lib/libpython${lib.versions.majorMinor python3.version}.so"
+    "-DPython3_LIBRARIES=${python3}/lib/libpython${lib.versions.majorMinor python3.version}.so"
     "-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON"
     "-DCMAKE_SKIP_INSTALL_RPATH=ON"
     "-DLLDB_ENABLE_LUA=OFF"
     "-DLLDB_ENABLE_LIBXML2=OFF"
-    "-DLLDB_ENABLE_PYTHON=OFF"
+    "-DLLDB_ENABLE_PYTHON=ON"
+    (lib.cmakeBool "LLDB_ENABLE_SWIG" true)
+    "-DSWIG_EXECUTABLE=${buildPackages.swig}/bin/swig"
+    "-DLLDB_PYTHON_RELATIVE_PATH=lib/python${lib.versions.majorMinor python3.version}/site-packages"
+    "-DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3"
+    "-DLLDB_PYTHON_EXT_SUFFIX=.cpython-${lib.replaceStrings ["."] [""] (lib.versions.majorMinor python3.version)}-${stdenv.hostPlatform.parsed.cpu.name}-linux-android.so"
     "-DLLDB_ENABLE_CURSES=ON"
     "-DLLDB_ENABLE_LIBEDIT=ON"
     "-DLLDB_ENABLE_LZMA=ON"
