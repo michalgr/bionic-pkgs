@@ -116,7 +116,12 @@ In `lib/bionic-compat.nix`, link-time RPATH is automatically configured via `bio
   export NIX_NO_SELF_RPATH=1
   export dontPatchELF=1
   export dontShrinkRPATH=1
-  export CMAKE_SKIP_INSTALL_RPATH=ON
+
+  # Prevent CMake from injecting build-tree RPATHs or performing install-time RPATH rewrites
+  addCmakeSkipRpath() {
+    cmakeFlagsArray+=("-DCMAKE_SKIP_RPATH=ON")
+  }
+  preConfigureHooks+=(addCmakeSkipRpath)
 
   patchLibtoolRpath() {
     find . -name "libtool" -type f | while IFS= read -r lt; do
@@ -336,7 +341,8 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - We substitute `if (CMAKE_SYSTEM_NAME MATCHES "Android")` with `if (ANDROID OR CMAKE_SYSTEM_NAME MATCHES "Android")` in `source/Host/CMakeLists.txt` so `android/HostInfoAndroid.cpp` is properly included when cross-compiling.
 5. **Zero `patchelf` & Zero `postFixup` RPATH Preservation**:
    - Link-time RPATH is automatically configured to `-rpath $ORIGIN/../lib` by `bionicFlags.ldflags` in `lib/bionic-compat.nix`.
-   - To prevent CMake from rewriting or leaking host `/nix/store/...` paths during installation, we pass `-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON` and `-DCMAKE_SKIP_INSTALL_RPATH=ON` in `cmakeFlags`.
+   - To prevent CMake from rewriting or leaking host `/nix/store/...` paths during installation, we pass `-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON` and `-DCMAKE_SKIP_RPATH=ON` in `cmakeFlags`.
+   - Passing `-DCMAKE_SKIP_RPATH=ON` suppresses CMake's internal build-tree RPATH generation and install-time RPATH rewriting, eliminating malformed leading colons (`[:$ORIGIN/../lib]`) and ensuring the binary cleanly relies on the pure link-time `-rpath $ORIGIN/../lib` passed by `bionicFlags.ldflags`.
 6. **Python Scripting Enablement & Cross-Compilation Variables**:
    - Enabling Python scripting (`-DLLDB_ENABLE_PYTHON=ON`) requires SWIG (`buildPackages.swig`) to generate `LLDBWrapPython.cpp` at build time.
    - Target Python headers and shared library paths (`Python3_INCLUDE_DIR`, `Python3_LIBRARY`, `Python3_LIBRARIES`) are supplied to CMake's `FindPython3` module so `liblldb.so` dynamically links against target `libpython3.13.so`.
