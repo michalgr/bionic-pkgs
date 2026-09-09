@@ -185,6 +185,23 @@ long page_size = sysconf(_SC_PAGESIZE);
    - Bionic defines `#define __unused __attribute__((__unused__))` in `<sys/cdefs.h>`. When Linux UAPI headers like `<asm/stat.h>` declare fields named `__unused`, compilation fails with syntax errors.
    - **Resolution**: Wrap `<asm/stat.h>` in `pkgs/libs/bionic` with `#pragma push_macro("__unused")` / `#undef __unused` / `#include_next <asm/stat.h>` / `#pragma pop_macro("__unused")`.
 
+### Case Study 8: GNU `readline` & `support/shobj-conf` RPATH Patching
+GNU `readline` provides terminal line-editing, history, and completion functions for GNU-centric tools like GDB and interactive database CLI utilities.
+
+1. **Terminal Capabilities via `ncurses` Propagation**:
+   - GNU readline is configured with `--with-curses` and links against `ncurses`.
+   - Declaring `propagatedBuildInputs = [ ncurses ];` ensures `libncursesw.so` is automatically propagated into downstream package closures and sysroot bundles.
+2. **Hardcoded `-Wl,-rpath,$(libdir)` Removal in `support/shobj-conf`**:
+   - GNU readline's shared library configuration script (`support/shobj-conf`) explicitly bakes `-Wl,-rpath,$(libdir)` into dynamic library build rules for Linux/ELF targets (`SHLIB_XLDFLAGS='-Wl,-rpath,$(libdir) -Wl,-soname,...'`).
+   - On Nix, `libdir` points to absolute `/nix/store/...` build outputs. If left unpatched, this hardcoded flag leaks host store paths into the binary's `RUNPATH`, violating `bionic-pkgs` RPATH confinement rules (`scripts/check-elf.sh`).
+   - **Resolution**: In `postPatch`, substitute `-Wl,-rpath,$(libdir)` with `-Wl,-rpath,\$ORIGIN/../lib`:
+     ```nix
+     postPatch = ''
+       substituteInPlace support/shobj-conf \
+         --replace-warn '-Wl,-rpath,$(libdir)' '-Wl,-rpath,\$ORIGIN/../lib'
+     '';
+     ```
+
 ### Case Study 2: `python3`, `libffi`, `libedit` & `sqlite3` (Standalone Runtime & REPL)
 Python 3 on Android provides a standalone CLI scripting runtime, C interoperability via `ctypes`, interactive REPL history, and SQLite database inspection.
 

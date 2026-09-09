@@ -8,6 +8,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   bionic = targetPkgs.bionic;
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
+  readline = self.callPackage ./libs/readline { };
   sqlite = self.callPackage ./libs/sqlite { };
   xz = self.callPackage ./libs/xz { };
   zstd = self.callPackage ./libs/zstd { };
@@ -53,6 +54,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.libbpf
       self.libffi
       self.libedit
+      self.readline
       self.sqlite
       self.xz
       self.zstd
