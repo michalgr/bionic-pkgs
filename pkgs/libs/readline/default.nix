@@ -14,7 +14,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fetchurl {
     url = "mirror://gnu/readline/readline-${finalAttrs.version}.tar.gz";
-    hash = "sha256-fe5383204467828cd495ee8d1d3c037a7eba1389c22bc6a041f627976f9061cc";
+    hash = "sha256-/lODIERngozUle6NHTwDen66E4nCK8agQfYnl2+QYcw=";
   };
 
   propagatedBuildInputs = [
