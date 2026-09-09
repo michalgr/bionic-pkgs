@@ -93,7 +93,7 @@ assert_match() {
   local pattern="$1"
   local string="$2"
   local desc="${3:-"Output matches pattern '$pattern'"}"
-  if echo "$string" | grep -E -q "$pattern" 2>/dev/null; then
+  if grep -E -q "$pattern" <<< "$string" 2>/dev/null; then
     log_pass "$desc"
     return 0
   else
