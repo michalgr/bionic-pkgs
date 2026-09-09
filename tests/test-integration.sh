@@ -40,7 +40,7 @@ log_info "Running Cross-Tool Integration Suite on sysroot: ${SYSROOT_DIR}"
 adb_wait_and_root
 adb_mount_tracefs
 
-ENV_WRAPPER="export PATH=${SYSROOT_DIR}/bin:\${PATH};"
+ENV_WRAPPER="export PATH=${SYSROOT_DIR}/bin:\${PATH}; export PYTHONHOME=${SYSROOT_DIR}; export PYTHONPATH=${SYSROOT_DIR}/lib/python3.13/site-packages\${PYTHONPATH:+:\$PYTHONPATH};"
 PY_LAUNCHER="${SYSROOT_DIR}/python-launcher.sh"
 
 # 1. strace tracing python3
@@ -95,8 +95,8 @@ assert_contains "$output" "lldb version" "lldb version check (--version)"
 output="$(adb_shell "${SYSROOT_DIR}/bin/lldb-server v 2>&1 || ${SYSROOT_DIR}/bin/lldb-server version 2>&1" || true)"
 assert_match "lldb-server|version" "$output" "lldb-server version check"
 
-output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lldb --batch -o \"script import sys; print('lldb+python integration ok')\" -o \"quit\" 2>&1" || true)"
-assert_contains "$output" "lldb+python integration ok" "lldb embedded python scripting in sysroot"
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lldb --batch -o \"script import lldb; target = lldb.debugger.CreateTarget('${SYSROOT_DIR}/bin/strace'); print('LLDB_API_OK:', target.IsValid())\" -o \"quit\" 2>&1" || true)"
+assert_contains "$output" "LLDB_API_OK: True" "lldb embedded python module and target API in sysroot"
 
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lldb --batch -o \"target create ${SYSROOT_DIR}/bin/strace\" -o \"image list\" -o \"quit\" 2>&1" || true)"
 assert_contains "$output" "strace" "lldb target inspection of sysroot binary"
