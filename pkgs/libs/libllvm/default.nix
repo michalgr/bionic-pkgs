@@ -24,6 +24,7 @@ baseLibllvm.overrideAttrs (old: {
 
   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
     buildLlvmPackages.tblgen
+    buildLlvmPackages.llvm
   ];
 
   env = (old.env or { }) // {
@@ -32,10 +33,14 @@ baseLibllvm.overrideAttrs (old: {
 
   cmakeFlags = (lib.filter (flag:
     !(lib.hasPrefix "-DLLVM_TABLEGEN" flag) &&
-    !(lib.hasPrefix "-DLLVM_NATIVE_BUILD" flag)
+    !(lib.hasPrefix "-DLLVM_NATIVE_BUILD" flag) &&
+    !(lib.hasPrefix "-DLLVM_CONFIG_PATH" flag) &&
+    !(lib.hasPrefix "-DLLVM_NATIVE_TOOL_DIR" flag)
   ) (old.cmakeFlags or [ ])) ++ [
     "-DLLVM_TABLEGEN=${buildLlvmPackages.tblgen}/bin/llvm-tblgen"
     "-DLLVM_TABLEGEN_EXE=${buildLlvmPackages.tblgen}/bin/llvm-tblgen"
+    "-DLLVM_CONFIG_PATH=${buildLlvmPackages.llvm}/bin/llvm-config"
+    "-DLLVM_NATIVE_TOOL_DIR=${buildLlvmPackages.llvm}/bin"
     "-DLLVM_NATIVE_BUILD=OFF"
     "-DLLVM_ENABLE_LIBCXX=ON"
     "-DLLVM_ENABLE_TERMINFO=OFF"
