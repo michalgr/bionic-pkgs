@@ -84,7 +84,8 @@ bionic-pkgs/
 ├── flake.nix
 ├── lib/
 │   ├── default.nix
-│   └── bionic-compat.nix
+│   ├── bionic-compat.nix
+│   └── llvm-compat.nix
 ├── scripts/
 │   ├── stage-runtime.sh      # Factored runtime staging, pruning, and launcher generation
 │   ├── generate-launcher.sh  # Android runtime entrypoint launcher script generator
