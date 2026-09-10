@@ -5,7 +5,8 @@
 
 targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   # Core Compatibility Libraries & Shims
-  bionic = targetPkgs.bionic;
+  libllvm = self.callPackage ./libs/libllvm { };
+  libclang = self.callPackage ./libs/libclang { };
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
   readline = self.callPackage ./libs/readline { };
@@ -61,9 +62,8 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.zstd
       self.bzip2
       self.openssl
-      targetPkgs.llvmPackages.libcxx
-      targetPkgs.llvmPackages.libclang
-      targetPkgs.llvmPackages.llvm
+      self.libclang
+      self.libllvm
     ];
   };
 

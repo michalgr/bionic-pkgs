@@ -10,7 +10,9 @@
   flex,
   bison,
   xxd,
-  llvmPackages,
+  buildPackages,
+  libllvm,
+  libclang,
   libbpf,
   bcc,
   elfutils,
@@ -39,13 +41,12 @@ stdenv.mkDerivation (finalAttrs: {
     flex
     bison
     xxd
-    llvmPackages.llvm
+    buildPackages.llvmPackages.llvm
   ];
 
   buildInputs = [
-    llvmPackages.llvm
-    llvmPackages.libclang
-    llvmPackages.libcxx
+    libllvm
+    libclang
     libbpf
     bcc
     elfutils

@@ -6,6 +6,7 @@
   stdenv,
   buildPackages,
   llvmPackages,
+  libllvm,
   libedit,
   ncurses,
   xz,
@@ -59,7 +60,7 @@ baseLldb.overrideAttrs (old: {
     zstd
     libffi
     python3
-    llvmPackages.libllvm
+    libllvm
     llvmPackages.libcxx
     (lib.getLib llvmPackages.libclang)
   ];
@@ -92,6 +93,7 @@ baseLldb.overrideAttrs (old: {
     !(lib.hasPrefix "-DLLVM_NATIVE_BUILD" flag) &&
     !(lib.hasPrefix "-DLLVM_TABLEGEN" flag)
   ) (old.cmakeFlags or [ ])) ++ [
+    "-DLLVM_DIR=${libllvm.dev}/lib/cmake/llvm"
     (lib.cmakeBool "ANDROID" true)
     "-DPython3_EXECUTABLE=${buildPackages.python3.interpreter}"
     "-DPython3_INCLUDE_DIR=${python3}/include/python${lib.versions.majorMinor python3.version}"
