@@ -1,9 +1,12 @@
 # lib/llvm-compat.nix
 # LLVM toolchain scope overrides, runtime library patches, and compilation flags for Android Bionic targets.
 
-{ lib }:
+{
+  lib,
+  bionicFlags,
+  final,
+}:
 
-{ bionicFlags, final }:
 lfinal: lprev:
 
 let
