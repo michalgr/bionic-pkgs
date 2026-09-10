@@ -53,8 +53,8 @@ In `bionic-pkgs`:
 
 ## 3. Standard Patch Patterns in Nix
 
-### Unified Bionic Sysroot Package (`pkgs/libs/bionic`)
-`bionic-pkgs` consolidates core Bionic libc, NDK r27 platform sysroot headers (`<android/log.h>`, `<android/trace.h>`, `<android/sync.h>`, `<zlib.h>`, `<jni.h>`, etc.), architecture-specific platform stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.), and built-in compatibility shims into a single unified package `pkgs/libs/bionic` (`final.bionic`).
+### Unified Bionic Sysroot Package (`lib/sysroot`)
+`bionic-pkgs` consolidates core Bionic libc, NDK r27 platform sysroot headers (`<android/log.h>`, `<android/trace.h>`, `<android/sync.h>`, `<zlib.h>`, `<jni.h>`, etc.), architecture-specific platform stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.), and built-in compatibility shims into a single unified package `lib/sysroot` (`final.bionic`).
 
 1. **GNU Linker Script Shims**: Provides `INPUT(libc.so)` stubs directly inside `bionic.out/lib` for `libpthread.so`, `libpthread.a`, `librt.so`, `librt.a`, `libutil.so`, `libutil.a`, `libresolv.so`, `libresolv.a`, `libcrypt.so`, `libcrypt.a`.
 2. **Header Shims via `#include_next`**: Wraps Bionic headers cleanly within the sysroot:
@@ -71,7 +71,7 @@ Packages no longer need to depend on standalone `android-prebuilts` or `bionic-c
 ### Platform Semi-Static Linking Architecture
 In `bionic-pkgs`, our architecture embraces a **Platform Semi-Static Linking Model**: third-party dependencies are statically linked into target binaries, while core platform dependencies (`libc`, `libm`, `libdl`, `libz`, `liblog`) dynamically bind to Android's `/system/lib64/` platform libraries.
 
-To enforce this cleanly across static and dynamic build modes, `pkgs/libs/bionic` provides GNU linker script stubs (`.a` files) for platform libraries (`libc.a`, `libdl.a`, `libm.a`, `libz.a`, `liblog.a`, `libpthread.a`, etc.) containing exact `.so` filename directives (e.g. `INPUT(libc.so)`, `INPUT(libz.so)`, `INPUT(liblog.so)`).
+To enforce this cleanly across static and dynamic build modes, `lib/sysroot` provides GNU linker script stubs (`.a` files) for platform libraries (`libc.a`, `libdl.a`, `libm.a`, `libz.a`, `liblog.a`, `libpthread.a`, etc.) containing exact `.so` filename directives (e.g. `INPUT(libc.so)`, `INPUT(libz.so)`, `INPUT(liblog.so)`).
 
 **Why Exact Filenames over `-l` Search Flags (`INPUT(-lz)`)**:
 Using search-flag syntax like `INPUT(-lz)` or `INPUT(-llog)` instructs the linker to run its standard library search algorithm. When a build system (such as CMake or Autotools) links in `-Bstatic` mode, the linker searches for `libz.a`, finds the stub file, and then evaluates `INPUT(-lz)`. Because `-Bstatic` is active, the search algorithm looks strictly for static archives (`libz.a`), re-encountering the same `.a` stub file. This causes linker loops or build failures with errors such as `attempted static link of dynamic object libz.so`. Specifying exact `.so` filenames (`INPUT(libz.so)`, `INPUT(liblog.so)`) forces the linker to directly resolve the dynamic platform object regardless of whether `-Bstatic` is enabled.
@@ -185,10 +185,10 @@ long page_size = sysconf(_SC_PAGESIZE);
    - **Resolution**: Add `depsBuildBuild = [ buildPackages.stdenv.cc ];` so the build machine compiler and linker are cleanly available during the build phase.
 3. **Missing `in_addr_t` in Bionic `<netinet/in.h>`**:
    - Bionic NDK headers define `in_port_t` in `<netinet/in.h>` but omit `typedef uint32_t in_addr_t;` (which is in kernel `<linux/in.h>`).
-   - **Resolution**: Layer `<netinet/in.h>`, `<arpa/inet.h>`, and `<sys/types.h>` shims in `pkgs/libs/bionic` using `#include_next` to define `in_addr_t` transparently.
+   - **Resolution**: Layer `<netinet/in.h>`, `<arpa/inet.h>`, and `<sys/types.h>` shims in `lib/sysroot` using `#include_next` to define `in_addr_t` transparently.
 4. **Macro Collisions with `__unused` in `<sys/cdefs.h>`**:
    - Bionic defines `#define __unused __attribute__((__unused__))` in `<sys/cdefs.h>`. When Linux UAPI headers like `<asm/stat.h>` declare fields named `__unused`, compilation fails with syntax errors.
-   - **Resolution**: Wrap `<asm/stat.h>` in `pkgs/libs/bionic` with `#pragma push_macro("__unused")` / `#undef __unused` / `#include_next <asm/stat.h>` / `#pragma pop_macro("__unused")`.
+   - **Resolution**: Wrap `<asm/stat.h>` in `lib/sysroot` with `#pragma push_macro("__unused")` / `#undef __unused` / `#include_next <asm/stat.h>` / `#pragma pop_macro("__unused")`.
 
 ### Case Study 2: `python3`, `libffi`, `libedit` & `sqlite3` (Standalone Runtime & REPL)
 Python 3 on Android provides a standalone CLI scripting runtime, C interoperability via `ctypes`, interactive REPL history, and SQLite database inspection.
@@ -209,7 +209,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - CPython 3.11+ cross-compilation requires a native host Python interpreter matching the target major and minor version (e.g., `buildPackages.python313`).
 4. **Android System Logging (`<android/log.h>` & `liblog.so`)**:
    - Python's lifecycle initialization on Android includes `<android/log.h>` for `__android_log_write()`.
-   - **Resolution**: `<android/log.h>` and `liblog.so` are supplied by `pkgs/libs/bionic` (provided transparently by `stdenv`), linking cleanly against Android's system `liblog.so`.
+   - **Resolution**: `<android/log.h>` and `liblog.so` are supplied by `lib/sysroot` (provided transparently by `stdenv`), linking cleanly against Android's system `liblog.so`.
 5. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
    - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
    - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
@@ -224,11 +224,11 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 1. **Minimizing Dependency Footprint & Leveraging Platform `libz.so`**:
    - Upstream Linux packaging of `elfutils` typically pulls heavy server daemon dependencies via `debuginfod` (`curl`, `sqlite`, `json-c`, `libmicrohttpd`, `libarchive`, `openssl`, `krb5`).
    - By disabling `debuginfod` (`--disable-debuginfod --disable-libdebuginfod`), NLS (`--disable-nls`), and the demangler (`--disable-demangler`), we eliminate transitively hundreds of megabytes of external dependencies.
-   - Rather than compiling and staging a redundant `libz.so.1` binary, `pkgs/libs/bionic` provides official Google NDK `libz.so` stubs and `<zlib.h>` headers. The compiled binaries bind directly to Android's pre-installed, hardware-accelerated platform library (`/system/lib64/libz.so`), eliminating deployment staging overhead.
+   - Rather than compiling and staging a redundant `libz.so.1` binary, `lib/sysroot` provides official Google NDK `libz.so` stubs and `<zlib.h>` headers. The compiled binaries bind directly to Android's pre-installed, hardware-accelerated platform library (`/system/lib64/libz.so`), eliminating deployment staging overhead.
 2. **Non-glibc Compatibility Shims (`argp`, `obstack`, `libintl`)**:
    - Android Bionic libc omits GNU `argp`, `obstack`, and `libintl` APIs.
    - `argp` and `obstack` are fulfilled via lightweight `argp-standalone` and `musl-obstack` packages.
-   - `<libintl.h>` is provided as a standard no-op macro shim by `pkgs/libs/bionic`, eliminating external gettext dependencies.
+   - `<libintl.h>` is provided as a standard no-op macro shim by `lib/sysroot`, eliminating external gettext dependencies.
 3. **Pure Upstream 0.196 Build with Zero External Patches**:
    - `elfutils 0.196` incorporates upstream AArch64 floating-point register unpacking, `strndup` migration, and i386 relocation fixes, allowing pure upstream cross-compilation without vendor patches.
 4. **Program Invocation Name Resolution**:
@@ -314,7 +314,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - **Transitive Dependency Unlinking**: LLVM exports static target `LLVMSupport` with `INTERFACE_LINK_LIBRARIES "dl;-lpthread;m;ZLIB::ZLIB"`. In `-Bstatic` mode, CMake attempts to link these transitively as static archives, causing `ld.lld` errors (`cannot find -lpthread`, `attempted static link of dynamic object libz.so`). We use upstream's `unlink_transitive_dependency` helper to strip `ZLIB::ZLIB`, `-lpthread`, `dl`, and `m` from `LLVMSupport` and `${llvm_libs}`, linking them cleanly via `-Wl,-Bdynamic -ldl -lm -lz` at the final executable stage.
 4. **Kernel Capability Definitions (`<linux/capability.h>`)**:
    - `src/run_bpftrace.cpp` checks for modern Linux capabilities (`CAP_BPF=39`, `CAP_PERFMON=38`, `CAP_CHECKPOINT_RESTORE=40`).
-   - Android NDK r23 headers lack these definitions. Added a `<linux/capability.h>` shim to `pkgs/libs/bionic/` providing `#ifndef CAP_BPF ... #endif`.
+   - Android NDK r23 headers lack these definitions. Added a `<linux/capability.h>` shim to `lib/sysroot/` providing `#ifndef CAP_BPF ... #endif`.
 5. **Embedded Standard Library via Host `xxd` (`Embed.cmake`)**:
    - `bpftrace` uses `xxd` to convert stdlib BPF scripts into C arrays embedded into the `bpftrace` binary. Added `xxd` to `nativeBuildInputs`.
 6. **Standalone Companion Tools (`share/bpftrace/tools/*.bt`)**:

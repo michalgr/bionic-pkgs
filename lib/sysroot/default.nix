@@ -1,4 +1,4 @@
-# pkgs/libs/bionic/default.nix
+# lib/sysroot/default.nix
 # Android 14+ (API 34) Bionic libc sysroot, NDK r27 headers, CRT objects, and compatibility shims.
 
 {
