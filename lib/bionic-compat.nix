@@ -3,9 +3,6 @@
 
 { lib }:
 
-let
-  fixLlvmPackages = import ./llvm-compat.nix { inherit lib; };
-in
 final: prev:
 let
   # Canonical compilation and linker flags for Android Bionic targets
@@ -33,7 +30,7 @@ let
     ldflagsString = lib.concatStringsSep " " ldflags;
   };
 
-  fixLlvm = fixLlvmPackages { inherit bionicFlags final; };
+  fixLlvm = import ./llvm-compat.nix { inherit lib bionicFlags final; };
 in
 {
   inherit bionicFlags;
