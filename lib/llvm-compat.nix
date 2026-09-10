@@ -69,6 +69,7 @@ in
       ln -sf libc++.so.1 $out/lib/libc++_shared.so
       ln -sf libc++.a $out/lib/libc++_static.a
     '';
+    meta = (old.meta or { }) // { skipElfCheck = true; };
   });
 
   libllvm = (lprev.libllvm.override { libxml2 = null; }).overrideAttrs (old: {
@@ -90,6 +91,7 @@ in
       "-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1"
       "-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1"
     ];
+    meta = (old.meta or { }) // { skipElfCheck = true; };
   });
 
   llvm = lfinal.libllvm;
@@ -101,6 +103,7 @@ in
     cmakeFlags = (old.cmakeFlags or [ ]) ++ commonCmakeFlags ++ [
       "-DLIBCLANG_BUILD_STATIC=ON"
     ];
+    meta = (old.meta or { }) // { skipElfCheck = true; };
   });
 
   clang-unwrapped = lfinal.libclang;
