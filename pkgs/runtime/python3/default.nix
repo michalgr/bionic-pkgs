@@ -12,6 +12,7 @@
   sqlite,
   xz,
   bzip2,
+  openssl,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -41,6 +42,7 @@ stdenv.mkDerivation (finalAttrs: {
     sqlite
     xz
     bzip2
+    openssl
   ];
 
   postPatch = ''
@@ -53,8 +55,7 @@ stdenv.mkDerivation (finalAttrs: {
   # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.13).
   # 2. Shared libpython (--enable-shared, --without-static-libpython) is required on Android.
   # 3. Interactive REPL navigation & database support enabled via libedit (--with-readline=editline) and sqlite3.
-  # 4. Built-in hashes (--with-builtin-hashlib-hashes): Uses internal HACL* C implementations
-  #    so hashlib works without requiring OpenSSL.
+  # 4. OpenSSL enablement (--with-openssl): Enables cryptographic hash and SSL/TLS support (_ssl, _hashlib).
   # 5. Native Android logging: Uses <android/log.h> and liblog.so from android-prebuilts.
   configureFlags = [
     "--with-build-python=${buildPackages.python313}/bin/python3.13"
@@ -69,7 +70,7 @@ stdenv.mkDerivation (finalAttrs: {
     "--without-dbm"
     "--without-tkinter"
     "--disable-test-modules"
-    "--with-builtin-hashlib-hashes=md5,sha1,sha2,sha3,blake2"
+    "--with-openssl=${openssl.dev or openssl}"
     "ac_cv_file__dev_ptmx=yes"
     "ac_cv_file__dev_ptc=no"
   ];

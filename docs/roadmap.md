@@ -25,7 +25,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/libs/zstd`: Cross-compiled Zstandard compression library (`libzstd`) and CLI tools (`zstd`, `unzstd`, `zstdcat`, `zstdmt`) for Android.
   - [x] `pkgs/libs/bzip2`: Cross-compiled bzip2 compression library (`libbz2`) and CLI tools (`bzip2`, `bunzip2`, `bzcat`) for Android.
   - [x] `pkgs/libs/readline`: Cross-compiled GNU Readline library for Android (Bionic).
-  - [ ] Supporting optional libraries: `pkgs/libs/openssl`.
+  - [x] Supporting optional libraries: `pkgs/libs/openssl`.
   - [x] `pkgs/libs/elfutils`: Minimalistic ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, etc.) and DWARF debugging (`libdw`, `libasm`) suite.
 - [x] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - [x] `pkgs/reversing/radare2`: Standalone binary analysis framework.
