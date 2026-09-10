@@ -30,9 +30,7 @@ let
     ldflagsString = lib.concatStringsSep " " ldflags;
   };
 
-  patchedLlvm = prev.llvmPackages.overrideScope (
-    import ./llvm-compat.nix { inherit lib bionicFlags final; }
-  );
+  fixLlvm = import ./llvm-compat.nix { inherit lib bionicFlags final; };
 in
 {
   inherit bionicFlags;
@@ -62,7 +60,7 @@ in
       '';
     });
 
-  llvmPackages = patchedLlvm;
+  llvmPackages = prev.llvmPackages.overrideScope fixLlvm;
 
   # Setup hook that injects Bionic compiler/linker flags and configures RPATH variables
   bionicFixupHook = final.makeSetupHook {
@@ -102,5 +100,5 @@ in
   });
 }
 // lib.optionalAttrs (prev ? llvmPackages_21) {
-  llvmPackages_21 = patchedLlvm;
+  llvmPackages_21 = prev.llvmPackages_21.overrideScope fixLlvm;
 }
