@@ -92,12 +92,12 @@ postPatch = ''
 Rather than requiring every derivation to set repetitive compilation flags manually, `lib/bionic-compat.nix` defines canonical `bionicFlags` and injects `bionicFixupHook` globally into `stdenv.extraNativeBuildInputs`.
 
 All target derivations built with `stdenv.mkDerivation` automatically receive:
-- **`NIX_CFLAGS_COMPILE`**: `-nostdlibinc -fno-emulated-tls -D__BIONIC_NO_PAGE_SIZE_MACRO` (plus `-mtls-dialect=gnu` on x86_64)
-- **`NIX_LDFLAGS`**: `-L${final.bionic.out}/lib -z max-page-size=16384 -z common-page-size=16384`
+- **`NIX_CFLAGS_COMPILE_FOR_TARGET`**: `-nostdlibinc -fno-emulated-tls -D__BIONIC_NO_PAGE_SIZE_MACRO` (plus `-mtls-dialect=gnu` on x86_64)
+- **`NIX_LDFLAGS_FOR_TARGET`**: `-L${final.bionic.out}/lib -z max-page-size=16384 -z common-page-size=16384`
 
 ### Toolchain Role Isolation & Wrapper Hygiene
 Nixpkgs cross-compilation uses role-based suffixing in CC wrappers to maintain clear separation between host and target build flags:
-- **Host/Target Toolchains (`stdenv.cc`)**: Execute with role `_FOR_HOST` (`role_suffixes=('')`) and consume canonical unsuffixed `NIX_CFLAGS_COMPILE` and `NIX_LDFLAGS`.
+- **Target Toolchains (`stdenv.cc`)**: Activated via `NIX_CC_WRAPPER_TARGET_TARGET_<suffixSalt>=1` to consume `NIX_CFLAGS_COMPILE_FOR_TARGET` and `NIX_LDFLAGS_FOR_TARGET`.
 - **Build Toolchains (`buildPackages.stdenv.cc` / `CC_FOR_BUILD`)**: Execute with role `_FOR_BUILD` and exclusively consume `NIX_CFLAGS_COMPILE_FOR_BUILD` and `NIX_LDFLAGS_FOR_BUILD`, completely ignoring unsuffixed variables.
 - **Hook Propagation Rule**: Setup hooks injected into `stdenv.extraNativeBuildInputs` (which operate with `hostOffset = -1`) must **never** declare `propagatedBuildInputs` containing target libraries. If declared, Nixpkgs propagates those target libraries to the build machine environment and injects them into `NIX_LDFLAGS_FOR_BUILD` (a historical leak that caused Apple `ld64` on Darwin host builders to fail on target `-L` paths before commit f3ea460).
 
@@ -211,7 +211,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Python's lifecycle initialization on Android includes `<android/log.h>` for `__android_log_write()`.
    - **Resolution**: `<android/log.h>` and `liblog.so` are supplied by `lib/sysroot` (provided transparently by `stdenv`), linking cleanly against Android's system `liblog.so`.
 5. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
-   - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
+   - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE_FOR_TARGET` to avoid static page size assumptions across all packages.
    - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
 6. **Runtime Standard Library Resolution (`PYTHONHOME`) & Scoped Extension RPATH**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"`.

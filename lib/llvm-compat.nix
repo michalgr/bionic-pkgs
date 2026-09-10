@@ -21,7 +21,7 @@ let
           final.bionic.out
         ] ++ (extra.buildInputs or [ ]);
         env = (old.env or { }) // {
-          NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+          NIX_CFLAGS_COMPILE_FOR_TARGET = (old.env.NIX_CFLAGS_COMPILE_FOR_TARGET or "") + " " + bionicFlags.cflagsString;
         } // (extra.env or { });
       }
     );
@@ -62,7 +62,7 @@ in
 
   libcxx = withBionic lprev.libcxx (old: {
     env = {
-      NIX_LDFLAGS = (old.env.NIX_LDFLAGS or "") + " " + bionicFlags.ldflagsString;
+      NIX_LDFLAGS_FOR_TARGET = (old.env.NIX_LDFLAGS_FOR_TARGET or "") + " " + bionicFlags.ldflagsString;
     };
     cmakeFlags = (old.cmakeFlags or [ ]) ++ [
       (lib.cmakeFeature "LIBCXXABI_ADDITIONAL_LIBRARIES" "unwind")

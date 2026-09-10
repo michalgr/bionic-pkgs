@@ -66,9 +66,10 @@ in
   bionicFixupHook = final.makeSetupHook {
     name = "bionic-fixup-hook";
   } (final.writeScript "bionic-fixup.sh" ''
-    # Export canonical compilation and linker flags into environment at setup hook source time
-    export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
-    export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
+    # Activate target role for the Android target compiler wrapper
+    export NIX_CC_WRAPPER_TARGET_TARGET_${final.stdenv.cc.suffixSalt}=1
+    export NIX_CFLAGS_COMPILE_FOR_TARGET="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_FOR_TARGET:-}"
+    export NIX_LDFLAGS_FOR_TARGET="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_FOR_TARGET:-}"
 
     # Suppress Nixpkgs automatic RPATH generation and self-rpath injection
     export NIX_DONT_SET_RPATH=1
