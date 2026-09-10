@@ -15,6 +15,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   bzip2 = self.callPackage ./libs/bzip2 { };
   cereal = self.callPackage ./libs/cereal { };
   elfutils = self.callPackage ./libs/elfutils { };
+  openssl = self.callPackage ./libs/openssl { };
 
   # Build Support Utilities
   verify-flags = self.callPackage ./build-support/verify-flags { };
@@ -59,6 +60,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.xz
       self.zstd
       self.bzip2
+      self.openssl
       targetPkgs.llvmPackages.libcxx
       targetPkgs.llvmPackages.libclang
       targetPkgs.llvmPackages.llvm

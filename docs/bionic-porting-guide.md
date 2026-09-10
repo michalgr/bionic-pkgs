@@ -198,7 +198,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Interactive line editing and command history are enabled using NetBSD `libedit` (`--with-readline=editline`) backed by `ncurses` (propagated via `propagatedBuildInputs = [ ncurses ];` to ensure `libncurses.so` is included in sysroot bundles).
    - Database inspection capabilities are enabled via `sqlite` (`--with-sqlite3`).
    - Heavy optional GUI and database modules remain disabled (`--without-curses`, `--without-gdbm`, `--without-dbm`, `--without-tkinter`, `--disable-test-modules`).
-   - Hash algorithm support (`_hashlib` / `hashlib`) is fulfilled without OpenSSL via `--with-builtin-hashlib-hashes=md5,sha1,sha2,sha3,blake2` which compiles internal C implementations (HACL*).
+   - Hash algorithm support (`_hashlib` / `hashlib`) and SSL/TLS support (`_ssl`) are enabled via OpenSSL (`--with-openssl`).
    - `libffi` is retained to power `_ctypes` for native C library interaction.
 2. **NetBSD `libedit` Bionic Porting Shims**:
    - `libedit` requires specific Bionic compiler flags (`NIX_CFLAGS_COMPILE = "-D__STDC_ISO_10646__=200009L -DHAVE_SIZE_MAX -DNBBY=8"`):
@@ -351,6 +351,32 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
      - `-DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3`
      - `-DLLDB_PYTHON_EXT_SUFFIX=.cpython-313-<arch>-linux-android.so`
    - Adding `python3` to LLDB's `buildInputs` ensures `adb-push.sh` and sysroot bundles automatically aggregate `libpython3.13.so` and Python standard library paths into the device deployment directory.
+
+### Case Study 8: `openssl` (OpenSSL Cryptographic & SSL/TLS Toolkit)
+`openssl` provides shared cryptographic libraries (`libssl.so`, `libcrypto.so`), engines, providers (`legacy.so`), and the `openssl` command-line utility for Android.
+
+1. **Disabling Unsupported Kernel Extensions (`no-ktls`, `no-afalgeng`)**:
+   - Kernel TLS (`enable-ktls`) requires Linux kernel socket structures and headers that are incomplete/unsupported in Android Bionic (`<sys/socket.h>` and `include/internal/ktls.h`).
+   - The Linux AF_ALG crypto engine (`afalgeng`) is unsupported in standard Android userspace.
+   - We pass `no-ktls` and `no-afalgeng` to `./Configure` to disable these unsupported features.
+2. **Architecture Target Selection**:
+   - OpenSSL's custom `./Configure` script requires exact target platform strings rather than GNU triple `--host`:
+     - `aarch64-android`: `linux-aarch64` (activates hardware-accelerated ARMv8 NEON and Crypto extensions)
+     - `x86_64-android`: `linux-x86_64`
+     - `armv7a-android`: `linux-armv4`
+     - `i686-android`: `linux-x86`
+     - `riscv64-android`: `linux64-riscv64`
+   - Setting `configurePlatforms = [ ];` and `dontAddStaticConfigureFlags = true;` prevents Nix from passing invalid `--build` or `--host` flags to `./Configure`.
+3. **Android Shell Wrapper for `c_rehash`**:
+   - Upstream OpenSSL generates `c_rehash` as a Perl script. On Android, Perl is absent from the device system PATH.
+   - We replace `c_rehash` with an Android-native `/system/bin/sh` shell script:
+     ```sh
+     #!/system/bin/sh
+     exec "$(dirname "$0")/openssl" rehash "$@"
+     ```
+4. **Python 3 Integration**:
+   - Adding `openssl` to Python 3's `buildInputs` and `--with-openssl=${openssl.dev or openssl}` builds CPython extension modules `_ssl.so` and `_hashlib.so`.
+   - In `_ssl.cpython-*.so`, relative runpath `-Wl,-rpath,$ORIGIN/../..` resolves `libssl.so` and `libcrypto.so` in `lib/`.
 
 ---
 
