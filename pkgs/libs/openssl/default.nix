@@ -79,9 +79,6 @@ exec "$(dirname "$0")/openssl" rehash "$@"
 EOF
     chmod +x "$out/bin/c_rehash"
 
-    # Remove static archives from shared build to keep package footprint lean
-    rm -f $out/lib/*.a
-
     # Remove Perl runtime dependency
     rm -rf $out/etc/ssl/misc
   '';
