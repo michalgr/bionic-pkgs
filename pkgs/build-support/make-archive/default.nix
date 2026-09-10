@@ -38,7 +38,7 @@ stdenv.mkDerivation {
   buildCommand = ''
     mkdir -p "$out"
     stageDir=$(mktemp -d)
-    cp -a "$src/." "$stageDir/"
+    cp -al "$src/." "$stageDir/" 2>/dev/null || cp -a "$src/." "$stageDir/"
     find "$stageDir" -type d -exec chmod 755 {} +
     tar --owner=0 --group=0 --numeric-owner --mtime='@1' --sort=name \
       --hard-dereference \
