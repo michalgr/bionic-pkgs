@@ -11,6 +11,8 @@
   bison,
   pkg-config,
   llvmPackages,
+  libllvm,
+  libclang,
   elfutils,
   libbpf,
 }:
@@ -33,12 +35,12 @@ stdenv.mkDerivation (finalAttrs: {
     pkg-config
     buildPackages.python3
     buildPackages.python3Packages.setuptools
-    llvmPackages.llvm
+    buildPackages.llvmPackages.llvm
   ];
 
   buildInputs = [
-    llvmPackages.llvm
-    llvmPackages.libclang
+    libllvm
+    libclang
     llvmPackages.libcxx
     elfutils
     libbpf

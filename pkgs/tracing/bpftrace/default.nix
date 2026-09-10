@@ -5,12 +5,15 @@
   lib,
   stdenv,
   fetchFromGitHub,
+  buildPackages,
   cmake,
   pkg-config,
   flex,
   bison,
   xxd,
   llvmPackages,
+  libllvm,
+  libclang,
   libbpf,
   bcc,
   elfutils,
@@ -39,12 +42,12 @@ stdenv.mkDerivation (finalAttrs: {
     flex
     bison
     xxd
-    llvmPackages.llvm
+    buildPackages.llvmPackages.llvm
   ];
 
   buildInputs = [
-    llvmPackages.llvm
-    llvmPackages.libclang
+    libllvm
+    libclang
     llvmPackages.libcxx
     libbpf
     bcc

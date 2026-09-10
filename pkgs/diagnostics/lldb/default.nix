@@ -6,6 +6,9 @@
   stdenv,
   buildPackages,
   llvmPackages,
+  buildLlvmPackages ? buildPackages.llvmPackages,
+  libllvm,
+  libclang,
   libedit,
   ncurses,
   xz,
@@ -59,9 +62,9 @@ baseLldb.overrideAttrs (old: {
     zstd
     libffi
     python3
-    llvmPackages.libllvm
+    libllvm
     llvmPackages.libcxx
-    (lib.getLib llvmPackages.libclang)
+    libclang
   ];
 
   # Explicit host build-time tools (cross-compilation is always active for Android targets)
@@ -71,8 +74,7 @@ baseLldb.overrideAttrs (old: {
     buildPackages.which
     buildPackages.python3
     buildPackages.swig
-    buildPackages.llvmPackages.llvm.out
-    buildPackages.llvmPackages.clang-unwrapped.out
+    buildLlvmPackages.tblgen
     lldb-tblgen
   ];
 
@@ -93,6 +95,8 @@ baseLldb.overrideAttrs (old: {
     !(lib.hasPrefix "-DLLVM_TABLEGEN" flag)
   ) (old.cmakeFlags or [ ])) ++ [
     (lib.cmakeBool "ANDROID" true)
+    "-DLLVM_DIR=${libllvm.dev}/lib/cmake/llvm"
+    "-DClang_DIR=${libclang.dev}/lib/cmake/clang"
     "-DPython3_EXECUTABLE=${buildPackages.python3.interpreter}"
     "-DPython3_INCLUDE_DIR=${python3}/include/python${lib.versions.majorMinor python3.version}"
     "-DPython3_LIBRARY=${python3}/lib/libpython${lib.versions.majorMinor python3.version}.so"
@@ -113,10 +117,10 @@ baseLldb.overrideAttrs (old: {
     "-DLLDB_ENABLE_ZSTD=ON"
     "-DLLVM_ENABLE_TERMINFO=OFF"
     "-DLLDB_INCLUDE_TESTS=OFF"
-    "-DLLVM_TABLEGEN=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
-    "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
-    "-DCLANG_TABLEGEN=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
-    "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
+    "-DLLVM_TABLEGEN=${buildLlvmPackages.tblgen}/bin/llvm-tblgen"
+    "-DLLVM_TABLEGEN_EXE=${buildLlvmPackages.tblgen}/bin/llvm-tblgen"
+    "-DCLANG_TABLEGEN=${buildLlvmPackages.tblgen}/bin/clang-tblgen"
+    "-DCLANG_TABLEGEN_EXE=${buildLlvmPackages.tblgen}/bin/clang-tblgen"
     "-DLLDB_TABLEGEN_EXE=${lldb-tblgen}/bin/lldb-tblgen"
     "-DLLDB_TABLEGEN=${lldb-tblgen}/bin/lldb-tblgen"
   ];
