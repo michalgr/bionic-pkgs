@@ -144,6 +144,8 @@ in
 
   # Map zlib to Android platform NDK stubs so all packages bind directly to /system/lib64/libz.so
   zlib = final.bionic // {
+    dev = final.bionic;
+    out = final.bionic;
     static = final.bionic;
   };
 
