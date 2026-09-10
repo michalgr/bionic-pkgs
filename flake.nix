@@ -16,19 +16,18 @@
   outputs = { self, nixpkgs }:
     let
       bionicLib = import ./lib { inherit (nixpkgs) lib; };
-      bionicCompat = import ./lib/bionic-compat.nix { inherit (nixpkgs) lib; };
       packageSetFn = import ./pkgs;
     in
     {
       overlays.default = final: prev:
-        (prev.lib.optionalAttrs (prev.stdenv.hostPlatform.isAndroid or false) (bionicCompat final prev))
+        (prev.lib.optionalAttrs (prev.stdenv.hostPlatform.isAndroid or false) (bionicLib.bionicCompat final prev))
         // (prev.lib.optionalAttrs (prev.stdenv.hostPlatform.isAndroid or false) {
           bionicPkgs = packageSetFn { targetPkgs = final; };
         });
     }
-    // bionicLib.eachSystem bionicLib.supportedSystems (system:
+    // bionicLib.eachSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        hostPkgs = import nixpkgs { inherit system; };
 
         # Target matrix of all packages across all Android architectures
         targetMatrix = bionicLib.mkTargetMatrix {
@@ -47,24 +46,22 @@
 
         # Dynamically generated ADB push deployment apps (e.g. push-strace, push-aarch64-android-strace)
         apps = bionicLib.generateApps {
-          inherit targetMatrix;
+          inherit hostPkgs targetMatrix;
           inherit (bionicLib) defaultTarget;
-          hostPkgs = pkgs;
         };
 
         # Automated checks for CI and `nix flake check`
         checks = bionicLib.generateChecks {
-          inherit targetMatrix;
-          hostPkgs = pkgs;
+          inherit hostPkgs targetMatrix;
         };
 
         # Development environment
-        devShells.default = pkgs.mkShell {
+        devShells.default = hostPkgs.mkShell {
           name = "bionic-pkgs-dev";
           packages = [
-            pkgs.android-tools
-            pkgs.llvmPackages.llvm
-            pkgs.file
+            hostPkgs.android-tools
+            hostPkgs.llvmPackages.llvm
+            hostPkgs.file
           ];
 
           shellHook = ''

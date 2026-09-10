@@ -27,23 +27,30 @@ let
     "aarch64-darwin"
   ];
 
+  # Re-export Bionic compatibility overlay helper
+  bionicCompat = import ./bionic-compat.nix { inherit lib; };
+
   # Native helper to map outputs over supported host systems
-  eachSystem = systems: f:
+  eachSystem = systemsOrFn:
     let
-      perSystem = lib.genAttrs systems f;
+      f = if builtins.isFunction systemsOrFn then systemsOrFn else null;
+      impl = systems: fn:
+        let
+          perSystem = lib.genAttrs systems fn;
+        in
+        {
+          packages = lib.mapAttrs (_: s: s.packages or { }) perSystem;
+          legacyPackages = lib.mapAttrs (_: s: s.legacyPackages or { }) perSystem;
+          apps = lib.mapAttrs (_: s: s.apps or { }) perSystem;
+          checks = lib.mapAttrs (_: s: s.checks or { }) perSystem;
+          devShells = lib.mapAttrs (_: s: s.devShells or { }) perSystem;
+        };
     in
-    {
-      packages = lib.mapAttrs (_: s: s.packages or { }) perSystem;
-      legacyPackages = lib.mapAttrs (_: s: s.legacyPackages or { }) perSystem;
-      apps = lib.mapAttrs (_: s: s.apps or { }) perSystem;
-      checks = lib.mapAttrs (_: s: s.checks or { }) perSystem;
-      devShells = lib.mapAttrs (_: s: s.devShells or { }) perSystem;
-    };
+    if f != null then impl supportedSystems f else impl systemsOrFn;
 
   # Helper to instantiate nixpkgs with Bionic cross-compilation overlays
   mkAndroidPkgs = { nixpkgs, system, targetName }:
     let
-      bionicCompat = import ./bionic-compat.nix { inherit lib; };
       crossSystem = targetPlatforms.${targetName};
     in
     import nixpkgs {
@@ -56,12 +63,12 @@ let
   mkAdbPushApp = { hostPkgs, pkg, targetName, pkgName }:
     let
       adbBin = "${hostPkgs.android-tools}/bin/adb";
-      binName = if pkg ? meta && pkg.meta ? mainProgram then pkg.meta.mainProgram else pkgName;
+      binName = pkg.meta.mainProgram or pkgName;
       directDeps = lib.filter (d: lib.isDerivation d && d ? outPath) (
         (pkg.buildInputs or [ ]) ++ (pkg.propagatedBuildInputs or [ ])
       );
       allDeps = lib.closePropagation directDeps;
-      pushScript = hostPkgs.writeShellScriptBin "push-${pkgName}-${targetName}" ''
+      pushScript = hostPkgs.writeShellScript "push-${pkgName}-${targetName}" ''
         set -euo pipefail
         exec ${../scripts}/adb-push.sh \
           --pkg-path "${pkg}" \
@@ -75,7 +82,7 @@ let
     in
     {
       type = "app";
-      program = "${pushScript}/bin/push-${pkgName}-${targetName}";
+      program = "${pushScript}";
       meta = {
         description = "Push ${pkgName} and its runtime dependencies to an Android device via ADB";
         mainProgram = "push-${pkgName}-${targetName}";
@@ -92,87 +99,81 @@ let
     }) supportedTargets);
 
   # Helper to determine if a package is a runnable application
-  isRunnableApp = pkg:
-    lib.isDerivation pkg &&
-    (pkg ? meta && pkg.meta ? mainProgram);
+  isRunnableApp = pkg: lib.isDerivation pkg && (pkg.meta ? mainProgram);
 
   # Helper to determine if a package can be verified for ELF properties (excluding header/shim/prebuilt-only packages)
-  isCheckablePkg = pkg:
-    lib.isDerivation pkg &&
-    !(pkg.meta.skipElfCheck or false) &&
-    (pkg ? pname);
+  isCheckablePkg = pkg: lib.isDerivation pkg && (pkg ? pname) && !(pkg.meta.skipElfCheck or false);
 
-  # Automatically generates flat package outputs from targetMatrix
-  generatePackages = { targetMatrix, defaultTarget ? "aarch64-android" }:
+  # Shared helper to iterate over targetMatrix and build attribute sets of outputs
+  mapMatrix = { targetMatrix, defaultTarget ? null, filter ? (_: true), mkEntry }:
     let
       targetEntries = lib.concatMap (targetName:
         let pkgsForTarget = targetMatrix.${targetName};
         in lib.concatMap (pkgName:
           let pkg = pkgsForTarget.${pkgName};
-          in lib.optional (lib.isDerivation pkg) {
-            name = "${targetName}-${pkgName}";
-            value = pkg;
-          }
+          in lib.optional (filter pkg) (mkEntry {
+            inherit targetName pkgName pkg;
+            isDefault = false;
+          })
         ) (builtins.attrNames pkgsForTarget)
       ) (builtins.attrNames targetMatrix);
 
-      defaultEntries = if targetMatrix ? ${defaultTarget} then
-        lib.concatMap (pkgName:
-          let pkg = targetMatrix.${defaultTarget}.${pkgName};
-          in lib.optional (lib.isDerivation pkg) {
-            name = pkgName;
-            value = pkg;
-          }
-        ) (builtins.attrNames targetMatrix.${defaultTarget})
-      else [ ];
-
-      defaultPackage = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
-        then { default = targetMatrix.${defaultTarget}.strace; }
-        else { };
-    in
-    builtins.listToAttrs (targetEntries ++ defaultEntries) // defaultPackage;
-
-  # Automatically generates ADB push apps from targetMatrix
-  generateApps = { hostPkgs, targetMatrix, defaultTarget ? "aarch64-android" }:
-    let
-      targetAppEntries = lib.concatMap (targetName:
-        let pkgsForTarget = targetMatrix.${targetName};
+      defaultEntries = if defaultTarget != null && targetMatrix ? ${defaultTarget} then
+        let pkgsForTarget = targetMatrix.${defaultTarget};
         in lib.concatMap (pkgName:
           let pkg = pkgsForTarget.${pkgName};
-          in lib.optional (isRunnableApp pkg) {
-            name = "push-${targetName}-${pkgName}";
-            value = mkAdbPushApp {
-              inherit hostPkgs targetName pkgName pkg;
-            };
-          }
+          in lib.optional (filter pkg) (mkEntry {
+            targetName = defaultTarget;
+            inherit pkgName pkg;
+            isDefault = true;
+          })
         ) (builtins.attrNames pkgsForTarget)
-      ) (builtins.attrNames targetMatrix);
-
-      defaultAppEntries = if targetMatrix ? ${defaultTarget} then
-        lib.concatMap (pkgName:
-          let pkg = targetMatrix.${defaultTarget}.${pkgName};
-          in lib.optional (isRunnableApp pkg) {
-            name = "push-${pkgName}";
-            value = mkAdbPushApp {
-              inherit hostPkgs pkgName pkg;
-              targetName = defaultTarget;
-            };
-          }
-        ) (builtins.attrNames targetMatrix.${defaultTarget})
       else [ ];
+    in
+    builtins.listToAttrs (targetEntries ++ defaultEntries);
 
-      defaultApp = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
+  # Automatically generates flat package outputs from targetMatrix
+  generatePackages = { targetMatrix, defaultTarget ? "aarch64-android", defaultPkg ? "strace" }:
+    let
+      entries = mapMatrix {
+        inherit targetMatrix defaultTarget;
+        filter = lib.isDerivation;
+        mkEntry = { targetName, pkgName, pkg, isDefault }: {
+          name = if isDefault then pkgName else "${targetName}-${pkgName}";
+          value = pkg;
+        };
+      };
+      defaultPackage = if defaultTarget != null && defaultPkg != null && targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? ${defaultPkg}
+        then { default = targetMatrix.${defaultTarget}.${defaultPkg}; }
+        else { };
+    in
+    entries // defaultPackage;
+
+  # Automatically generates ADB push apps from targetMatrix
+  generateApps = { hostPkgs, targetMatrix, defaultTarget ? "aarch64-android", defaultPkg ? "strace" }:
+    let
+      entries = mapMatrix {
+        inherit targetMatrix defaultTarget;
+        filter = isRunnableApp;
+        mkEntry = { targetName, pkgName, pkg, isDefault }: {
+          name = if isDefault then "push-${pkgName}" else "push-${targetName}-${pkgName}";
+          value = mkAdbPushApp {
+            inherit hostPkgs targetName pkgName pkg;
+          };
+        };
+      };
+      defaultApp = if defaultTarget != null && defaultPkg != null && targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? ${defaultPkg}
         then {
           default = mkAdbPushApp {
             inherit hostPkgs;
             targetName = defaultTarget;
-            pkgName = "strace";
-            pkg = targetMatrix.${defaultTarget}.strace;
+            pkgName = defaultPkg;
+            pkg = targetMatrix.${defaultTarget}.${defaultPkg};
           };
         }
         else { };
     in
-    builtins.listToAttrs (targetAppEntries ++ defaultAppEntries) // defaultApp;
+    entries // defaultApp;
 
   # Helper to create an ELF verification check derivation for CI / nix flake check
   mkElfCheck = { hostPkgs, pkg, targetName, pkgName, checkElfScript ? ../scripts/check-elf.sh }:
@@ -182,26 +183,21 @@ let
         hostPkgs.file
       ];
     } ''
-      bash ${checkElfScript} "${pkg}" "${targetName}" "${pkgName}" "$out"
+      bash ${checkElfScript} "${pkg}" "${targetName}" "${pkgName}"
     '';
 
   # Automatically generates checks for all target matrix packages
   generateChecks = { hostPkgs, targetMatrix }:
-    let
-      checkEntries = lib.concatMap (targetName:
-        let pkgsForTarget = targetMatrix.${targetName};
-        in lib.concatMap (pkgName:
-          let pkg = pkgsForTarget.${pkgName};
-          in lib.optional (isCheckablePkg pkg) {
-            name = "check-elf-${targetName}-${pkgName}";
-            value = mkElfCheck {
-              inherit hostPkgs targetName pkgName pkg;
-            };
-          }
-        ) (builtins.attrNames pkgsForTarget)
-      ) (builtins.attrNames targetMatrix);
-    in
-    builtins.listToAttrs checkEntries;
+    mapMatrix {
+      inherit targetMatrix;
+      filter = isCheckablePkg;
+      mkEntry = { targetName, pkgName, pkg, ... }: {
+        name = "check-elf-${targetName}-${pkgName}";
+        value = mkElfCheck {
+          inherit hostPkgs targetName pkgName pkg;
+        };
+      };
+    };
 
 in
 {
@@ -210,11 +206,13 @@ in
     supportedTargets
     defaultTarget
     supportedSystems
+    bionicCompat
     eachSystem
     mkAndroidPkgs
     mkAdbPushApp
     mkElfCheck
     mkTargetMatrix
+    mapMatrix
     generatePackages
     generateApps
     generateChecks;
