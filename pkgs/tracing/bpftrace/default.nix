@@ -24,13 +24,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = if static then "bpftrace-static" else "bpftrace";
-  version = "0.26.1";
+  version = "0.27.0";
 
   src = fetchFromGitHub {
     owner = "bpftrace";
     repo = "bpftrace";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-h3gFnQq48oM5uK07xrykOCSJxhr6dqcyVUDoIKIRREY=";
+    hash = "sha256-wYDSx2WngWS4Ucj82hLO0G46tiXhqskhMjmv7NuUVfw=";
   };
 
   nativeBuildInputs = [
