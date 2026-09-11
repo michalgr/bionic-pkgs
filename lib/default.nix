@@ -53,23 +53,25 @@ let
     };
 
   # Helper to create an ADB deployment app that synchronizes binary and shared libraries
-  mkAdbPushApp = { hostPkgs, pkg, targetName, pkgName }:
+  mkAdbPushApp = { hostPkgs, pkg, targetName, pkgName, targetMatrix }:
     let
       adbBin = "${hostPkgs.android-tools}/bin/adb";
       binName = if pkg ? meta && pkg.meta ? mainProgram then pkg.meta.mainProgram else pkgName;
-      directDeps = lib.filter (d: lib.isDerivation d && d ? outPath) (
-        (pkg.buildInputs or [ ]) ++ (pkg.propagatedBuildInputs or [ ])
-      );
-      allDeps = lib.closePropagation directDeps;
+      archivePkg = targetMatrix.${targetName}.runtimeArchive {
+        pname = pkgName;
+        packages = [ pkg ];
+        launcherProgram = binName;
+        launcherName = "run.sh";
+        archiveName = "${pkgName}-${targetName}.tar.gz";
+      };
       pushScript = hostPkgs.writeShellScriptBin "push-${pkgName}-${targetName}" ''
         set -euo pipefail
         exec ${../scripts}/adb-push.sh \
-          --pkg-path "${pkg}" \
+          --archive "${archivePkg}/${pkgName}-${targetName}.tar.gz" \
           --pkg-name "${pkgName}" \
           --target "${targetName}" \
           --bin-name "${binName}" \
           --adb "${adbBin}" \
-          ${lib.concatMapStringsSep " " (dep: "--dep \"${dep.lib or dep.out or dep}\"") allDeps} \
           "$@"
       '';
     in
@@ -142,7 +144,7 @@ let
           in lib.optional (isRunnableApp pkg) {
             name = "push-${targetName}-${pkgName}";
             value = mkAdbPushApp {
-              inherit hostPkgs targetName pkgName pkg;
+              inherit hostPkgs targetName pkgName pkg targetMatrix;
             };
           }
         ) (builtins.attrNames pkgsForTarget)
@@ -154,7 +156,7 @@ let
           in lib.optional (isRunnableApp pkg) {
             name = "push-${pkgName}";
             value = mkAdbPushApp {
-              inherit hostPkgs pkgName pkg;
+              inherit hostPkgs pkgName pkg targetMatrix;
               targetName = defaultTarget;
             };
           }
@@ -164,7 +166,7 @@ let
       defaultApp = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
         then {
           default = mkAdbPushApp {
-            inherit hostPkgs;
+            inherit hostPkgs targetMatrix;
             targetName = defaultTarget;
             pkgName = "strace";
             pkg = targetMatrix.${defaultTarget}.strace;

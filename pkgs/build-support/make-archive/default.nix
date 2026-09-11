@@ -37,8 +37,17 @@ stdenv.mkDerivation {
 
   buildCommand = ''
     mkdir -p "$out"
+    stageDir=$(mktemp -d)
+    if ! cp -al "$src/." "$stageDir/" 2>/dev/null; then
+      chmod -R u+w "$stageDir" 2>/dev/null || true
+      rm -rf "$stageDir"/*
+      cp -a "$src/." "$stageDir/"
+    fi
+    find "$stageDir" -type d -exec chmod 755 {} +
     tar --owner=0 --group=0 --numeric-owner --mtime='@1' --sort=name \
-      ${compressionFlag} "$out/${archiveName}" -C "$src" .
+      --hard-dereference \
+      ${compressionFlag} "$out/${archiveName}" -C "$stageDir" .
+    rm -rf "$stageDir"
   '';
 
   meta = {

@@ -27,7 +27,28 @@ let
     let name = p.name or (p.pname or "");
     in lib.hasInfix "bionic" name;
 
-  allPackages = lib.filter (p: !isPlatformPkg p) (lib.closePropagation packages);
+  getDirectDeps = p:
+    if lib.isDerivation p then
+      lib.filter (d: lib.isDerivation d && d ? outPath) (
+        (p.buildInputs or [ ]) ++ (p.propagatedBuildInputs or [ ])
+      )
+    else [ ];
+
+  closeRuntimeClosure = pkgs:
+    let
+      step = current:
+        let
+          deps = lib.concatMap getDirectDeps current;
+          next = lib.unique (current ++ deps);
+        in
+          if builtins.length next == builtins.length current then
+            current
+          else
+            step next;
+    in
+      step pkgs;
+
+  allPackages = lib.filter (p: !isPlatformPkg p) (closeRuntimeClosure packages);
 
   getRuntimeOutputs = pkg:
     if lib.isDerivation pkg then
