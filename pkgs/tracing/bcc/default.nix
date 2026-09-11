@@ -14,9 +14,12 @@
   libclang,
   elfutils,
   libbpf,
+  python3,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+stdenv.mkDerivation (finalAttrs: let
+  pythonVersion = "python${lib.versions.majorMinor python3.version}";
+in {
   pname = "bcc";
   version = "0.37.0";
 
@@ -41,13 +44,14 @@ stdenv.mkDerivation (finalAttrs: {
     libclang
     elfutils
     libbpf
+    python3
   ];
 
   postPatch = ''
-    # Point Clang search to our standalone libclang library and headers
+    # Restrict Clang search strictly to our standalone libclang headers and libraries
     substituteInPlace CMakeLists.txt \
-      --replace-fail 'set(CLANG_SEARCH "/opt/local/llvm/lib;''${LLVM_LIBRARY_DIRS}")' 'set(CLANG_SEARCH "${libclang}/lib;/opt/local/llvm/lib;''${LLVM_LIBRARY_DIRS}")
-include_directories("${libclang}/include")'
+      --replace-fail 'set(CLANG_SEARCH "/opt/local/llvm/lib;''${LLVM_LIBRARY_DIRS}")' 'set(CLANG_SEARCH "${libclang}/lib")' \
+      --replace-fail 'include_directories("''${DIR}/../tools/clang/include")' 'include_directories("${libclang}/include")'
 
     substituteInPlace introspection/bps.c \
       --replace-warn "bzero(&prog_info, sizeof(prog_info));" "memset(&prog_info, 0, sizeof(prog_info));"
@@ -80,11 +84,11 @@ lib = ct.CDLL(_so_path, use_errno=True)'
   ];
 
   postInstall = ''
-    mkdir -p $out/bin $out/lib/python3.13/site-packages/bcc
+    mkdir -p $out/bin $out/lib/${pythonVersion}/site-packages/bcc
 
     # 1. Install bcc Python module and version file
-    cp -a ../src/python/bcc/* $out/lib/python3.13/site-packages/bcc/
-    cat << EOF > $out/lib/python3.13/site-packages/bcc/version.py
+    cp -a ../src/python/bcc/* $out/lib/${pythonVersion}/site-packages/bcc/
+    cat << EOF > $out/lib/${pythonVersion}/site-packages/bcc/version.py
 __version__ = "${finalAttrs.version}"
 EOF
 
@@ -114,7 +118,7 @@ else
   exit 1
 fi
 
-export PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"
+export PYTHONPATH="$BASE_DIR/lib/${pythonVersion}/site-packages"
 
 exec "$PY_EXEC" "$BASE_DIR/share/bcc/tools/$(basename "$0")" "$@"
 EOF
@@ -122,9 +126,6 @@ EOF
       fi
     done
   '';
-
-  enableParallelBuilding = true;
-  doCheck = false;
 
   meta = {
     description = "Dynamic Tracing Tools for Linux / Android (Bionic libc)";
