@@ -9,6 +9,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   tblgen = targetPkgs.buildPackages.callPackage ./libs/llvm/tblgen.nix {
     llvmSrc = targetPkgs.buildPackages.callPackage ./libs/llvm/src.nix { };
   };
+  libllvm = self.callPackage ./libs/llvm/libllvm.nix { };
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
   readline = self.callPackage ./libs/readline { };
