@@ -90,6 +90,7 @@ baseLldb.overrideAttrs (old: {
     # LLVM and Clang target CMake configuration
     "-DLLVM_DIR=${llvmPackages.libllvm.dev}/lib/cmake/llvm"
     "-DClang_DIR=${llvmPackages.libclang.dev}/lib/cmake/clang"
+    "-DCLANG_RESOURCE_DIR=../../../../${(lib.getLib llvmPackages.libclang)}"
 
     # Android target platform configuration
     (lib.cmakeBool "ANDROID" true)
