@@ -10,6 +10,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
     llvmSrc = targetPkgs.buildPackages.callPackage ./libs/llvm/src.nix { };
   };
   libllvm = self.callPackage ./libs/llvm/libllvm.nix { };
+  libclang = self.callPackage ./libs/llvm/libclang.nix { };
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
   readline = self.callPackage ./libs/readline { };
