@@ -10,7 +10,8 @@
   flex,
   bison,
   pkg-config,
-  llvmPackages,
+  libllvm,
+  libclang,
   elfutils,
   libbpf,
 }:
@@ -33,18 +34,21 @@ stdenv.mkDerivation (finalAttrs: {
     pkg-config
     buildPackages.python3
     buildPackages.python3Packages.setuptools
-    llvmPackages.llvm
   ];
 
   buildInputs = [
-    llvmPackages.llvm
-    llvmPackages.libclang
-    llvmPackages.libcxx
+    libllvm
+    libclang
     elfutils
     libbpf
   ];
 
   postPatch = ''
+    # Point Clang search to our standalone libclang library and headers
+    substituteInPlace CMakeLists.txt \
+      --replace-fail 'set(CLANG_SEARCH "/opt/local/llvm/lib;''${LLVM_LIBRARY_DIRS}")' 'set(CLANG_SEARCH "${libclang}/lib;/opt/local/llvm/lib;''${LLVM_LIBRARY_DIRS}")
+include_directories("${libclang}/include")'
+
     substituteInPlace introspection/bps.c \
       --replace-warn "bzero(&prog_info, sizeof(prog_info));" "memset(&prog_info, 0, sizeof(prog_info));"
     substituteInPlace src/cc/libbcc.pc.in \
@@ -62,6 +66,7 @@ lib = ct.CDLL(_so_path, use_errno=True)'
   '';
 
   cmakeFlags = [
+    "-DLLVM_DIR=${libllvm}/lib/cmake/llvm"
     (lib.cmakeFeature "REVISION" finalAttrs.version)
     (lib.cmakeBool "ENABLE_USDT" true)
     (lib.cmakeBool "ENABLE_CPP_API" true)

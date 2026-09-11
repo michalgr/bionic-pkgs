@@ -26,13 +26,6 @@ let
       }
     );
 
-  commonCmakeFlags = [
-    "-DLLVM_ENABLE_LIBCXX=ON"
-    "-DLLVM_ENABLE_LIBXML2=OFF"
-    "-DHAVE_CXX_ATOMICS_WITHOUT_LIB=ON"
-    "-DHAVE_CXX_ATOMICS64_WITHOUT_LIB=ON"
-    "-DLLVM_TARGETS_TO_BUILD=BPF;AArch64;X86;ARM"
-  ];
 in
 {
   compiler-rt-no-libc = withBionic lprev.compiler-rt-no-libc (old: {
@@ -73,38 +66,4 @@ in
       ln -sf libc++.a $out/lib/libc++_static.a
     '';
   });
-
-  libllvm = (lprev.libllvm.override { libxml2 = null; }).overrideAttrs (old: {
-    propagatedBuildInputs = lib.filter (p: !(lib.hasInfix "ncurses" (p.name or ""))) (old.propagatedBuildInputs or [ ]);
-    buildInputs = (old.buildInputs or [ ]) ++ [
-      lfinal.libcxx
-    ];
-    # Nixpkgs unconditionally sets env.LDFLAGS = "-Wl,--build-id=sha1" when stdenv.hostPlatform is not Darwin.
-    # When cross-compiling on a Darwin host (macOS), LLVM's nested NATIVE subproject for tablegen tools
-    # inherits this ambient LDFLAGS environment variable, causing Darwin ld to fail with:
-    # "ld: unknown option: --build-id=sha1".
-    # We clear ambient LDFLAGS from the derivation environment and pass build-id explicitly via cmakeFlags for the target.
-    env = (old.env or { }) // {
-      LDFLAGS = "";
-    };
-    cmakeFlags = (old.cmakeFlags or [ ]) ++ commonCmakeFlags ++ [
-      "-DLLVM_ENABLE_TERMINFO=OFF"
-      "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=sha1"
-      "-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1"
-      "-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1"
-    ];
-  });
-
-  llvm = lfinal.libllvm;
-
-  libclang = (lprev.libclang.override { libxml2 = null; }).overrideAttrs (old: {
-    buildInputs = (old.buildInputs or [ ]) ++ [
-      lfinal.libcxx
-    ];
-    cmakeFlags = (old.cmakeFlags or [ ]) ++ commonCmakeFlags ++ [
-      "-DLIBCLANG_BUILD_STATIC=ON"
-    ];
-  });
-
-  clang-unwrapped = lfinal.libclang;
 }
