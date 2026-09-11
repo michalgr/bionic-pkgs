@@ -6,6 +6,9 @@
 targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   # Core Compatibility Libraries & Shims
   bionic = targetPkgs.bionic;
+  tblgen = targetPkgs.buildPackages.callPackage ./libs/llvm/tblgen.nix {
+    llvmSrc = targetPkgs.buildPackages.callPackage ./libs/llvm/src.nix { };
+  };
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
   readline = self.callPackage ./libs/readline { };
