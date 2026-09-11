@@ -50,6 +50,7 @@ stdenv.mkDerivation (finalAttrs: {
     (lib.cmakeBool "LLVM_ENABLE_BINDINGS" false)
     (lib.cmakeBool "LLVM_ENABLE_ZSTD" false)
     (lib.cmakeBool "LLVM_BUILD_TOOLS" false)
+    (lib.cmakeBool "LLVM_TOOL_LLVM_CONFIG_BUILD" false)
     (lib.cmakeBool "LLVM_INCLUDE_TESTS" false)
     (lib.cmakeBool "LLVM_INCLUDE_BENCHMARKS" false)
     (lib.cmakeBool "LLVM_INCLUDE_EXAMPLES" false)
