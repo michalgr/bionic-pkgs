@@ -33,8 +33,10 @@ stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     (lib.cmakeBool "ANDROID" true)
     (lib.cmakeBool "LLVM_NATIVE_BUILD" false)
+    "-DLLVM_NATIVE_TOOL_DIR=${tblgen}/bin"
     "-DLLVM_TABLEGEN=${tblgen}/bin/llvm-tblgen"
     "-DLLVM_TABLEGEN_EXE=${tblgen}/bin/llvm-tblgen"
+    "-DCROSS_TOOLCHAIN_FLAGS_NATIVE=-DLLVM_ENABLE_LIBCXX=OFF;-DLLVM_ENABLE_LIBXML2=OFF;-DLLVM_ENABLE_TERMINFO=OFF"
     (lib.cmakeFeature "LLVM_HOST_TRIPLE" stdenv.hostPlatform.config)
     (lib.cmakeFeature "LLVM_DEFAULT_TARGET_TRIPLE" stdenv.hostPlatform.config)
     "-DLLVM_TARGETS_TO_BUILD=AArch64;X86;ARM;BPF"
