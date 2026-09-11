@@ -69,6 +69,8 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       targetPkgs.llvmPackages.libcxx
       targetPkgs.llvmPackages.libclang
       targetPkgs.llvmPackages.llvm
+      self.libclang
+      self.libllvm
     ];
   };
 

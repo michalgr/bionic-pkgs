@@ -323,12 +323,11 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 ### Case Study 7: `lldb` & `lldb-server` (LLVM Debugger & Companion Server)
 `lldb` provides high-performance native debugging, target image inspection, breakpoint management, and process control on Android 14+ (Bionic libc) alongside companion `lldb-server` and `lldb-dap`.
 
-1. **Dedicated Host `lldb-tblgen` Helper Derivation**:
+1. **Host TableGen Suite (`tblgen`) Integration**:
    - Upstream LLDB standalone cross-compilation attempts to build host tablegen tools using a nested CMake NATIVE subproject (`llvm_create_cross_target`). In Nix cross-compilation, this subproject incorrectly inherits target sysroot flags and fails.
-   - LLDB skips this nested subproject if `LLDB_TABLEGEN_EXE` is set.
-   - We create a dedicated host helper derivation `lldb-tblgen` using `buildPackages.stdenv.mkDerivation` linking `buildPackages.llvmPackages.{libllvm,libclang}`.
-   - To resolve Clang's split-output directory layout in Nix without patching, we pass `"-DCLANG_RESOURCE_DIR=../../../../${buildPackages.llvmPackages.libclang.lib}"` in `lldb-tblgen`'s `cmakeFlags`.
-   - We pass `-DLLDB_TABLEGEN_EXE=${lldb-tblgen}/bin/lldb-tblgen` and `-DLLDB_TABLEGEN=${lldb-tblgen}/bin/lldb-tblgen` to target LLDB.
+   - LLDB skips this nested subproject if `LLDB_TABLEGEN_EXE` is set and `LLVM_NATIVE_BUILD` is set to `OFF`.
+   - Host TableGen tools (`llvm-tblgen`, `clang-tblgen`, `lldb-tblgen`) are supplied directly by our native host `tblgen` package (`pkgs/libs/llvm/tblgen.nix`).
+   - We pass `-DLLVM_NATIVE_TOOL_DIR=${tblgen}/bin`, `-DLLVM_TABLEGEN=${tblgen}/bin/llvm-tblgen`, `-DCLANG_TABLEGEN=${tblgen}/bin/clang-tblgen`, and `-DLLDB_TABLEGEN=${tblgen}/bin/lldb-tblgen` to target LLDB.
 2. **NetBSD `libedit` Integration on Android**:
    - `include/lldb/Host/Editline.h` guards `#include <histedit.h>` with `#if !defined(_WIN32) && !defined(__ANDROID__)`.
    - Substituted `#if !defined(_WIN32) && !defined(__ANDROID__)` with `#if !defined(_WIN32)` in `postPatch` to enable NetBSD `libedit` command-line history and interactive editing on Android.
