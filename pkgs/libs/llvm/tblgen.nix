@@ -30,6 +30,8 @@ stdenv.mkDerivation (finalAttrs: {
     (lib.cmakeBool "LLDB_ENABLE_PYTHON" false)
     (lib.cmakeBool "LLDB_ENABLE_CURSES" false)
     (lib.cmakeBool "LLDB_ENABLE_LIBEDIT" false)
+    (lib.cmakeBool "LLVM_ENABLE_LIBXML2" false)
+    (lib.cmakeBool "LLDB_ENABLE_LIBXML2" false)
   ];
 
   ninjaFlags = [
