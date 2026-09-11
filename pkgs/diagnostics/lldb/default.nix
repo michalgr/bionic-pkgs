@@ -71,8 +71,7 @@ baseLldb.overrideAttrs (old: {
     buildPackages.which
     buildPackages.python3
     buildPackages.swig
-    buildPackages.llvmPackages.llvm.out
-    buildPackages.llvmPackages.clang-unwrapped.out
+    buildPackages.llvmPackages.tblgen
     lldb-tblgen
   ];
 
@@ -87,38 +86,46 @@ baseLldb.overrideAttrs (old: {
   '';
 
   # Hermetic CMake configuration for Bionic & standalone cross-compilation
-  cmakeFlags = (lib.filter (flag:
-    !(lib.hasPrefix "-DLLVM_EXTERNAL_LIT" flag) &&
-    !(lib.hasPrefix "-DLLVM_NATIVE_BUILD" flag) &&
-    !(lib.hasPrefix "-DLLVM_TABLEGEN" flag)
-  ) (old.cmakeFlags or [ ])) ++ [
+  cmakeFlags = [
+    # Android target platform configuration
     (lib.cmakeBool "ANDROID" true)
+    (lib.cmakeBool "LLDB_INCLUDE_TESTS" false)
+    (lib.cmakeBool "LLVM_ENABLE_RTTI" false)
+    (lib.cmakeFeature "LLDB_CODESIGN_IDENTITY" "")
+
+    # Python scripting support
     "-DPython3_EXECUTABLE=${buildPackages.python3.interpreter}"
     "-DPython3_INCLUDE_DIR=${python3}/include/python${lib.versions.majorMinor python3.version}"
     "-DPython3_LIBRARY=${python3}/lib/libpython${lib.versions.majorMinor python3.version}.so"
     "-DPython3_LIBRARIES=${python3}/lib/libpython${lib.versions.majorMinor python3.version}.so"
-    "-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON"
-    "-DCMAKE_SKIP_RPATH=ON"
-    "-DLLDB_ENABLE_LUA=OFF"
-    "-DLLDB_ENABLE_LIBXML2=OFF"
-    "-DLLDB_ENABLE_PYTHON=ON"
+    (lib.cmakeBool "LLDB_ENABLE_PYTHON" true)
     (lib.cmakeBool "LLDB_ENABLE_SWIG" true)
     "-DSWIG_EXECUTABLE=${buildPackages.swig}/bin/swig"
     "-DLLDB_PYTHON_RELATIVE_PATH=lib/python${lib.versions.majorMinor python3.version}/site-packages"
     "-DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3"
     "-DLLDB_PYTHON_EXT_SUFFIX=.cpython-${lib.replaceStrings ["."] [""] (lib.versions.majorMinor python3.version)}-${stdenv.hostPlatform.parsed.cpu.name}-linux-android.so"
-    "-DLLDB_ENABLE_CURSES=ON"
-    "-DLLDB_ENABLE_LIBEDIT=ON"
-    "-DLLDB_ENABLE_LZMA=ON"
-    "-DLLDB_ENABLE_ZSTD=ON"
-    "-DLLVM_ENABLE_TERMINFO=OFF"
-    "-DLLDB_INCLUDE_TESTS=OFF"
-    "-DLLVM_TABLEGEN=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
-    "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.llvm.out}/bin/llvm-tblgen"
-    "-DCLANG_TABLEGEN=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
-    "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.clang-unwrapped.out}/bin/clang-tblgen"
-    "-DLLDB_TABLEGEN_EXE=${lldb-tblgen}/bin/lldb-tblgen"
+
+    # Feature toggles
+    (lib.cmakeBool "LLDB_ENABLE_CURSES" true)
+    (lib.cmakeBool "LLDB_ENABLE_LIBEDIT" true)
+    (lib.cmakeBool "LLDB_ENABLE_LZMA" true)
+    (lib.cmakeBool "LLDB_ENABLE_ZSTD" true)
+    (lib.cmakeBool "LLDB_ENABLE_LUA" false)
+    (lib.cmakeBool "LLDB_ENABLE_LIBXML2" false)
+    (lib.cmakeBool "LLVM_ENABLE_TERMINFO" false)
+
+    # RPATH and installation settings
+    "-DLLDB_NO_INSTALL_DEFAULT_RPATH=ON"
+    "-DCMAKE_SKIP_RPATH=ON"
+
+    # Host tablegen tools (bypassing CMake nested NATIVE builds)
+    (lib.cmakeBool "LLVM_NATIVE_BUILD" false)
+    "-DLLVM_TABLEGEN=${buildPackages.llvmPackages.tblgen}/bin/llvm-tblgen"
+    "-DLLVM_TABLEGEN_EXE=${buildPackages.llvmPackages.tblgen}/bin/llvm-tblgen"
+    "-DCLANG_TABLEGEN=${buildPackages.llvmPackages.tblgen}/bin/clang-tblgen"
+    "-DCLANG_TABLEGEN_EXE=${buildPackages.llvmPackages.tblgen}/bin/clang-tblgen"
     "-DLLDB_TABLEGEN=${lldb-tblgen}/bin/lldb-tblgen"
+    "-DLLDB_TABLEGEN_EXE=${lldb-tblgen}/bin/lldb-tblgen"
   ];
 
   postInstall = ''
