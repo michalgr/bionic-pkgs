@@ -10,7 +10,8 @@
   flex,
   bison,
   xxd,
-  llvmPackages,
+  libllvm,
+  libclang,
   libbpf,
   bcc,
   elfutils,
@@ -39,13 +40,11 @@ stdenv.mkDerivation (finalAttrs: {
     flex
     bison
     xxd
-    llvmPackages.llvm
   ];
 
   buildInputs = [
-    llvmPackages.llvm
-    llvmPackages.libclang
-    llvmPackages.libcxx
+    libllvm
+    libclang
     libbpf
     bcc
     elfutils
@@ -83,6 +82,8 @@ endif()'
   '';
 
   cmakeFlags = [
+    "-DLLVM_DIR=${libllvm}/lib/cmake/llvm"
+    "-DClang_DIR=${libclang}/lib/cmake/clang"
     (lib.cmakeBool "ANDROID" true)
     (lib.cmakeBool "ENABLE_MAN" false)
     (lib.cmakeBool "BUILD_TESTING" false)
