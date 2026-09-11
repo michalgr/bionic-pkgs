@@ -87,6 +87,10 @@ baseLldb.overrideAttrs (old: {
 
   # Hermetic CMake configuration for Bionic & standalone cross-compilation
   cmakeFlags = [
+    # LLVM and Clang target CMake configuration
+    "-DLLVM_DIR=${llvmPackages.libllvm.dev}/lib/cmake/llvm"
+    "-DClang_DIR=${llvmPackages.libclang.dev}/lib/cmake/clang"
+
     # Android target platform configuration
     (lib.cmakeBool "ANDROID" true)
     (lib.cmakeBool "LLDB_INCLUDE_TESTS" false)
