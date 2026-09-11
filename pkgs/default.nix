@@ -67,6 +67,8 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.bzip2
       self.openssl
       targetPkgs.llvmPackages.libcxx
+      targetPkgs.llvmPackages.libclang
+      targetPkgs.llvmPackages.llvm
       self.libclang
       self.libllvm
     ];
