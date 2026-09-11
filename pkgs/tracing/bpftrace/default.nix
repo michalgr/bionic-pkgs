@@ -19,7 +19,6 @@
   xz,
   zstd,
   bzip2,
-  libffi,
   static ? false,
 }:
 
@@ -52,7 +51,6 @@ stdenv.mkDerivation (finalAttrs: {
     xz
     zstd
     bzip2
-    libffi
   ];
 
   postPatch = lib.optionalString static ''
@@ -70,7 +68,7 @@ if(ANDROID)
   set(ZLIB_LIBRARIES "")
 endif()'
 
-    # 3. In Clang 21 static builds, link required Clang C++ AST, Sema, and CodeGen components
+    # 3. In static builds, link required Clang C++ AST, Sema, and CodeGen components
     substituteInPlace src/ast/CMakeLists.txt \
       --replace-warn 'target_link_libraries(ast PUBLIC libclang_static clangDriver clangFrontend clangCodeGen)' \
                      'target_link_libraries(ast PUBLIC libclang_static clangDriver clangFrontend clangCodeGen clangParse clangSema clangAnalysis clangAST clangASTMatchers clangLex clangBasic clangEdit clangSerialization clangSupport clangRewrite clangRewriteFrontend clangIndex clangIndexSerialization)' \
@@ -111,9 +109,6 @@ EOF
       fi
     done
   '';
-
-  enableParallelBuilding = true;
-  doCheck = false;
 
   meta = {
     description = "High-level tracing language for Linux eBPF / Android (Bionic libc)";
