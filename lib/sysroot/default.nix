@@ -9,12 +9,18 @@
 
 let
   targetArchDir =
-    if stdenvNoCC.hostPlatform.isAarch64 then "aarch64-linux-android"
-    else if stdenvNoCC.hostPlatform.isx86_64 then "x86_64-linux-android"
-    else if stdenvNoCC.hostPlatform.isArm then "arm-linux-androideabi"
-    else if stdenvNoCC.hostPlatform.isi686 then "i686-linux-android"
-    else if stdenvNoCC.hostPlatform.isRiscV64 then "riscv64-linux-android"
-    else throw "bionic: unsupported architecture ${stdenvNoCC.hostPlatform.parsed.cpu.name}";
+    if stdenvNoCC.hostPlatform.isAarch64 then
+      "aarch64-linux-android"
+    else if stdenvNoCC.hostPlatform.isx86_64 then
+      "x86_64-linux-android"
+    else if stdenvNoCC.hostPlatform.isArm then
+      "arm-linux-androideabi"
+    else if stdenvNoCC.hostPlatform.isi686 then
+      "i686-linux-android"
+    else if stdenvNoCC.hostPlatform.isRiscV64 then
+      "riscv64-linux-android"
+    else
+      throw "bionic: unsupported architecture ${stdenvNoCC.hostPlatform.parsed.cpu.name}";
 
   apiVersion = stdenvNoCC.hostPlatform.androidSdkVersion or "34";
 

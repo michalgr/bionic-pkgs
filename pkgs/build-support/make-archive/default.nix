@@ -20,15 +20,22 @@
 
 let
   compressionFlag =
-    if compression == "gzip" then "-czf"
-    else if compression == "zstd" then "--zstd -cf"
-    else if compression == "none" then "-cf"
-    else throw "Unsupported compression method: ${compression}";
+    if compression == "gzip" then
+      "-czf"
+    else if compression == "zstd" then
+      "--zstd -cf"
+    else if compression == "none" then
+      "-cf"
+    else
+      throw "Unsupported compression method: ${compression}";
 
   compressionTools =
-    if compression == "gzip" then [ gzip ]
-    else if compression == "zstd" then [ zstd ]
-    else [ ];
+    if compression == "gzip" then
+      [ gzip ]
+    else if compression == "zstd" then
+      [ zstd ]
+    else
+      [ ];
 in
 stdenv.mkDerivation {
   inherit pname version src;
@@ -55,5 +62,6 @@ stdenv.mkDerivation {
     platforms = lib.platforms.linux;
     license = lib.licenses.mit;
     skipElfCheck = true;
-  } // meta;
+  }
+  // meta;
 }

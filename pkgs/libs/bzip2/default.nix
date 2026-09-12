@@ -61,52 +61,52 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   installPhase = ''
-    runHook preInstall
+        runHook preInstall
 
-    mkdir -p "$out/bin" "$out/lib/pkgconfig" "$out/include" "$out/share/man/man1"
+        mkdir -p "$out/bin" "$out/lib/pkgconfig" "$out/include" "$out/share/man/man1"
 
-    # Install binaries
-    cp bzip2 bzip2recover "$out/bin/"
-    ln -sf bzip2 "$out/bin/bunzip2"
-    ln -sf bzip2 "$out/bin/bzcat"
+        # Install binaries
+        cp bzip2 bzip2recover "$out/bin/"
+        ln -sf bzip2 "$out/bin/bunzip2"
+        ln -sf bzip2 "$out/bin/bzcat"
 
-    # Install scripts & wrappers
-    cp bzgrep bzmore bzdiff "$out/bin/"
-    chmod +x "$out/bin/bzgrep" "$out/bin/bzmore" "$out/bin/bzdiff"
-    ln -sf bzgrep "$out/bin/bzegrep"
-    ln -sf bzgrep "$out/bin/bzfgrep"
-    ln -sf bzmore "$out/bin/bzless"
-    ln -sf bzdiff "$out/bin/bzcmp"
+        # Install scripts & wrappers
+        cp bzgrep bzmore bzdiff "$out/bin/"
+        chmod +x "$out/bin/bzgrep" "$out/bin/bzmore" "$out/bin/bzdiff"
+        ln -sf bzgrep "$out/bin/bzegrep"
+        ln -sf bzgrep "$out/bin/bzfgrep"
+        ln -sf bzmore "$out/bin/bzless"
+        ln -sf bzdiff "$out/bin/bzcmp"
 
-    # Install libraries & header
-    cp -P libbz2.so* libbz2.a "$out/lib/"
-    cp bzlib.h "$out/include/"
+        # Install libraries & header
+        cp -P libbz2.so* libbz2.a "$out/lib/"
+        cp bzlib.h "$out/include/"
 
-    # Install manpages & symlinks
-    cp bzip2.1 bzgrep.1 bzmore.1 bzdiff.1 "$out/share/man/man1/"
-    ln -sf bzip2.1 "$out/share/man/man1/bunzip2.1"
-    ln -sf bzip2.1 "$out/share/man/man1/bzcat.1"
-    ln -sf bzip2.1 "$out/share/man/man1/bzip2recover.1"
-    ln -sf bzgrep.1 "$out/share/man/man1/bzegrep.1"
-    ln -sf bzgrep.1 "$out/share/man/man1/bzfgrep.1"
-    ln -sf bzmore.1 "$out/share/man/man1/bzless.1"
-    ln -sf bzdiff.1 "$out/share/man/man1/bzcmp.1"
+        # Install manpages & symlinks
+        cp bzip2.1 bzgrep.1 bzmore.1 bzdiff.1 "$out/share/man/man1/"
+        ln -sf bzip2.1 "$out/share/man/man1/bunzip2.1"
+        ln -sf bzip2.1 "$out/share/man/man1/bzcat.1"
+        ln -sf bzip2.1 "$out/share/man/man1/bzip2recover.1"
+        ln -sf bzgrep.1 "$out/share/man/man1/bzegrep.1"
+        ln -sf bzgrep.1 "$out/share/man/man1/bzfgrep.1"
+        ln -sf bzmore.1 "$out/share/man/man1/bzless.1"
+        ln -sf bzdiff.1 "$out/share/man/man1/bzcmp.1"
 
-    # Generate pkg-config metadata file (bzip2.pc)
-    cat << EOF > "$out/lib/pkgconfig/bzip2.pc"
-prefix=$out
-exec_prefix=\$prefix
-libdir=\$exec_prefix/lib
-includedir=\$prefix/include
+        # Generate pkg-config metadata file (bzip2.pc)
+        cat << EOF > "$out/lib/pkgconfig/bzip2.pc"
+    prefix=$out
+    exec_prefix=\$prefix
+    libdir=\$exec_prefix/lib
+    includedir=\$prefix/include
 
-Name: bzip2
-Description: High-quality data compressor library
-Version: ${finalAttrs.version}
-Libs: -L\$libdir -lbz2
-Cflags: -I\$includedir
-EOF
+    Name: bzip2
+    Description: High-quality data compressor library
+    Version: ${finalAttrs.version}
+    Libs: -L\$libdir -lbz2
+    Cflags: -I\$includedir
+    EOF
 
-    runHook postInstall
+        runHook postInstall
   '';
 
   doCheck = false;

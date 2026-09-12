@@ -75,7 +75,9 @@ stdenv.mkDerivation (finalAttrs: {
     "-DSWIG_EXECUTABLE=${buildPackages.swig}/bin/swig"
     "-DLLDB_PYTHON_RELATIVE_PATH=lib/python${lib.versions.majorMinor python3.version}/site-packages"
     "-DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3"
-    "-DLLDB_PYTHON_EXT_SUFFIX=.cpython-${lib.replaceStrings ["."] [""] (lib.versions.majorMinor python3.version)}-${stdenv.hostPlatform.parsed.cpu.name}-linux-android.so"
+    "-DLLDB_PYTHON_EXT_SUFFIX=.cpython-${
+      lib.replaceStrings [ "." ] [ "" ] (lib.versions.majorMinor python3.version)
+    }-${stdenv.hostPlatform.parsed.cpu.name}-linux-android.so"
 
     # Feature toggles
     (lib.cmakeBool "LLDB_ENABLE_CURSES" true)

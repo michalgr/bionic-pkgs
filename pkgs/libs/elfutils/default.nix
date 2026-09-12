@@ -26,23 +26,23 @@ stdenv.mkDerivation (finalAttrs: {
   patches = [ ];
 
   postPatch = ''
-    # 1. Disable -Werror so Clang / Bionic macro differences do not halt compilation
-    substituteInPlace config/eu.am Makefile.in */Makefile.in \
-      --replace-warn "-Werror" ""
+        # 1. Disable -Werror so Clang / Bionic macro differences do not halt compilation
+        substituteInPlace config/eu.am Makefile.in */Makefile.in \
+          --replace-warn "-Werror" ""
 
-    # 2. Provide program_invocation_short_name / program_invocation_name fallback via getprogname()
-    cat << 'EOF' >> lib/system.h
-#ifndef program_invocation_short_name
-# define program_invocation_short_name getprogname ()
-#endif
-#ifndef program_invocation_name
-# define program_invocation_name getprogname ()
-#endif
-EOF
+        # 2. Provide program_invocation_short_name / program_invocation_name fallback via getprogname()
+        cat << 'EOF' >> lib/system.h
+    #ifndef program_invocation_short_name
+    # define program_invocation_short_name getprogname ()
+    #endif
+    #ifndef program_invocation_name
+    # define program_invocation_name getprogname ()
+    #endif
+    EOF
 
-    # 3. Omit optional srcfiles C++ utility to avoid C++ standard library / libarchive dependencies
-    substituteInPlace src/Makefile.in \
-      --replace-warn 'srcfiles$(EXEEXT)' ""
+        # 3. Omit optional srcfiles C++ utility to avoid C++ standard library / libarchive dependencies
+        substituteInPlace src/Makefile.in \
+          --replace-warn 'srcfiles$(EXEEXT)' ""
   '';
 
   nativeBuildInputs = [
@@ -93,9 +93,9 @@ EOF
     description = "Set of utilities and libraries to handle ELF objects and DWARF debugging information (minimal build)";
     homepage = "https://sourceware.org/elfutils/";
     license = with lib.licenses; [
-      gpl2Plus  # elfutils libraries (GPL-2.0-or-later / LGPL-3.0-or-later)
+      gpl2Plus # elfutils libraries (GPL-2.0-or-later / LGPL-3.0-or-later)
       lgpl3Plus
-      gpl3Plus  # CLI binaries
+      gpl3Plus # CLI binaries
     ];
     platforms = lib.platforms.linux;
     maintainers = [ ];
