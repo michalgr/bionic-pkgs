@@ -38,6 +38,7 @@ let
       apps = lib.mapAttrs (_: s: s.apps or { }) perSystem;
       checks = lib.mapAttrs (_: s: s.checks or { }) perSystem;
       devShells = lib.mapAttrs (_: s: s.devShells or { }) perSystem;
+      formatter = lib.mapAttrs (_: s: s.formatter) (lib.filterAttrs (_: s: s ? formatter) perSystem);
     };
 
   # Helper to instantiate nixpkgs with Bionic cross-compilation overlays

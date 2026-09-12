@@ -36,6 +36,9 @@
         };
       in
       {
+        # Nix RFC 166 code formatter
+        formatter = pkgs.nixfmt-rfc-style;
+
         # Dynamically generated flat package outputs (e.g. strace, aarch64-android-strace, x86_64-android-strace)
         packages = bionicLib.generatePackages {
           inherit targetMatrix;
@@ -65,6 +68,8 @@
             pkgs.android-tools
             pkgs.llvmPackages.llvm
             pkgs.file
+            pkgs.gh
+            pkgs.nixfmt-rfc-style
           ];
 
           shellHook = ''
