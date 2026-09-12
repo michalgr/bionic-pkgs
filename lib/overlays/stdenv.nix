@@ -45,10 +45,9 @@ in
       }
       (
         final.writeScript "bionic-fixup.sh" ''
-          # Activate Nixpkgs CC wrapper target role scoping so target flags are processed exclusively by target compiler wrappers
-          export NIX_CC_WRAPPER_TARGET_TARGET_${final.stdenv.cc.suffixSalt}=1
-          export NIX_CFLAGS_COMPILE_FOR_TARGET="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE_FOR_TARGET:-}"
-          export NIX_LDFLAGS_FOR_TARGET="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS_FOR_TARGET:-}"
+          # Export canonical compilation and linker flags into environment at setup hook source time
+          export NIX_CFLAGS_COMPILE="${bionicFlags.cflagsString} ''${NIX_CFLAGS_COMPILE:-}"
+          export NIX_LDFLAGS="${bionicFlags.ldflagsString} ''${NIX_LDFLAGS:-}"
 
           # Suppress Nixpkgs automatic RPATH generation and self-rpath injection
           export NIX_DONT_SET_RPATH=1

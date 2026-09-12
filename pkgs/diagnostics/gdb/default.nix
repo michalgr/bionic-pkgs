@@ -46,6 +46,15 @@ stdenv.mkDerivation (finalAttrs: {
     buildPackages.stdenv.cc
   ];
 
+  # CC_FOR_BUILD and CFLAGS_FOR_BUILD must exclude target Bionic flags (-nostdlibinc, -fno-emulated-tls)
+  # when building host build tools during cross-compilation (e.g., bfd/doc/chew).
+  preBuild = ''
+    export CC_FOR_BUILD="${buildPackages.stdenv.cc}/bin/gcc"
+    export CFLAGS_FOR_BUILD="-O2"
+    export CXXFLAGS_FOR_BUILD="-O2"
+    export LDFLAGS_FOR_BUILD=""
+  '';
+
   buildInputs = [
     readline
     zstd
@@ -87,10 +96,8 @@ stdenv.mkDerivation (finalAttrs: {
 
     # 3. False-Positive Signal Disposition Warnings (gdbsupport/signals-state-save-restore.cc)
     if [ -f gdbsupport/signals-state-save-restore.cc ]; then
-      substituteInPlace gdbsupport/signals-state-save-restore.cc \
-        --replace-warn 'for (sig = 1; sig < NSIG; ++sig)' '#ifndef __ANDROID__' \
-        --replace-warn 'signal (sig, dummy_handler);' 'signal (sig, dummy_handler); #endif' || true
       sed -i '/save_signals_state/,/}/ s/for (int sig = 1; sig < NSIG; ++sig)/#ifndef __ANDROID__\n  for (int sig = 1; sig < NSIG; ++sig)/' gdbsupport/signals-state-save-restore.cc || true
+      sed -i '/save_signals_state/,/}/ s/for (sig = 1; sig < NSIG; ++sig)/#ifndef __ANDROID__\n  for (sig = 1; sig < NSIG; ++sig)/' gdbsupport/signals-state-save-restore.cc || true
       sed -i '/save_signals_state/,/}/ s/^\( *\)signal (sig, dummy_handler);/\1signal (sig, dummy_handler);\n#endif/' gdbsupport/signals-state-save-restore.cc || true
     fi
 
@@ -130,6 +137,12 @@ stdenv.mkDerivation (finalAttrs: {
         --replace-warn 'gdb_static_assert (FS < ELF_NGREG);' '#ifndef __ANDROID__\ngdb_static_assert (FS < ELF_NGREG);\n#endif' \
         --replace-warn 'gdb_static_assert (GS < ELF_NGREG);' '#ifndef __ANDROID__\ngdb_static_assert (GS < ELF_NGREG);\n#endif'
     fi
+
+    # 9. Disable doc directory recursion to prevent building chew/info documentation
+    find . -name Makefile.in -exec substituteInPlace {} \
+      --replace-warn 'SUBDIRS = doc' 'SUBDIRS =' \
+      --replace-warn 'SUBDIRS = po doc' 'SUBDIRS = po' \
+      --replace-warn 'SUBDIRS = doc po' 'SUBDIRS = po' \; || true
   '';
 
   configureFlags = [
@@ -144,6 +157,7 @@ stdenv.mkDerivation (finalAttrs: {
     "--with-curses"
     "--disable-werror"
     "--disable-nls"
+    "MAKEINFO=true"
 
     # Autotools Cache Variables to bypass cross-compilation runtime checks
     "ac_cv_func_getpwent=no"
