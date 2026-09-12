@@ -110,7 +110,12 @@ stdenv.mkDerivation (finalAttrs: {
     if [ -f gdb/solib.c ]; then
       substituteInPlace gdb/solib.c \
         --replace-warn 'char *solib_search_path = NULL;' \
-                       'char *solib_search_path = (char *) "${if stdenv.hostPlatform.is64bit then "/system/lib64:/system/vendor/lib64" else "/system/lib:/system/vendor/lib"}";'
+                       'char *solib_search_path = (char *) "${
+                         if stdenv.hostPlatform.is64bit then
+                           "/system/lib64:/system/vendor/lib64"
+                         else
+                           "/system/lib:/system/vendor/lib"
+                       }";'
     fi
 
     # 7. gdbserver Auxv Detection (gdbserver/configure)
