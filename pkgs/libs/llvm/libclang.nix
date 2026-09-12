@@ -11,7 +11,7 @@
   zlib,
   libllvm,
   tblgen,
-  llvmSrc ? (import ./src.nix { inherit (buildPackages) fetchurl; }),
+  llvmSrc,
 }:
 
 stdenv.mkDerivation (finalAttrs: {

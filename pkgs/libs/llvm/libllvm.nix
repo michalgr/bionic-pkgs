@@ -10,7 +10,7 @@
   python3,
   zlib,
   tblgen,
-  llvmSrc ? (import ./src.nix { inherit (buildPackages) fetchurl; }),
+  llvmSrc,
 }:
 
 stdenv.mkDerivation (finalAttrs: {

@@ -6,8 +6,9 @@
 targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   # Core Compatibility Libraries & Shims
   bionic = targetPkgs.bionic;
+  llvmSrc = targetPkgs.buildPackages.callPackage ./libs/llvm/src.nix { };
   tblgen = targetPkgs.buildPackages.callPackage ./libs/llvm/tblgen.nix {
-    llvmSrc = targetPkgs.buildPackages.callPackage ./libs/llvm/src.nix { };
+    inherit (self) llvmSrc;
   };
   libllvm = self.callPackage ./libs/llvm/libllvm.nix { };
   libclang = self.callPackage ./libs/llvm/libclang.nix { };
@@ -66,7 +67,6 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.zstd
       self.bzip2
       self.openssl
-      targetPkgs.llvmPackages.libcxx
       self.libclang
       self.libllvm
     ];
