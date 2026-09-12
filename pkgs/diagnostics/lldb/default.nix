@@ -14,7 +14,7 @@
   zstd,
   libffi,
   python3,
-  llvmSrc ? (import ../../libs/llvm/src.nix { inherit (buildPackages) fetchurl; }),
+  llvmSrc,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
