@@ -28,7 +28,8 @@ let
   ];
 
   # Native helper to map outputs over supported host systems
-  eachSystem = systems: f:
+  eachSystem =
+    systems: f:
     let
       perSystem = lib.genAttrs systems f;
     in
@@ -42,7 +43,12 @@ let
     };
 
   # Helper to instantiate nixpkgs with Bionic cross-compilation overlays
-  mkAndroidPkgs = { nixpkgs, system, targetName }:
+  mkAndroidPkgs =
+    {
+      nixpkgs,
+      system,
+      targetName,
+    }:
     let
       bionicCompat = import ./bionic-compat.nix { inherit lib; };
       crossSystem = targetPlatforms.${targetName};
@@ -54,7 +60,14 @@ let
     };
 
   # Helper to create an ADB deployment app that synchronizes binary and shared libraries
-  mkAdbPushApp = { hostPkgs, pkg, targetName, pkgName, targetMatrix }:
+  mkAdbPushApp =
+    {
+      hostPkgs,
+      pkg,
+      targetName,
+      pkgName,
+      targetMatrix,
+    }:
     let
       adbBin = "${hostPkgs.android-tools}/bin/adb";
       binName = if pkg ? meta && pkg.meta ? mainProgram then pkg.meta.mainProgram else pkgName;
@@ -86,121 +99,174 @@ let
     };
 
   # Evaluates packages for all target architectures
-  mkTargetMatrix = { nixpkgs, system, packageSetFn }:
-    builtins.listToAttrs (map (targetName: {
-      name = targetName;
-      value = packageSetFn {
-        targetPkgs = mkAndroidPkgs { inherit nixpkgs system targetName; };
-      };
-    }) supportedTargets);
+  mkTargetMatrix =
+    {
+      nixpkgs,
+      system,
+      packageSetFn,
+    }:
+    builtins.listToAttrs (
+      map (targetName: {
+        name = targetName;
+        value = packageSetFn {
+          targetPkgs = mkAndroidPkgs { inherit nixpkgs system targetName; };
+        };
+      }) supportedTargets
+    );
 
   # Helper to determine if a package is a runnable application
-  isRunnableApp = pkg:
-    lib.isDerivation pkg &&
-    (pkg ? meta && pkg.meta ? mainProgram);
+  isRunnableApp = pkg: lib.isDerivation pkg && (pkg ? meta && pkg.meta ? mainProgram);
 
   # Helper to determine if a package can be verified for ELF properties (excluding header/shim/prebuilt-only packages)
-  isCheckablePkg = pkg:
-    lib.isDerivation pkg &&
-    !(pkg.meta.skipElfCheck or false) &&
-    (pkg ? pname);
+  isCheckablePkg = pkg: lib.isDerivation pkg && !(pkg.meta.skipElfCheck or false) && (pkg ? pname);
 
   # Map a function over each (targetName, pkgName, pkg) entry in targetMatrix
-  concatMapTargetMatrix = targetMatrix: fn:
-    lib.concatMap (targetName:
-      let pkgsForTarget = targetMatrix.${targetName};
-      in lib.concatMap (pkgName:
-        fn targetName pkgName pkgsForTarget.${pkgName}
-      ) (builtins.attrNames pkgsForTarget)
+  concatMapTargetMatrix =
+    targetMatrix: fn:
+    lib.concatMap (
+      targetName:
+      let
+        pkgsForTarget = targetMatrix.${targetName};
+      in
+      lib.concatMap (pkgName: fn targetName pkgName pkgsForTarget.${pkgName}) (
+        builtins.attrNames pkgsForTarget
+      )
     ) (builtins.attrNames targetMatrix);
 
   # Map a function over each (pkgName, pkg) entry in a target package set
-  concatMapTarget = targetPkgs: fn:
-    lib.concatMap (pkgName:
-      fn pkgName targetPkgs.${pkgName}
-    ) (builtins.attrNames targetPkgs);
+  concatMapTarget =
+    targetPkgs: fn:
+    lib.concatMap (pkgName: fn pkgName targetPkgs.${pkgName}) (builtins.attrNames targetPkgs);
 
   # Automatically generates flat package outputs from targetMatrix
-  generatePackages = { targetMatrix, defaultTarget ? "aarch64-android" }:
+  generatePackages =
+    {
+      targetMatrix,
+      defaultTarget ? "aarch64-android",
+    }:
     let
-      targetEntries = concatMapTargetMatrix targetMatrix (targetName: pkgName: pkg:
+      targetEntries = concatMapTargetMatrix targetMatrix (
+        targetName: pkgName: pkg:
         lib.optional (lib.isDerivation pkg) {
           name = "${targetName}-${pkgName}";
           value = pkg;
         }
       );
 
-      defaultEntries = if targetMatrix ? ${defaultTarget} then
-        concatMapTarget targetMatrix.${defaultTarget} (pkgName: pkg:
-          lib.optional (lib.isDerivation pkg) {
-            name = pkgName;
-            value = pkg;
-          }
-        )
-      else [ ];
+      defaultEntries =
+        if targetMatrix ? ${defaultTarget} then
+          concatMapTarget targetMatrix.${defaultTarget} (
+            pkgName: pkg:
+            lib.optional (lib.isDerivation pkg) {
+              name = pkgName;
+              value = pkg;
+            }
+          )
+        else
+          [ ];
 
-      defaultPackage = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
-        then { default = targetMatrix.${defaultTarget}.strace; }
-        else { };
+      defaultPackage =
+        if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace then
+          { default = targetMatrix.${defaultTarget}.strace; }
+        else
+          { };
     in
     builtins.listToAttrs (targetEntries ++ defaultEntries) // defaultPackage;
 
   # Automatically generates ADB push apps from targetMatrix
-  generateApps = { hostPkgs, targetMatrix, defaultTarget ? "aarch64-android" }:
+  generateApps =
+    {
+      hostPkgs,
+      targetMatrix,
+      defaultTarget ? "aarch64-android",
+    }:
     let
-      targetAppEntries = concatMapTargetMatrix targetMatrix (targetName: pkgName: pkg:
+      targetAppEntries = concatMapTargetMatrix targetMatrix (
+        targetName: pkgName: pkg:
         lib.optional (isRunnableApp pkg) {
           name = "push-${targetName}-${pkgName}";
           value = mkAdbPushApp {
-            inherit hostPkgs targetName pkgName pkg targetMatrix;
+            inherit
+              hostPkgs
+              targetName
+              pkgName
+              pkg
+              targetMatrix
+              ;
           };
         }
       );
 
-      defaultAppEntries = if targetMatrix ? ${defaultTarget} then
-        concatMapTarget targetMatrix.${defaultTarget} (pkgName: pkg:
-          lib.optional (isRunnableApp pkg) {
-            name = "push-${pkgName}";
-            value = mkAdbPushApp {
-              inherit hostPkgs pkgName pkg targetMatrix;
+      defaultAppEntries =
+        if targetMatrix ? ${defaultTarget} then
+          concatMapTarget targetMatrix.${defaultTarget} (
+            pkgName: pkg:
+            lib.optional (isRunnableApp pkg) {
+              name = "push-${pkgName}";
+              value = mkAdbPushApp {
+                inherit
+                  hostPkgs
+                  pkgName
+                  pkg
+                  targetMatrix
+                  ;
+                targetName = defaultTarget;
+              };
+            }
+          )
+        else
+          [ ];
+
+      defaultApp =
+        if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace then
+          {
+            default = mkAdbPushApp {
+              inherit hostPkgs targetMatrix;
               targetName = defaultTarget;
+              pkgName = "strace";
+              pkg = targetMatrix.${defaultTarget}.strace;
             };
           }
-        )
-      else [ ];
-
-      defaultApp = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
-        then {
-          default = mkAdbPushApp {
-            inherit hostPkgs targetMatrix;
-            targetName = defaultTarget;
-            pkgName = "strace";
-            pkg = targetMatrix.${defaultTarget}.strace;
-          };
-        }
-        else { };
+        else
+          { };
     in
     builtins.listToAttrs (targetAppEntries ++ defaultAppEntries) // defaultApp;
 
   # Helper to create an ELF verification check derivation for CI / nix flake check
-  mkElfCheck = { hostPkgs, pkg, targetName, pkgName, checkElfScript ? ../scripts/check-elf.sh }:
-    hostPkgs.runCommand "check-elf-${pkgName}-${targetName}" {
-      nativeBuildInputs = [
-        hostPkgs.llvmPackages.llvm
-        hostPkgs.file
-      ];
-    } ''
-      bash ${checkElfScript} "${pkg}" "${targetName}" "${pkgName}" "$out"
-    '';
+  mkElfCheck =
+    {
+      hostPkgs,
+      pkg,
+      targetName,
+      pkgName,
+      checkElfScript ? ../scripts/check-elf.sh,
+    }:
+    hostPkgs.runCommand "check-elf-${pkgName}-${targetName}"
+      {
+        nativeBuildInputs = [
+          hostPkgs.llvmPackages.llvm
+          hostPkgs.file
+        ];
+      }
+      ''
+        bash ${checkElfScript} "${pkg}" "${targetName}" "${pkgName}" "$out"
+      '';
 
   # Automatically generates checks for all target matrix packages
-  generateChecks = { hostPkgs, targetMatrix }:
+  generateChecks =
+    { hostPkgs, targetMatrix }:
     let
-      checkEntries = concatMapTargetMatrix targetMatrix (targetName: pkgName: pkg:
+      checkEntries = concatMapTargetMatrix targetMatrix (
+        targetName: pkgName: pkg:
         lib.optional (isCheckablePkg pkg) {
           name = "check-elf-${targetName}-${pkgName}";
           value = mkElfCheck {
-            inherit hostPkgs targetName pkgName pkg;
+            inherit
+              hostPkgs
+              targetName
+              pkgName
+              pkg
+              ;
           };
         }
       );
@@ -223,5 +289,6 @@ in
     concatMapTarget
     generatePackages
     generateApps
-    generateChecks;
+    generateChecks
+    ;
 }

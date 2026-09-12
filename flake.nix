@@ -6,27 +6,32 @@
 
   nixConfig = {
     extra-substituters = [ "https://bionic-pkgs.cachix.org" ];
-    extra-trusted-public-keys = [ "bionic-pkgs.cachix.org-1:6jDMfWYMBreZzvhxc33zCaASzmvW7UTKSYfWY1ThDkM=" ];
+    extra-trusted-public-keys = [
+      "bionic-pkgs.cachix.org-1:6jDMfWYMBreZzvhxc33zCaASzmvW7UTKSYfWY1ThDkM="
+    ];
   };
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
       bionicLib = import ./lib { inherit (nixpkgs) lib; };
       bionicCompat = import ./lib/bionic-compat.nix { inherit (nixpkgs) lib; };
       packageSetFn = import ./pkgs;
     in
     {
-      overlays.default = final: prev:
+      overlays.default =
+        final: prev:
         (prev.lib.optionalAttrs (prev.stdenv.hostPlatform.isAndroid or false) (bionicCompat final prev))
         // (prev.lib.optionalAttrs (prev.stdenv.hostPlatform.isAndroid or false) {
           bionicPkgs = packageSetFn { targetPkgs = final; };
         });
     }
-    // bionicLib.eachSystem bionicLib.supportedSystems (system:
+    // bionicLib.eachSystem bionicLib.supportedSystems (
+      system:
       let
         pkgs = import nixpkgs { inherit system; };
 
@@ -37,7 +42,7 @@
       in
       {
         # Nix RFC 166 code formatter
-        formatter = pkgs.nixfmt-rfc-style;
+        formatter = pkgs.nixfmt-tree;
 
         # Dynamically generated flat package outputs (e.g. strace, aarch64-android-strace, x86_64-android-strace)
         packages = bionicLib.generatePackages {
@@ -69,7 +74,7 @@
             pkgs.llvmPackages.llvm
             pkgs.file
             pkgs.gh
-            pkgs.nixfmt-rfc-style
+            pkgs.nixfmt-tree
           ];
 
           shellHook = ''

@@ -3,8 +3,7 @@
 
 { lib }:
 
-final: prev:
-{
+final: prev: {
   # Custom Android 14+ (API 34) Bionic libc & NDK r27 sysroot with built-in shims
   bionic = final.callPackage ../sysroot { };
 

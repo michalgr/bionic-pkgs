@@ -72,15 +72,15 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   postInstall = ''
-    # Replace Perl c_rehash with Android-native shell script wrapper
-    cat << 'EOF' > "$out/bin/c_rehash"
-#!/system/bin/sh
-exec "$(dirname "$0")/openssl" rehash "$@"
-EOF
-    chmod +x "$out/bin/c_rehash"
+        # Replace Perl c_rehash with Android-native shell script wrapper
+        cat << 'EOF' > "$out/bin/c_rehash"
+    #!/system/bin/sh
+    exec "$(dirname "$0")/openssl" rehash "$@"
+    EOF
+        chmod +x "$out/bin/c_rehash"
 
-    # Remove Perl runtime dependency
-    rm -rf $out/etc/ssl/misc
+        # Remove Perl runtime dependency
+        rm -rf $out/etc/ssl/misc
   '';
 
   passthru = {

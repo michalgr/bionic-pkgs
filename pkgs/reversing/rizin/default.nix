@@ -32,13 +32,13 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   preConfigure = ''
-    # Provide Meson cross-file override for host system = 'android'
-    # This enables upstream Android branches in Meson scripts (such as librz/debug native backends)
-    cat << 'EOF' > bionic-cross.conf
-[host_machine]
-system = 'android'
-EOF
-    mesonFlagsArray+=(--cross-file=bionic-cross.conf)
+        # Provide Meson cross-file override for host system = 'android'
+        # This enables upstream Android branches in Meson scripts (such as librz/debug native backends)
+        cat << 'EOF' > bionic-cross.conf
+    [host_machine]
+    system = 'android'
+    EOF
+        mesonFlagsArray+=(--cross-file=bionic-cross.conf)
   '';
 
   postPatch = ''

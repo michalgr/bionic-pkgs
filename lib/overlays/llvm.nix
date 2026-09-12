@@ -7,21 +7,31 @@ final: prev:
 let
   bionicFlags = final.bionicFlags;
 
-  fixLlvm = lfinal: lprev:
+  fixLlvm =
+    lfinal: lprev:
     let
-      withBionic = drv: attrsFn:
-        drv.overrideAttrs (old:
+      withBionic =
+        drv: attrsFn:
+        drv.overrideAttrs (
+          old:
           let
             extra = attrsFn old;
           in
-          extra // {
-            buildInputs = (old.buildInputs or [ ]) ++ [
-              final.bionic.dev
-              final.bionic.out
-            ] ++ (extra.buildInputs or [ ]);
-            env = (old.env or { }) // {
-              NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
-            } // (extra.env or { });
+          extra
+          // {
+            buildInputs =
+              (old.buildInputs or [ ])
+              ++ [
+                final.bionic.dev
+                final.bionic.out
+              ]
+              ++ (extra.buildInputs or [ ]);
+            env =
+              (old.env or { })
+              // {
+                NIX_CFLAGS_COMPILE = (old.env.NIX_CFLAGS_COMPILE or "") + " " + bionicFlags.cflagsString;
+              }
+              // (extra.env or { });
           }
         );
     in

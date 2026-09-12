@@ -61,7 +61,7 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://strace.io/";
     license = with lib.licenses; [
       lgpl21Plus # strace tool and shared libraries (LGPL-2.1-or-later)
-      gpl2Plus   # test suite (GPL-2.0-or-later)
+      gpl2Plus # test suite (GPL-2.0-or-later)
     ];
     platforms = lib.platforms.linux;
     maintainers = [ ];
