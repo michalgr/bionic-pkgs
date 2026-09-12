@@ -349,7 +349,49 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
      - `-DLLDB_PYTHON_EXT_SUFFIX=.cpython-313-<arch>-linux-android.so`
    - Adding `python3` to LLDB's `buildInputs` ensures `adb-push.sh` and sysroot bundles automatically aggregate `libpython3.13.so` and Python standard library paths into the device deployment directory.
 
-### Case Study 8: `openssl` (OpenSSL Cryptographic & SSL/TLS Toolkit)
+### Case Study 8: `gdb` & `gdbserver` (GNU Debugger & Companion Remote Debugging Daemon)
+`gdb` provides classic GNU dynamic binary debugging, inferior execution, breakpoint management, memory inspection, and client-server remote debugging (`gdbserver`) for Android 14+ (Bionic libc).
+
+1. **Gnulib Fortify Collision (`__USE_FORTIFY_LEVEL`)**:
+   - Gnulib bundles standard header wrappers (`cdefs.h`) that undefine `__bos` and define `#define __bos(ptr) __builtin_object_size (ptr, __USE_FORTIFY_LEVEL > 1)`.
+   - Bionic's `<bits/fortify/stdio.h>` relies on `__bos()`. On Bionic, `__USE_FORTIFY_LEVEL` is undefined by default, causing compilation errors during fortified inline expansion.
+   - **Fix**: Inject `-D__USE_FORTIFY_LEVEL=0` in `NIX_CFLAGS_COMPILE`.
+
+2. **Template Deduction Failure on Overloaded `::open` (`gdbsupport/eintr.h`)**:
+   - Bionic `<fcntl.h>` provides overloaded/fortified `open()` inline functions, which prevents Clang C++ template deduction in `gdb::handle_eintr(-1, ::open, pathname, flags)`.
+   - **Fix**: Substitute with an explicit EINTR retry loop in `gdbsupport/eintr.h`:
+     ```cpp
+     int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;
+     ```
+
+3. **Android Path Hardcoding (`/system/bin/sh` & `/data/local/tmp`)**:
+   - `gdbsupport/pathstuff.cc` and `gdb/compile/compile.c` assume `/bin/sh` and `/tmp`.
+   - **Fix**: In `gdbsupport/pathstuff.cc`, replace `/tmp` with `/data/local/tmp` and `/bin/sh` with `/system/bin/sh`. In `gdb/compile/compile.c`, update `TMP_PREFIX` to `/data/local/tmp/gdbobj-`.
+
+4. **Real-Time Signal Disposition Warnings (`gdbsupport/signals-state-save-restore.cc`)**:
+   - Bionic reserves real-time signals (`SIGRTMIN` through `SIGRTMIN + 7`) for internal POSIX thread management. Iterating over all signals in `gdbsupport/signals-state-save-restore.cc` triggers noisy startup warnings on Android.
+   - **Fix**: Wrap signal handler inspection loops in `#ifndef __ANDROID__`.
+
+5. **Non-Root Job Control `setpgid` (`gdbsupport/job-control.cc`)**:
+   - In non-root Android app and shell contexts, `setpgid(getpid(), getpid())` fails with `EPERM`.
+   - **Fix**: Replace with `setpgid(0, 0)`.
+
+6. **Dynamic Page Size Compatibility (`gdb/nat/linux-btrace.c`)**:
+   - 64-bit Bionic headers omit static `PAGE_SIZE` macros for 16 KB page alignment compatibility (Android 15+).
+   - **Fix**: Provide dynamic fallback `#define PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))` when `PAGE_SIZE` is undefined.
+
+7. **Default Shared Library Search Path (`gdb/solib.c`)**:
+   - Configure default `solib_search_path` to `/system/lib64:/system/vendor/lib64` (or 32-bit equivalent) to enable automatic dynamic symbol resolution for Bionic platform libraries.
+
+8. **gdbserver Auxv Detection (`gdbserver/configure`)**:
+   - `gdbserver/configure` contains legacy pattern checks for `*-android*` that disable ELF auxiliary vector support (`Elf32_auxv_t`/`Elf64_auxv_t`). Modern Bionic defines these in `<sys/procfs.h>`.
+   - **Fix**: Rename `*-*-android*)` pattern in `gdbserver/configure` so feature detection proceeds normally.
+
+9. **x86_64 Register Assertion (`gdb/amd64-linux-nat.c`)**:
+   - `FS < ELF_NGREG` and `GS < ELF_NGREG` static assertions fail due to Bionic's `struct user_regs_struct` definition on x86_64.
+   - **Fix**: Guard assertions with `#ifndef __ANDROID__`.
+
+### Case Study 9: `openssl` (OpenSSL Cryptographic & SSL/TLS Toolkit)
 `openssl` provides shared cryptographic libraries (`libssl.so`, `libcrypto.so`), engines, providers (`legacy.so`), and the `openssl` command-line utility for Android.
 
 1. **Disabling Unsupported Kernel Extensions (`no-ktls`, `no-afalgeng`)**:

@@ -22,6 +22,9 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   cereal = self.callPackage ./libs/cereal { };
   elfutils = self.callPackage ./libs/elfutils { };
   openssl = self.callPackage ./libs/openssl { };
+  gmp = targetPkgs.gmp;
+  mpfr = targetPkgs.mpfr;
+  expat = targetPkgs.expat;
 
   # Build Support Utilities
   verify-flags = self.callPackage ./build-support/verify-flags { };
@@ -33,6 +36,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   # Diagnostics & System Tracing
   strace = self.callPackage ./diagnostics/strace { };
   lldb = self.callPackage ./diagnostics/lldb { };
+  gdb = self.callPackage ./diagnostics/gdb { };
 
   # Tracing & Kernel Diagnostics
   libbpf = self.callPackage ./tracing/libbpf { };
@@ -52,6 +56,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
     packages = [
       self.bpftrace
       self.lldb
+      self.gdb
       self.python3
       self.strace
       self.elfutils
