@@ -25,7 +25,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fetchurl {
     url = "mirror://gnu/gdb/gdb-${finalAttrs.version}.tar.xz";
-    hash = "sha256-R4f0S96vY+T1i/yT70O6Tee9X5M8j3073L54V7N6S+Y=";
+    hash = "sha256-HANsDXLks9H7XJTIhjKt1vnXb018TS6nk8EqnxmjIow=";
   };
 
   # Build out-of-tree to prevent source tree pollution during Autotools build
