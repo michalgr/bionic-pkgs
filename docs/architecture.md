@@ -85,7 +85,6 @@ bionic-pkgs/
 ├── lib/
 │   ├── default.nix
 │   ├── bionic-compat.nix
-│   ├── llvm-compat.nix
 │   └── overlays/
 │       ├── sysroot.nix
 │       ├── stdenv.nix
