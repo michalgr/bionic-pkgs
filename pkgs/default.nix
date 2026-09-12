@@ -58,17 +58,6 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.radare2
       self.rizin
       self.bcc
-      self.libbpf
-      self.libffi
-      self.libedit
-      self.readline
-      self.sqlite
-      self.xz
-      self.zstd
-      self.bzip2
-      self.openssl
-      self.libclang
-      self.libllvm
     ];
   };
 
