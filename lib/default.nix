@@ -19,7 +19,6 @@ let
   };
 
   supportedTargets = builtins.attrNames targetPlatforms;
-  defaultTarget = "aarch64-android";
 
   supportedSystems = [
     "aarch64-linux"
@@ -140,10 +139,7 @@ let
 
   # Automatically generates flat package outputs from targetMatrix
   generatePackages =
-    {
-      targetMatrix,
-      defaultTarget ? "aarch64-android",
-    }:
+    { targetMatrix }:
     let
       targetEntries = concatMapTargetMatrix targetMatrix (
         targetName: pkgName: pkg:
@@ -152,34 +148,12 @@ let
           value = pkg;
         }
       );
-
-      defaultEntries =
-        if targetMatrix ? ${defaultTarget} then
-          concatMapTarget targetMatrix.${defaultTarget} (
-            pkgName: pkg:
-            lib.optional (lib.isDerivation pkg) {
-              name = pkgName;
-              value = pkg;
-            }
-          )
-        else
-          [ ];
-
-      defaultPackage =
-        if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace then
-          { default = targetMatrix.${defaultTarget}.strace; }
-        else
-          { };
     in
-    builtins.listToAttrs (targetEntries ++ defaultEntries) // defaultPackage;
+    builtins.listToAttrs targetEntries;
 
   # Automatically generates ADB push apps from targetMatrix
   generateApps =
-    {
-      hostPkgs,
-      targetMatrix,
-      defaultTarget ? "aarch64-android",
-    }:
+    { hostPkgs, targetMatrix }:
     let
       targetAppEntries = concatMapTargetMatrix targetMatrix (
         targetName: pkgName: pkg:
@@ -196,41 +170,8 @@ let
           };
         }
       );
-
-      defaultAppEntries =
-        if targetMatrix ? ${defaultTarget} then
-          concatMapTarget targetMatrix.${defaultTarget} (
-            pkgName: pkg:
-            lib.optional (isRunnableApp pkg) {
-              name = "push-${pkgName}";
-              value = mkAdbPushApp {
-                inherit
-                  hostPkgs
-                  pkgName
-                  pkg
-                  targetMatrix
-                  ;
-                targetName = defaultTarget;
-              };
-            }
-          )
-        else
-          [ ];
-
-      defaultApp =
-        if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace then
-          {
-            default = mkAdbPushApp {
-              inherit hostPkgs targetMatrix;
-              targetName = defaultTarget;
-              pkgName = "strace";
-              pkg = targetMatrix.${defaultTarget}.strace;
-            };
-          }
-        else
-          { };
     in
-    builtins.listToAttrs (targetAppEntries ++ defaultAppEntries) // defaultApp;
+    builtins.listToAttrs targetAppEntries;
 
   # Helper to create an ELF verification check derivation for CI / nix flake check
   mkElfCheck =
@@ -278,7 +219,6 @@ in
   inherit
     targetPlatforms
     supportedTargets
-    defaultTarget
     supportedSystems
     eachSystem
     mkAndroidPkgs

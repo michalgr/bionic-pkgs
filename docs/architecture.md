@@ -122,18 +122,16 @@ The repository dynamically maps package definitions across the matrix:
 {
   outputs = { self, nixpkgs }:
     bionicLib.eachSystem bionicLib.supportedSystems (system: {
-      # Flat packages per host system: packages.${system}.${pkgName} and packages.${system}.${targetName}-${pkgName}
-      # Shorthand CLI: nix build .#${packageName}
+      # Flat packages per host system: packages.${system}.${targetName}-${pkgName}
       # Explicit CLI:  nix build .#${targetName}-${packageName}
       packages = { ... };
 
       # Hierarchical package matrix: legacyPackages.${system}.${targetName}.${packageName}
-      # Shorthand CLI: nix build .#${targetName}.${packageName}
-      # Explicit CLI:  nix build .#legacyPackages.${system}.${targetName}.${packageName}
+      # Explicit CLI:  nix build .#${targetName}.${packageName}
+      # Full CLI:      nix build .#legacyPackages.${system}.${targetName}.${packageName}
       legacyPackages = { ... };
 
       # ADB Push helpers (pushes binaries + runtime library closures):
-      # Shorthand CLI: nix run .#push-${packageName}
       # Explicit CLI:  nix run .#push-${targetName}-${packageName}
       apps = { ... };
 
@@ -148,7 +146,7 @@ The repository dynamically maps package definitions across the matrix:
 
 ## 6. ADB Push & Execution Integration
 
-To make testing binaries on Android hardware or emulators frictionless, every executable package derivation generates corresponding **Nix Apps**: `.#push-${pkg}` (for default `aarch64-android`) and `.#push-${target}-${pkg}`.
+To make testing binaries on Android hardware or emulators frictionless, every executable package derivation generates corresponding **Nix Apps**: `.#push-${target}-${pkg}`.
 
 ### Android Execution Environment & Permissions
 - **Staging Directory (`/data/local/tmp/bionic-pkgs/<pkg>/`)**:

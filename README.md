@@ -48,9 +48,9 @@ For detailed architectural specifications, toolchain strategy, and Bionic portin
 ### Building a package for Android ARM64
 
 ```bash
-# Build strace for arm64-v8a from any supported host (auto-resolves host platform)
-nix build .#strace
+# Build strace for arm64-v8a from any supported host (explicit target syntax):
 nix build .#aarch64-android.strace
+nix build .#aarch64-android-strace
 
 # Or specify explicit host system and target ABI output:
 nix build .#legacyPackages.x86_64-linux.aarch64-android.strace
@@ -60,8 +60,7 @@ nix build .#legacyPackages.aarch64-darwin.aarch64-android.strace
 ### Direct Push & Run via ADB
 
 ```bash
-# Cross-compile strace and push directly to connected Android device via ADB
-nix run .#push-strace
+# Cross-compile strace and push directly to connected Android device via ADB:
 nix run .#push-aarch64-android-strace
 
 # Or specify explicit host system:
