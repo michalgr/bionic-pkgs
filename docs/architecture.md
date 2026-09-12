@@ -85,7 +85,11 @@ bionic-pkgs/
 ├── lib/
 │   ├── default.nix
 │   ├── bionic-compat.nix
-│   └── llvm-compat.nix
+│   ├── llvm-compat.nix
+│   └── overlays/
+│       ├── sysroot.nix
+│       ├── stdenv.nix
+│       └── llvm.nix
 ├── scripts/
 │   ├── stage-runtime.sh      # Factored runtime staging, pruning, and launcher generation
 │   ├── generate-launcher.sh  # Android runtime entrypoint launcher script generator
