@@ -104,28 +104,38 @@ let
     !(pkg.meta.skipElfCheck or false) &&
     (pkg ? pname);
 
+  # Map a function over each (targetName, pkgName, pkg) entry in targetMatrix
+  concatMapTargetMatrix = targetMatrix: fn:
+    lib.concatMap (targetName:
+      let pkgsForTarget = targetMatrix.${targetName};
+      in lib.concatMap (pkgName:
+        fn targetName pkgName pkgsForTarget.${pkgName}
+      ) (builtins.attrNames pkgsForTarget)
+    ) (builtins.attrNames targetMatrix);
+
+  # Map a function over each (pkgName, pkg) entry in a target package set
+  concatMapTarget = targetPkgs: fn:
+    lib.concatMap (pkgName:
+      fn pkgName targetPkgs.${pkgName}
+    ) (builtins.attrNames targetPkgs);
+
   # Automatically generates flat package outputs from targetMatrix
   generatePackages = { targetMatrix, defaultTarget ? "aarch64-android" }:
     let
-      targetEntries = lib.concatMap (targetName:
-        let pkgsForTarget = targetMatrix.${targetName};
-        in lib.concatMap (pkgName:
-          let pkg = pkgsForTarget.${pkgName};
-          in lib.optional (lib.isDerivation pkg) {
-            name = "${targetName}-${pkgName}";
-            value = pkg;
-          }
-        ) (builtins.attrNames pkgsForTarget)
-      ) (builtins.attrNames targetMatrix);
+      targetEntries = concatMapTargetMatrix targetMatrix (targetName: pkgName: pkg:
+        lib.optional (lib.isDerivation pkg) {
+          name = "${targetName}-${pkgName}";
+          value = pkg;
+        }
+      );
 
       defaultEntries = if targetMatrix ? ${defaultTarget} then
-        lib.concatMap (pkgName:
-          let pkg = targetMatrix.${defaultTarget}.${pkgName};
-          in lib.optional (lib.isDerivation pkg) {
+        concatMapTarget targetMatrix.${defaultTarget} (pkgName: pkg:
+          lib.optional (lib.isDerivation pkg) {
             name = pkgName;
             value = pkg;
           }
-        ) (builtins.attrNames targetMatrix.${defaultTarget})
+        )
       else [ ];
 
       defaultPackage = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
@@ -137,30 +147,25 @@ let
   # Automatically generates ADB push apps from targetMatrix
   generateApps = { hostPkgs, targetMatrix, defaultTarget ? "aarch64-android" }:
     let
-      targetAppEntries = lib.concatMap (targetName:
-        let pkgsForTarget = targetMatrix.${targetName};
-        in lib.concatMap (pkgName:
-          let pkg = pkgsForTarget.${pkgName};
-          in lib.optional (isRunnableApp pkg) {
-            name = "push-${targetName}-${pkgName}";
-            value = mkAdbPushApp {
-              inherit hostPkgs targetName pkgName pkg targetMatrix;
-            };
-          }
-        ) (builtins.attrNames pkgsForTarget)
-      ) (builtins.attrNames targetMatrix);
+      targetAppEntries = concatMapTargetMatrix targetMatrix (targetName: pkgName: pkg:
+        lib.optional (isRunnableApp pkg) {
+          name = "push-${targetName}-${pkgName}";
+          value = mkAdbPushApp {
+            inherit hostPkgs targetName pkgName pkg targetMatrix;
+          };
+        }
+      );
 
       defaultAppEntries = if targetMatrix ? ${defaultTarget} then
-        lib.concatMap (pkgName:
-          let pkg = targetMatrix.${defaultTarget}.${pkgName};
-          in lib.optional (isRunnableApp pkg) {
+        concatMapTarget targetMatrix.${defaultTarget} (pkgName: pkg:
+          lib.optional (isRunnableApp pkg) {
             name = "push-${pkgName}";
             value = mkAdbPushApp {
               inherit hostPkgs pkgName pkg targetMatrix;
               targetName = defaultTarget;
             };
           }
-        ) (builtins.attrNames targetMatrix.${defaultTarget})
+        )
       else [ ];
 
       defaultApp = if targetMatrix ? ${defaultTarget} && targetMatrix.${defaultTarget} ? strace
@@ -190,18 +195,14 @@ let
   # Automatically generates checks for all target matrix packages
   generateChecks = { hostPkgs, targetMatrix }:
     let
-      checkEntries = lib.concatMap (targetName:
-        let pkgsForTarget = targetMatrix.${targetName};
-        in lib.concatMap (pkgName:
-          let pkg = pkgsForTarget.${pkgName};
-          in lib.optional (isCheckablePkg pkg) {
-            name = "check-elf-${targetName}-${pkgName}";
-            value = mkElfCheck {
-              inherit hostPkgs targetName pkgName pkg;
-            };
-          }
-        ) (builtins.attrNames pkgsForTarget)
-      ) (builtins.attrNames targetMatrix);
+      checkEntries = concatMapTargetMatrix targetMatrix (targetName: pkgName: pkg:
+        lib.optional (isCheckablePkg pkg) {
+          name = "check-elf-${targetName}-${pkgName}";
+          value = mkElfCheck {
+            inherit hostPkgs targetName pkgName pkg;
+          };
+        }
+      );
     in
     builtins.listToAttrs checkEntries;
 
@@ -217,6 +218,8 @@ in
     mkAdbPushApp
     mkElfCheck
     mkTargetMatrix
+    concatMapTargetMatrix
+    concatMapTarget
     generatePackages
     generateApps
     generateChecks;
