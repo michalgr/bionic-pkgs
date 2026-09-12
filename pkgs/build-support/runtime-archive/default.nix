@@ -48,7 +48,11 @@ let
     in
       step pkgs;
 
-  allPackages = lib.filter (p: !isPlatformPkg p) (closeRuntimeClosure packages);
+  libcxxPkgs = lib.optional (stdenv.cc ? libcxx && stdenv.cc.libcxx != null) stdenv.cc.libcxx;
+
+  allPackages = lib.filter (p: !isPlatformPkg p) (
+    closeRuntimeClosure (packages ++ libcxxPkgs)
+  );
 
   getRuntimeOutputs = pkg:
     if lib.isDerivation pkg then
