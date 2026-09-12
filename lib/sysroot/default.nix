@@ -105,7 +105,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       cp -v "${ndkLibs}/${targetArchDir}/libcompiler_rt-extras.a" "$out/lib/"
     fi
 
-    # Remove any C++ runtime stubs from Bionic sysroot so they don't shadow or conflict with source-built libcxx
+    # Remove any C++ runtime stubs and prebuilt C++ headers from Bionic sysroot so they don't shadow or conflict with source-built libcxx
+    rm -rf "$dev/include/c++"
     rm -f "$out/lib"/libc++*.so "$out/lib"/libc++*.a
 
     # =========================================================================

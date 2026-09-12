@@ -29,8 +29,9 @@ Cross-compiling C/C++ applications for Android's **Bionic libc** differs signifi
 
 5. **C++ Standard Library (STL) Architecture (LLVM `libc++` from Source vs NDK Prebuilts)**:
    - `bionic-pkgs` compiles LLVM's `libc++` and `libc++abi` directly from source against Bionic libc, rather than using Google's prebuilt NDK `libc++_shared.so` / `libc++_static.a`.
+   - **Isolation & Header Cleanliness**: Prebuilt NDK C++ headers (`$dev/include/c++`) and libraries (`libc++*.so`, `libc++*.a`) are explicitly purged from the Bionic C sysroot (`lib/sysroot`), establishing a clean boundary between Bionic C / Linux UAPI headers and LLVM C++ standard library headers.
    - **Rationale**:
-     - Eliminates opaque prebuilt binary blobs from the build chain.
+     - Eliminates opaque prebuilt binary blobs and stale headers from the build chain.
      - Unlocks complete C++20, C++23, and C++26 standard library features matching the compiler.
      - Enforces 16 KB page alignment and consistent security hardening modes (`_LIBCPP_HARDENING_MODE`).
      - Integrates with `llvm-libunwind` built directly from source.
@@ -89,7 +90,7 @@ postPatch = ''
 ```
 
 ### Enforcing PIE (`-fPIE -pie`), TLS (`-fno-emulated-tls`), and 16 KB Page Alignment (`-z max-page-size=16384`)
-Rather than requiring every derivation to set repetitive compilation flags manually, `lib/bionic-compat.nix` defines canonical `bionicFlags` and injects `bionicFixupHook` globally into `stdenv.extraNativeBuildInputs`.
+Rather than requiring every derivation to set repetitive compilation flags manually, `lib/overlays/stdenv.nix` (composed via `lib/bionic-compat.nix`) defines canonical `bionicFlags` and injects `bionicFixupHook` globally into `stdenv.extraNativeBuildInputs`.
 
 All target derivations built with `stdenv.mkDerivation` automatically receive:
 - **`NIX_CFLAGS_COMPILE`**: `-nostdlibinc -fno-emulated-tls -D__BIONIC_NO_PAGE_SIZE_MACRO` (plus `-mtls-dialect=gnu` on x86_64)
@@ -108,7 +109,7 @@ Android binaries locate their dynamic linker at:
 
 `bionic-pkgs` uses a pure link-time RPATH model and has completely eliminated post-link `patchelf` binary rewriting. Rewriting ELF headers post-link risks disrupting 16 KB memory page alignment (`-z max-page-size=16384`) required on Android 15+.
 
-In `lib/bionic-compat.nix`, link-time RPATH is automatically configured via `bionicFlags.ldflags` and `bionicFixupHook`:
+In `lib/overlays/stdenv.nix`, link-time RPATH is automatically configured via `bionicFlags.ldflags` and `bionicFixupHook`:
 - `bionicFlags.ldflags`: Emits `"-rpath"` `"\\$ORIGIN/../lib"` directly during linking, strictly hardening RPATH against Untrusted Search Path vulnerabilities (CWE-426/CWE-427).
 - `bionicFixupHook`: Suppresses Nixpkgs automatic RPATH generation and self-rpath injection, prevents CMake from appending `$out/lib` during install, and patches generated `libtool` scripts to clear `hardcode_libdir_flag_spec`:
   ```bash
