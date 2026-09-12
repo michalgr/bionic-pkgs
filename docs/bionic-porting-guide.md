@@ -291,11 +291,8 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 7. **Bionic C Library Dynamic Loading in `ctypes` (`libc.so` vs `libc.so.6`/`librt.so.1`)**:
    - `src/python/bcc/perf.py` and `src/python/bcc/__init__.py` invoked `ctypes.CDLL('libc.so.6')` and `ctypes.CDLL('librt.so.1')`.
    - Patched via `postPatch` to reference Bionic's unified `libc.so`.
-8. **macOS Host Isolation for Nested NATIVE Tablegen Builds (`--build-id=sha1`)**:
-   - Nixpkgs sets `env.LDFLAGS = "-Wl,--build-id=sha1"` whenever the target (`hostPlatform`) is not Darwin.
-   - When cross-compiling LLVM on a macOS build machine (`aarch64-darwin`), LLVM's CMake build invokes a nested CMake instance (`build/NATIVE`) using the host compiler (`clang-wrapper`) and Apple's linker (`cctools` / `ld64`) to build host `llvm-tblgen` and `llvm-config-native`.
-   - This nested native CMake inherited the ambient `LDFLAGS="-Wl,--build-id=sha1"` environment variable, causing the host compiler check (`testCCompiler.c`) to fail on Darwin with `ld: unknown option: --build-id=sha1`.
-   - **Resolution**: In `lib/overlays/llvm.nix`, `libllvm` overrides `env.LDFLAGS = ""` to prevent ambient leakage into host subprojects, and passes `-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--build-id=sha1`, `-DCMAKE_MODULE_LINKER_FLAGS=-Wl,--build-id=sha1`, and `-DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=sha1` explicitly in `cmakeFlags` for target binaries.
+8. **macOS Host Isolation for Nested NATIVE Tablegen Builds**:
+   - `libllvm` and `libclang` are standalone packages under `pkgs/libs/llvm/` (`libllvm.nix`, `libclang.nix`). Rather than running error-prone nested native builds during cross-compilation, they set `-DLLVM_NATIVE_BUILD=OFF` and consume prebuilt native host tools (`llvm-tblgen`, `clang-tblgen`) directly from `pkgs/libs/llvm/tblgen.nix`.
 
 ### Case Study 6: `bpftrace` & `bpftrace-static` (High-Level Dynamic Tracing Language & Tools)
 `bpftrace` compiles high-level tracing scripts into eBPF bytecode via Clang/LLVM, attaching to kernel tracepoints, kprobes, uprobes, and intervals. We provide two builds:
@@ -303,9 +300,9 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 - **`bpftrace-static` (Standalone static)**: Built with `STATIC_LINKING=ON` embedding static LLVM, Clang components, BCC, and compression libraries into a self-contained executable.
 
 1. **Standalone Semi-Static Architecture & Dual-Runtime Avoidance (`bpftrace-static`)**:
-   - `bpftrace-static` is compiled with `-DSTATIC_LINKING=ON`, statically embedding LLVM 21, Clang AST/CodeGen/Rewriter components, BCC, libbpf, libdw, libelf, cereal, and `libc++`.
+   - `bpftrace-static` is compiled with `-DSTATIC_LINKING=ON`, statically embedding LLVM 19, Clang AST/CodeGen/Rewriter components, BCC, libbpf, libdw, libelf, cereal, and `libc++`.
    - **Crucial C++ ODR Insight**: In hybrid static/dynamic configurations where `-static-libstdc++` is used alongside a dynamically loaded `libclang.so`, duplicate `std::locale` / `std::use_facet` Singletons clash at runtime, throwing `std::bad_cast`.
-   - **Resolution**: Enabled `-DLIBCLANG_BUILD_STATIC=ON` in `lib/overlays/llvm.nix` so Clang exports `libclang_static.a`. `bpftrace-static` links `libclang_static` into a unified static `libc++` runtime, dynamically binding **only** to Android's built-in platform C libraries (`libc.so`, `libm.so`, `libdl.so`, `libz.so`, `liblog.so`).
+   - **Resolution**: Enabled `-DLIBCLANG_BUILD_STATIC=ON` in `pkgs/libs/llvm/libclang.nix` so Clang exports `libclang_static.a`. `bpftrace-static` links `libclang_static` into a unified static `libc++` runtime, dynamically binding **only** to Android's built-in platform C libraries (`libc.so`, `libm.so`, `libdl.so`, `libz.so`, `liblog.so`).
 2. **Full Compression Integration (`LibLzma`, `LibBz2`, `libzstd`) & Binary Size Optimization**:
    - `elfutils` provides `libdw` and `libelf` with multi-format compression support (`--with-lzma`, `--with-bzlib`, `--with-zstd`, `--with-zlib`).
    - `bpftrace-static` leverages upstream `find_package(LibLzma)` and `find_package(LibBz2)` to statically bind `liblzma.a` and `libbz2.a`, and defines `LIBZSTD` to link `libzstd.a` for complete DWARF decompression on device.
