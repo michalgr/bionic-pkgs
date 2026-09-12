@@ -134,5 +134,6 @@ EOF
     platforms = lib.platforms.linux;
     maintainers = [ ];
     mainProgram = "bps";
+    needsLibcxx = true;
   };
 })

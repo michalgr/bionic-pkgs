@@ -56,5 +56,6 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://clang.llvm.org/";
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;
+    needsLibcxx = true;
   };
 })

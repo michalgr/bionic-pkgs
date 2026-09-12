@@ -104,5 +104,6 @@ EOF
     platforms = lib.platforms.linux;
     maintainers = [ ];
     mainProgram = "rizin";
+    needsLibcxx = true;
   };
 })

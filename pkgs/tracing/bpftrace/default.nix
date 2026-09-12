@@ -117,5 +117,6 @@ EOF
     platforms = lib.platforms.linux;
     maintainers = [ ];
     mainProgram = "bpftrace";
+    needsLibcxx = true;
   };
 })
