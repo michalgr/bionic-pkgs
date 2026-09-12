@@ -19,6 +19,7 @@
   targetArch ? stdenv.hostPlatform.parsed.cpu.name,
   archiveName ? "${pname}-${targetArch}.tar.gz",
   compression ? "gzip",
+  includeLibcxx ? null,
   meta ? { },
 }:
 
@@ -48,7 +49,19 @@ let
     in
       step pkgs;
 
-  allPackages = lib.filter (p: !isPlatformPkg p) (closeRuntimeClosure packages);
+  basePackages = closeRuntimeClosure packages;
+
+  needsLibcxx =
+    if includeLibcxx != null then
+      includeLibcxx
+    else
+      lib.any (p: p.meta.needsLibcxx or false) basePackages;
+
+  libcxxPkgs = lib.optional (needsLibcxx && stdenv.cc ? libcxx && stdenv.cc.libcxx != null) stdenv.cc.libcxx;
+
+  allPackages = lib.filter (p: !isPlatformPkg p) (
+    lib.unique (basePackages ++ libcxxPkgs)
+  );
 
   getRuntimeOutputs = pkg:
     if lib.isDerivation pkg then
