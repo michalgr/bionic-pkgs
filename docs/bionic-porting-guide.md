@@ -400,7 +400,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 3. **Execute via ADB on Android Device / Emulator**:
    ```bash
    # Use the automated flake push app:
-   nix run .#push-strace
+   nix run .#push-aarch64-android-strace
 
    # Or manual transfer:
    adb push result/bin/strace /data/local/tmp/

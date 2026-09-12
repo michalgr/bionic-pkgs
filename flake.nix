@@ -44,19 +44,17 @@
         # Nix RFC 166 code formatter
         formatter = pkgs.nixfmt-tree;
 
-        # Dynamically generated flat package outputs (e.g. strace, aarch64-android-strace, x86_64-android-strace)
+        # Dynamically generated flat package outputs (e.g. aarch64-android-strace, x86_64-android-strace)
         packages = bionicLib.generatePackages {
           inherit targetMatrix;
-          inherit (bionicLib) defaultTarget;
         };
 
         # Hierarchical packages for nix build .#<target>.<pkg>
         legacyPackages = targetMatrix;
 
-        # Dynamically generated ADB push deployment apps (e.g. push-strace, push-aarch64-android-strace)
+        # Dynamically generated ADB push deployment apps (e.g. push-aarch64-android-strace, push-x86_64-android-strace)
         apps = bionicLib.generateApps {
           inherit targetMatrix;
-          inherit (bionicLib) defaultTarget;
           hostPkgs = pkgs;
         };
 
@@ -79,12 +77,12 @@
 
           shellHook = ''
             echo "bionic-pkgs development shell"
-            echo "Host: ${system} | Default target: ${bionicLib.defaultTarget}"
+            echo "Host: ${system}"
             echo ""
             echo "Commands:"
-            echo "  nix build .#strace                      # Build strace for ${bionicLib.defaultTarget}"
+            echo "  nix build .#aarch64-android.strace      # Build strace for aarch64-android"
             echo "  nix build .#x86_64-android.strace       # Build strace for x86_64-android"
-            echo "  nix run .#push-strace                   # Push to connected ADB device"
+            echo "  nix run .#push-aarch64-android-strace  # Push to connected ADB device"
           '';
         };
       }

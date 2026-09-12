@@ -8,7 +8,7 @@ This document outlines the phased development roadmap for `bionic-pkgs`.
 - [x] Initial architectural design & document suite.
 - [x] Implement `flake.nix` with multi-target (`aarch64-android`, `x86_64-android`) matrix generators across standard hosts (`aarch64-linux`, `x86_64-linux`, `aarch64-darwin`).
 - [x] Setup Nixpkgs cross-compilation baseline wrappers and Bionic shim overlay (`lib/bionic-compat.nix`).
-- [x] Implement ADB deployment helpers (`nix run .#push-<pkg>`) with staging directory creation and launcher scripts.
+- [x] Implement ADB deployment helpers (`nix run .#push-<target>-<pkg>`) with staging directory creation and launcher scripts.
 - [x] Configure GitHub Actions workflow for CI matrix building.
 
 ---
@@ -57,7 +57,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 ---
 
 ## 🤖 Phase 5: Developer Experience, ADB Automation & Modular Test Framework
-- [x] Implement `nix run .#push-<pkg>` (and `.#push-<target>-<pkg>`) ADB push helpers with runtime dependency closure synchronization and launcher wrapper.
+- [x] Implement `nix run .#push-<target>-<pkg>` ADB push helpers with runtime dependency closure synchronization and launcher wrapper.
 - [x] `devShells` featuring cross-compilers, ADB binaries, and environment variables.
 - [x] Modular on-device test framework (`tests/lib/`, `tests/tools/`, `tests/test-integration.sh`, `tests/run-device-tests.sh`) with codified tests for ported packages (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`, `lldb`).
 - [x] 2-tier CI testing matrix: Tier 1 Fast Smoke with single emulator instance (`strace`, `elfutils`, `python3` via `.github/workflows/fast-smoke.yml`), Tier 2 Full Sysroot Integration runner (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`), and unified Audit workflow (`.github/workflows/audit.yml`).
