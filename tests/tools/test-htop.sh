@@ -55,8 +55,8 @@ assert_contains "$output" "htop 3." "htop version check (--version)"
 
 # 2. Help output
 output="$(adb_shell "${HTOP_BIN} --help 2>&1" || true)"
-assert_contains "$output" "Usage:" "htop help banner"
-assert_contains "$output" "-n, --iterations" "htop iterations option check"
+assert_contains "$output" "Print this help screen" "htop help banner"
+assert_contains "$output" "--max-iterations" "htop iterations option check"
 
 # 3. Single iteration procfs scanning & display test
 output="$(adb_shell "TERM=vt100 ${HTOP_BIN} -n 1 2>&1" || true)"
