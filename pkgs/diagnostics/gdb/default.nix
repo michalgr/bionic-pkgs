@@ -23,16 +23,17 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-HANsDXLks9H7XJTIhjKt1vnXb018TS6nk8EqnxmjIow=";
   };
 
-  buildInputs = [
-    expat
-    gmp
-    mpfr
-    ncurses
-    readline
-    zlib
-    zstd
-  ]
-  ++ lib.optionals pythonSupport [ python3 ];
+  buildInputs =
+    [
+      expat
+      gmp
+      mpfr
+      ncurses
+      readline
+      zlib
+      zstd
+    ]
+    ++ lib.optionals pythonSupport [ python3 ];
 
   env.NIX_CFLAGS_COMPILE = "-Wno-format-nonliteral -Wno-unused-function -D__USE_FORTIFY_LEVEL=0";
 
@@ -73,7 +74,7 @@ stdenv.mkDerivation (finalAttrs: {
   postPatch = ''
     substituteInPlace gdbsupport/eintr.h \
       --replace-fail 'return gdb::handle_eintr (-1, ::open, pathname, flags);' \
-      'int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;'
+                     'int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;'
 
     substituteInPlace gdbsupport/pathstuff.cc \
       --replace-fail 'return "/tmp";' 'return "/data/local/tmp";' \
@@ -93,14 +94,23 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail '#include <signal.h>' $'#include <signal.h>\n#ifndef PAGE_SIZE\n#define PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))\n#endif'
 
     substituteInPlace gdb/solib.c \
-      --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' $'#ifdef __ANDROID__\n  solib_search_path = "${if stdenv.hostPlatform.is64bit then "/system/lib64:/system/vendor/lib64" else "/system/lib:/system/vendor/lib"}";\n#endif\n  add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,'
+      --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' $'#ifdef __ANDROID__\n  solib_search_path = "${
+        if stdenv.hostPlatform.is64bit then
+          "/system/lib64:/system/vendor/lib64"
+        else
+          "/system/lib:/system/vendor/lib"
+      }";\n#endif\n  add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,'
 
     substituteInPlace gdbserver/configure \
       --replace-fail '  *-android*)' '  *-android-disabled-auxv-override*)'
 
     substituteInPlace gdb/amd64-linux-nat.c \
-      --replace-fail 'gdb_assert (FS < ELF_NGREG);' $'#ifndef __ANDROID__\n  gdb_assert (FS < ELF_NGREG);' \
-      --replace-fail 'gdb_assert (GS < ELF_NGREG);' $'gdb_assert (GS < ELF_NGREG);\n#endif'
+      --replace-fail 'gdb_assert (FS < ELF_NGREG);' '#ifndef __ANDROID__
+  gdb_assert (FS < ELF_NGREG);' \
+      --replace-fail 'gdb_assert (GS < ELF_NGREG);' 'gdb_assert (GS < ELF_NGREG);
+
+
+#endif'
   '';
 
   preConfigure = ''
