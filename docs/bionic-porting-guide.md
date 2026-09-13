@@ -219,7 +219,33 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - CPython extension modules located in `prefix/lib/python3.13/lib-dynload/` require an additional `$ORIGIN/../..` runpath to locate `libpython3.13.so` and `libffi.so` in `prefix/lib`.
    - In `pkgs/runtime/python3/default.nix`, `Makefile.pre.in` is patched via `postPatch` to append `-Wl,-rpath,\$ORIGIN/../..` strictly to `MODULE_LDFLAGS_SHARED`, ensuring `$ORIGIN/../..` remains strictly confined within `prefix/lib`.
 
-### Case Study 3: `elfutils` & Platform `libz.so` (Minimal ELF & DWARF Tool Suite)
+### Case Study 3: `openssl` (OpenSSL Cryptographic & SSL/TLS Toolkit)
+`openssl` provides shared cryptographic libraries (`libssl.so`, `libcrypto.so`), engines, providers (`legacy.so`), and the `openssl` command-line utility for Android.
+
+1. **Disabling Unsupported Kernel Extensions (`no-ktls`, `no-afalgeng`)**:
+   - Kernel TLS (`enable-ktls`) requires Linux kernel socket structures and headers that are incomplete/unsupported in Android Bionic (`<sys/socket.h>` and `include/internal/ktls.h`).
+   - The Linux AF_ALG crypto engine (`afalgeng`) is unsupported in standard Android userspace.
+   - We pass `no-ktls` and `no-afalgeng` to `./Configure` to disable these unsupported features.
+2. **Architecture Target Selection**:
+   - OpenSSL's custom `./Configure` script requires exact target platform strings rather than GNU triple `--host`:
+     - `aarch64-android`: `linux-aarch64` (activates hardware-accelerated ARMv8 NEON and Crypto extensions)
+     - `x86_64-android`: `linux-x86_64`
+     - `armv7a-android`: `linux-armv4`
+     - `i686-android`: `linux-x86`
+     - `riscv64-android`: `linux64-riscv64`
+   - Setting `configurePlatforms = [ ];` and `dontAddStaticConfigureFlags = true;` prevents Nix from passing invalid `--build` or `--host` flags to `./Configure`.
+3. **Android Shell Wrapper for `c_rehash`**:
+   - Upstream OpenSSL generates `c_rehash` as a Perl script. On Android, Perl is absent from the device system PATH.
+   - We replace `c_rehash` with an Android-native `/system/bin/sh` shell script:
+     ```sh
+     #!/system/bin/sh
+     exec "$(dirname "$0")/openssl" rehash "$@"
+     ```
+4. **Python 3 Integration**:
+   - Adding `openssl` to Python 3's `buildInputs` and `--with-openssl=${openssl.dev or openssl}` builds CPython extension modules `_ssl.so` and `_hashlib.so`.
+   - In `_ssl.cpython-*.so`, relative runpath `-Wl,-rpath,$ORIGIN/../..` resolves `libssl.so` and `libcrypto.so` in `lib/`.
+
+### Case Study 4: `elfutils` & Platform `libz.so` (Minimal ELF & DWARF Tool Suite)
 `elfutils` provides core ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, `eu-size`, `eu-elfcmp`, `eu-elfcompress`, `eu-elflint`, `eu-elfclassify`, `eu-addr2line`, `eu-stack`, `eu-unstrip`) and DWARF debugging inspection (`libdw`, `libasm`).
 
 1. **Minimizing Dependency Footprint & Leveraging Platform `libz.so`**:
@@ -239,7 +265,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - `-Werror` is stripped from Automake templates to prevent Clang warning differences from breaking cross-compilation.
    - The optional `srcfiles` C++ utility is decoupled from `bin_PROGRAMS` to avoid C++ standard library / libarchive requirements and ensure pure C builds.
 
-### Case Study 4: `rizin` (Reverse Engineering Framework)
+### Case Study 5: `rizin` (Reverse Engineering Framework)
 `rizin` is a UNIX-like reverse engineering framework and command-line toolset (`rizin`, `rz-asm`, `rz-ax`, `rz-bin`, `rz-diff`, `rz-find`, `rz-gg`, `rz-hash`, `rz-run`, `rz-sign`, `rz-ar`).
 
 1. **Monolithic Binary Blob (`-Dblob=true`) & Multi-Call Dispatch**:
@@ -260,7 +286,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - The bundled `Zydis` subproject detects C23 `<stdbit.h>`, which leaked host glibc `/usr/include/stdbit.h` on modern build hosts and failed on missing `<bits/endian.h>`.
    - Globally injecting `-nostdlibinc` in `bionicFlags` restricts Clang to Bionic headers while preserving compiler builtins, ensuring hermetic cross-compilation.
 
-### Case Study 5: `bcc` (BPF Compiler Collection & Target LLVM/Clang)
+### Case Study 6: `bcc` (BPF Compiler Collection & Target LLVM/Clang)
 `bcc` provides dynamic kernel tracing, BPF C++ frontends, Python bindings, and introspection utilities (`bps`).
 
 1. **Target LLVM & Clang C++ Toolchain Cross-Compilation**:
@@ -294,7 +320,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 8. **macOS Host Isolation for Nested NATIVE Tablegen Builds**:
    - `libllvm` and `libclang` are standalone packages under `pkgs/libs/llvm/` (`libllvm.nix`, `libclang.nix`). Rather than running error-prone nested native builds during cross-compilation, they set `-DLLVM_NATIVE_BUILD=OFF` and consume prebuilt native host tools (`llvm-tblgen`, `clang-tblgen`) directly from `pkgs/libs/llvm/tblgen.nix`.
 
-### Case Study 6: `bpftrace` & `bpftrace-static` (High-Level Dynamic Tracing Language & Tools)
+### Case Study 7: `bpftrace` & `bpftrace-static` (High-Level Dynamic Tracing Language & Tools)
 `bpftrace` compiles high-level tracing scripts into eBPF bytecode via Clang/LLVM, attaching to kernel tracepoints, kprobes, uprobes, and intervals. We provide two builds:
 - **`bpftrace` (Dynamic default)**: Built with `STATIC_LINKING=OFF` against shared LLVM/Clang and BCC libraries (`libLLVM.so`, `libclang-cpp.so`, `libbcc.so`, `libbpf.so`, etc.). Dynamic dependencies are synchronized from the package dependency closure into the device staging directory via `scripts/adb-push.sh` and resolved at runtime through relative `$ORIGIN/../lib` runpaths.
 - **`bpftrace-static` (Standalone static)**: Built with `STATIC_LINKING=ON` embedding static LLVM, Clang components, BCC, and compression libraries into a self-contained executable.
@@ -318,7 +344,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 6. **Standalone Companion Tools (`share/bpftrace/tools/*.bt`)**:
    - Generated wrapper scripts in `$out/bin/` (`execsnoop`, `opensnoop`, `runqlat`, `biosnoop`, `pidpersec`, `syscount`, `tcpconnect`, etc.) that execute via `/system/bin/sh` without setting `LD_LIBRARY_PATH`, relying on `bpftrace`'s embedded relative `DT_RUNPATH` (`$ORIGIN/../lib`).
 
-### Case Study 7: `lldb` & `lldb-server` (LLVM Debugger & Companion Server)
+### Case Study 8: `lldb` & `lldb-server` (LLVM Debugger & Companion Server)
 `lldb` provides high-performance native debugging, target image inspection, breakpoint management, and process control on Android 14+ (Bionic libc) alongside companion `lldb-server` and `lldb-dap`.
 
 1. **Host TableGen Suite (`tblgen`) Integration**:
@@ -378,32 +404,6 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
 7. **x86_64 Register Assertions & `gdbserver` Auxv Detection**:
    - `gdbserver/configure` contains a legacy `*-android*)` pattern that disabled `Elf32_auxv_t` / `Elf64_auxv_t` detection. Renaming the pattern enables modern Bionic auxv detection.
    - `gdb/amd64-linux-nat.c` assertions (`FS < ELF_NGREG`, `GS < ELF_NGREG`) are guarded with `#ifndef __ANDROID__`.
-
-### Case Study 8: `openssl` (OpenSSL Cryptographic & SSL/TLS Toolkit)
-`openssl` provides shared cryptographic libraries (`libssl.so`, `libcrypto.so`), engines, providers (`legacy.so`), and the `openssl` command-line utility for Android.
-
-1. **Disabling Unsupported Kernel Extensions (`no-ktls`, `no-afalgeng`)**:
-   - Kernel TLS (`enable-ktls`) requires Linux kernel socket structures and headers that are incomplete/unsupported in Android Bionic (`<sys/socket.h>` and `include/internal/ktls.h`).
-   - The Linux AF_ALG crypto engine (`afalgeng`) is unsupported in standard Android userspace.
-   - We pass `no-ktls` and `no-afalgeng` to `./Configure` to disable these unsupported features.
-2. **Architecture Target Selection**:
-   - OpenSSL's custom `./Configure` script requires exact target platform strings rather than GNU triple `--host`:
-     - `aarch64-android`: `linux-aarch64` (activates hardware-accelerated ARMv8 NEON and Crypto extensions)
-     - `x86_64-android`: `linux-x86_64`
-     - `armv7a-android`: `linux-armv4`
-     - `i686-android`: `linux-x86`
-     - `riscv64-android`: `linux64-riscv64`
-   - Setting `configurePlatforms = [ ];` and `dontAddStaticConfigureFlags = true;` prevents Nix from passing invalid `--build` or `--host` flags to `./Configure`.
-3. **Android Shell Wrapper for `c_rehash`**:
-   - Upstream OpenSSL generates `c_rehash` as a Perl script. On Android, Perl is absent from the device system PATH.
-   - We replace `c_rehash` with an Android-native `/system/bin/sh` shell script:
-     ```sh
-     #!/system/bin/sh
-     exec "$(dirname "$0")/openssl" rehash "$@"
-     ```
-4. **Python 3 Integration**:
-   - Adding `openssl` to Python 3's `buildInputs` and `--with-openssl=${openssl.dev or openssl}` builds CPython extension modules `_ssl.so` and `_hashlib.so`.
-   - In `_ssl.cpython-*.so`, relative runpath `-Wl,-rpath,$ORIGIN/../..` resolves `libssl.so` and `libcrypto.so` in `lib/`.
 
 ---
 
