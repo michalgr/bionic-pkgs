@@ -30,6 +30,10 @@ for py_dir in "\$BASE_DIR"/lib/python3.*; do
   fi
 done
 
+if [ -d "\$BASE_DIR/share/gdb/python" ]; then
+  export PYTHONPATH="\$BASE_DIR/share/gdb/python\${PYTHONPATH:+:\$PYTHONPATH}"
+fi
+
 if [ -x "\$BASE_DIR/bin/${BIN_NAME}" ]; then
   exec "\$BASE_DIR/bin/${BIN_NAME}" "\$@"
 else

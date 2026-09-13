@@ -375,6 +375,38 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Adding `openssl` to Python 3's `buildInputs` and `--with-openssl=${openssl.dev or openssl}` builds CPython extension modules `_ssl.so` and `_hashlib.so`.
    - In `_ssl.cpython-*.so`, relative runpath `-Wl,-rpath,$ORIGIN/../..` resolves `libssl.so` and `libcrypto.so` in `lib/`.
 
+### Case Study 9: `gdb` & `gdbserver` (GNU Debugger with Python 3)
+`gdb` (v17.2) and companion `gdbserver` provide full target debugging, breakpoint control, inferior process execution, remote debugging, and Python 3 scripting integration on Android 14+ (Bionic libc).
+
+1. **Host Build Tool Compiler Isolation (`CC_FOR_BUILD`)**:
+   - GDB builds an internal build-time document tool (`bfd/doc/chew.c`) using the build host C compiler (GCC/Clang).
+   - Because `bionicFixupHook` exports Clang-specific Bionic flags (`-nostdlibinc`, `-fno-emulated-tls`) into `NIX_CFLAGS_COMPILE`, host `gcc` fails on `x86_64-linux` with unknown flag errors.
+   - **Resolution**: Generate a localized executable wrapper at `$PWD/build-bin/build-cc` during `preConfigure`:
+     ```sh
+     mkdir -p "$PWD/build-bin"
+     cat > "$PWD/build-bin/build-cc" << 'BUILD_CC_EOF'
+     #!/bin/sh
+     NIX_CFLAGS_COMPILE="" NIX_LDFLAGS="" exec "${buildPackages.stdenv.cc}/bin/cc" "$@"
+     BUILD_CC_EOF
+     chmod +x "$PWD/build-bin/build-cc"
+     configureFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+     makeFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+     ```
+2. **Cross Python 3 Helper Script (`python-config-cross.sh`)**:
+   - GDB's `./configure` expects `--with-python=<path>` to point to a configuration script.
+   - Generated a cross helper script `python-config-cross.sh` in `preConfigure` returning `--includes` (`-I${python3}/include/python3.13`), `--ldflags` (`-L${python3}/lib -lpython3.13`), and `--exec-prefix` (`${python3}`).
+3. **Bionic Compatibility Patches**:
+   - **Overloaded `::open` Template Deduction**: In `gdbsupport/eintr.h`, replaced `gdb::handle_eintr (-1, ::open, pathname, flags)` with an explicit `do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR);` loop.
+   - **Android Paths**: Patched `/tmp` to `/data/local/tmp` in `gdbsupport/pathstuff.cc` and `gdb/compile/compile.c`, and `/bin/sh` to `/system/bin/sh`.
+   - **Signal State Warning**: Suppressed preinstalled signal warning on Android in `gdbsupport/signals-state-save-restore.cc`.
+   - **Job Control**: Replaced `setpgid(getpid(), getpid())` with `setpgid(0, 0)` in `gdbsupport/job-control.cc` to support non-root execution.
+   - **Dynamic 16 KB Page Size**: Defined `PAGE_SIZE` as `((size_t) sysconf(_SC_PAGESIZE))` in `gdb/nat/linux-btrace.c`.
+   - **Solib Search Path**: Configured default `solib_search_path` to `/system/lib64:/system/vendor/lib64` (or 32-bit counterpart) in `gdb/solib.c`.
+   - **Auxv Override**: Disabled `*-android*)` auxv override in `gdbserver/configure`.
+   - **x86_64 Register Assertions**: Guarded `FS < ELF_NGREG` and `GS < ELF_NGREG` register index assertions under `#ifndef __ANDROID__` in `gdb/amd64-linux-nat.c`.
+4. **Gnulib Fortify Header Collision**:
+   - Set `env.NIX_CFLAGS_COMPILE = "-Wno-format-nonliteral -Wno-unused-function -D__USE_FORTIFY_LEVEL=0"` to prevent Gnulib and Bionic stdio fortify collisions.
+
 ---
 
 ## 6. Testing & Verifying Cross-Compiled Binaries

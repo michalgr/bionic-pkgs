@@ -40,8 +40,8 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/tracing/bcc`: BPF Compiler Collection.
   - [x] `pkgs/tracing/bpftrace`: High-level kernel dynamic tracing language and runtime.
   - [x] `pkgs/tracing/libbpf`: Core BPF object loader library.
-- [ ] **`pkgs/diagnostics/` (Debuggers)**:
-  - `pkgs/diagnostics/gdb`: GDB & `gdbserver` cross-compiled for Bionic.
+- [x] **`pkgs/diagnostics/` (Debuggers)**:
+  - [x] `pkgs/diagnostics/gdb`: GDB 17.2 & `gdbserver` cross-compiled for Bionic with Python 3 support.
   - [x] `pkgs/diagnostics/lldb`: LLVM native target debugger & `lldb-server`.
 
 ---
