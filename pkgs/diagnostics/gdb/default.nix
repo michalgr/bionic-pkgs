@@ -1,3 +1,6 @@
+# pkgs/diagnostics/gdb/default.nix
+# GNU Debugger (GDB) & gdbserver for Android 14+ (Bionic libc).
+
 {
   stdenv,
   fetchurl,
@@ -14,6 +17,13 @@
   pythonSupport ? true,
 }:
 
+let
+  solibSearchPath =
+    if stdenv.hostPlatform.is64bit then
+      "/system/lib64:/system/vendor/lib64"
+    else
+      "/system/lib:/system/vendor/lib";
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "gdb";
   version = "17.2";
@@ -31,7 +41,8 @@ stdenv.mkDerivation (finalAttrs: {
     readline
     zlib
     zstd
-  ] ++ lib.optionals pythonSupport [ python3 ];
+  ]
+  ++ lib.optionals pythonSupport [ python3 ];
 
   env.NIX_CFLAGS_COMPILE = "-Wno-format-nonliteral -Wno-unused-function -D__USE_FORTIFY_LEVEL=0";
 
@@ -92,12 +103,7 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail '#include <signal.h>' $'#include <signal.h>\n#ifndef PAGE_SIZE\n#define PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))\n#endif'
 
     substituteInPlace gdb/solib.c \
-      --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' $'#ifdef __ANDROID__\n  solib_search_path = "${
-        if stdenv.hostPlatform.is64bit then
-          "/system/lib64:/system/vendor/lib64"
-        else
-          "/system/lib:/system/vendor/lib"
-      }";\n#endif\n  add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,'
+      --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' $'#ifdef __ANDROID__\n  solib_search_path = "${solibSearchPath}";\n#endif\n  add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,'
 
     substituteInPlace gdbserver/configure \
       --replace-fail '  *-android*)' '  *-android-disabled-auxv-override*)'
@@ -134,9 +140,9 @@ case "$*" in
 esac
 PY_HELPER_EOF
     chmod +x "$pyHelper"
-    ${lib.optionalString pythonSupport ''
-      configureFlagsArray+=("--with-python=$pyHelper")
-    ''}
+  ''
+  + lib.optionalString pythonSupport ''
+    configureFlagsArray+=("--with-python=$pyHelper")
   '';
 
   meta = {
