@@ -114,31 +114,31 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   preConfigure = ''
-    # Localized host CC wrapper for build-time tools (e.g. bfd/doc/chew)
-    # Host GCC fails if given Clang-specific Bionic flags (-nostdlibinc, -fno-emulated-tls).
-    mkdir -p "$PWD/build-bin"
-    cat > "$PWD/build-bin/build-cc" << 'BUILD_CC_EOF'
-#!/bin/sh
-NIX_CFLAGS_COMPILE="" NIX_LDFLAGS="" exec "${buildPackages.stdenv.cc}/bin/cc" "$@"
-BUILD_CC_EOF
-    chmod +x "$PWD/build-bin/build-cc"
-    configureFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
-    makeFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+        # Localized host CC wrapper for build-time tools (e.g. bfd/doc/chew)
+        # Host GCC fails if given Clang-specific Bionic flags (-nostdlibinc, -fno-emulated-tls).
+        mkdir -p "$PWD/build-bin"
+        cat > "$PWD/build-bin/build-cc" << 'BUILD_CC_EOF'
+    #!/bin/sh
+    NIX_CFLAGS_COMPILE="" NIX_LDFLAGS="" exec "${buildPackages.stdenv.cc}/bin/cc" "$@"
+    BUILD_CC_EOF
+        chmod +x "$PWD/build-bin/build-cc"
+        configureFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+        makeFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
 
-    pyHelper="$PWD/python-config-cross.sh"
-    cat > "$pyHelper" << 'PY_HELPER_EOF'
-#!/bin/sh
-case "$*" in
-  *--includes*) echo "-I${python3}/include/python3.13" ;;
-  *--ldflags*) echo "-L${python3}/lib -lpython3.13" ;;
-  *--exec-prefix*) echo "${python3}" ;;
-  *) exit 1 ;;
-esac
-PY_HELPER_EOF
-    chmod +x "$pyHelper"
-    ${lib.optionalString pythonSupport ''
-      configureFlagsArray+=("--with-python=$pyHelper")
-    ''}
+        pyHelper="$PWD/python-config-cross.sh"
+        cat > "$pyHelper" << 'PY_HELPER_EOF'
+    #!/bin/sh
+    case "$*" in
+      *--includes*) echo "-I${python3}/include/python3.13" ;;
+      *--ldflags*) echo "-L${python3}/lib -lpython3.13" ;;
+      *--exec-prefix*) echo "${python3}" ;;
+      *) exit 1 ;;
+    esac
+    PY_HELPER_EOF
+        chmod +x "$pyHelper"
+        ${lib.optionalString pythonSupport ''
+          configureFlagsArray+=("--with-python=$pyHelper")
+        ''}
   '';
 
   meta = {
