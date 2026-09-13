@@ -31,7 +31,8 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/reversing/radare2`: Standalone binary analysis framework.
   - [x] `pkgs/reversing/rizin`: Reverse engineering framework and command-line disassembler.
 - [ ] **`pkgs/core/` (Core Unix CLI Utilities)**:
-  - `pkgs/core/htop`, `pkgs/core/socat`.
+  - `pkgs/core/htop`.
+  - [x] `pkgs/core/socat`: Multipurpose relay tool for Android IPC, UNIX domain sockets, and TCP/UDP forwarding.
   - [x] `pkgs/core/curl`: Cross-compiled cURL with OpenSSL 3 TLS and Zstandard support for Android.
 
 ---
