@@ -116,4 +116,8 @@ assert_contains "$output" "OpenSSL" "curl OpenSSL backend check in sysroot"
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/curl -s file:///proc/version 2>&1" || true)"
 assert_contains "$output" "Linux version" "curl local file fetch in sysroot"
 
+# 9. socat pipe bidirectional transfer in sysroot
+output="$(adb_shell "${ENV_WRAPPER} echo 'socat_sysroot_integration' | ${SYSROOT_DIR}/bin/socat - - 2>&1" || true)"
+assert_contains "$output" "socat_sysroot_integration" "socat pipe transfer in sysroot"
+
 print_summary
