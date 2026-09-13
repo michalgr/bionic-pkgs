@@ -33,16 +33,17 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-HANsDXLks9H7XJTIhjKt1vnXb018TS6nk8EqnxmjIow=";
   };
 
-  buildInputs = [
-    expat
-    gmp
-    mpfr
-    ncurses
-    readline
-    zlib
-    zstd
-  ]
-  ++ lib.optionals pythonSupport [ python3 ];
+  buildInputs =
+    [
+      expat
+      gmp
+      mpfr
+      ncurses
+      readline
+      zlib
+      zstd
+    ]
+    ++ lib.optionals pythonSupport [ python3 ];
 
   env.NIX_CFLAGS_COMPILE = "-Wno-format-nonliteral -Wno-unused-function -D__USE_FORTIFY_LEVEL=0";
 
@@ -140,9 +141,9 @@ case "$*" in
 esac
 PY_HELPER_EOF
     chmod +x "$pyHelper"
-  ''
-  + lib.optionalString pythonSupport ''
-    configureFlagsArray+=("--with-python=$pyHelper")
+    ${lib.optionalString pythonSupport ''
+      configureFlagsArray+=("--with-python=$pyHelper")
+    ''}
   '';
 
   meta = {
