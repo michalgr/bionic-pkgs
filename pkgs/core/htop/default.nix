@@ -15,7 +15,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fetchurl {
     url = "https://github.com/htop-dev/htop/releases/download/${finalAttrs.version}/htop-${finalAttrs.version}.tar.xz";
-    hash = "sha256-cWJXlEAmIsI+uATkUv8Vw2x96vG6pB+1SpIYkes0FcI=";
+    hash = "sha256-qLFkOGSUy4W7JVpBWj9fgK/noMRJHaXRE7Og+VEIfmU=";
   };
 
   nativeBuildInputs = [
