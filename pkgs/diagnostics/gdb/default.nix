@@ -53,88 +53,88 @@ stdenv.mkDerivation (finalAttrs: {
   env.NIX_CFLAGS_COMPILE = "-Wno-format-nonliteral -Wno-unused-function -D__USE_FORTIFY_LEVEL=0";
 
   postPatch = ''
-    # 1. Fix ::open template deduction in gdbsupport/eintr.h for Bionic
-    substituteInPlace gdbsupport/eintr.h \
-      --replace-fail 'return gdb::handle_eintr (-1, ::open, pathname, flags);' \
-                     'int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;'
+        # 1. Fix ::open template deduction in gdbsupport/eintr.h for Bionic
+        substituteInPlace gdbsupport/eintr.h \
+          --replace-fail 'return gdb::handle_eintr (-1, ::open, pathname, flags);' \
+                         'int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;'
 
-    # 2. Fix Android shell and temporary paths in gdbsupport/pathstuff.cc
-    substituteInPlace gdbsupport/pathstuff.cc \
-      --replace-fail 'return "/tmp";' 'return "/data/local/tmp";' \
-      --replace-fail 'ret = "/bin/sh";' 'ret = "/system/bin/sh";'
+        # 2. Fix Android shell and temporary paths in gdbsupport/pathstuff.cc
+        substituteInPlace gdbsupport/pathstuff.cc \
+          --replace-fail 'return "/tmp";' 'return "/data/local/tmp";' \
+          --replace-fail 'ret = "/bin/sh";' 'ret = "/system/bin/sh";'
 
-    # 3. Fix compilation temp prefix in gdb/compile/compile.c
-    substituteInPlace gdb/compile/compile.c \
-      --replace-fail '#define TMP_PREFIX "/tmp/gdbobj-"' '#define TMP_PREFIX "/data/local/tmp/gdbobj-"'
+        # 3. Fix compilation temp prefix in gdb/compile/compile.c
+        substituteInPlace gdb/compile/compile.c \
+          --replace-fail '#define TMP_PREFIX "/tmp/gdbobj-"' '#define TMP_PREFIX "/data/local/tmp/gdbobj-"'
 
-    # 4. Suppress false-positive signal disposition warning on Android
-    substituteInPlace gdbsupport/signals-state-save-restore.cc \
-      --replace-fail 'if (found_preinstalled)' 'if (!defined_android && found_preinstalled)' \
-      --replace-fail 'bool found_preinstalled = false;' 'bool defined_android = true; bool found_preinstalled = false;'
+        # 4. Suppress false-positive signal disposition warning on Android
+        substituteInPlace gdbsupport/signals-state-save-restore.cc \
+          --replace-fail 'if (found_preinstalled)' 'if (!defined_android && found_preinstalled)' \
+          --replace-fail 'bool found_preinstalled = false;' 'bool defined_android = true; bool found_preinstalled = false;'
 
-    # 5. Fix setpgid on Android
-    substituteInPlace gdbsupport/job-control.cc \
-      --replace-fail 'retval = setpgid (getpid (), getpid ());' 'retval = setpgid (0, 0);'
+        # 5. Fix setpgid on Android
+        substituteInPlace gdbsupport/job-control.cc \
+          --replace-fail 'retval = setpgid (getpid (), getpid ());' 'retval = setpgid (0, 0);'
 
-    # 6. Fix PAGE_SIZE on 64-bit Bionic (dynamic page size / Android 15+)
-    substituteInPlace gdb/nat/linux-btrace.c \
-      --replace-fail '#include <signal.h>' $'#include <signal.h>\n#ifndef PAGE_SIZE\n#define PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))\n#endif'
+        # 6. Fix PAGE_SIZE on 64-bit Bionic (dynamic page size / Android 15+)
+        substituteInPlace gdb/nat/linux-btrace.c \
+          --replace-fail '#include <signal.h>' $'#include <signal.h>\n#ifndef PAGE_SIZE\n#define PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))\n#endif'
 
-    # 7. Add Android system library search path to solib.c
-    substituteInPlace gdb/solib.c \
-      --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' $'#ifdef __ANDROID__\n  solib_search_path = "${
-        if stdenv.hostPlatform.is64bit then
-          "/system/lib64:/system/vendor/lib64"
-        else
-          "/system/lib:/system/vendor/lib"
-      }";\n#endif\n  add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,'
+        # 7. Add Android system library search path to solib.c
+        substituteInPlace gdb/solib.c \
+          --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' $'#ifdef __ANDROID__\n  solib_search_path = "${
+            if stdenv.hostPlatform.is64bit then
+              "/system/lib64:/system/vendor/lib64"
+            else
+              "/system/lib:/system/vendor/lib"
+          }";\n#endif\n  add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,'
 
-    # 8. Fix Elf32_auxv_t and Elf64_auxv_t check in gdbserver/configure
-    substituteInPlace gdbserver/configure \
-      --replace-fail '  *-android*)' '  *-android-disabled-auxv-override*)'
+        # 8. Fix Elf32_auxv_t and Elf64_auxv_t check in gdbserver/configure
+        substituteInPlace gdbserver/configure \
+          --replace-fail '  *-android*)' '  *-android-disabled-auxv-override*)'
 
-    # 9. Fix FS/GS assert on x86_64 Android (where ELF_NGREG layout differs)
-    substituteInPlace gdb/amd64-linux-nat.c \
-      --replace-fail 'gdb_assert (FS < ELF_NGREG);' '#ifndef __ANDROID__
-      gdb_assert (FS < ELF_NGREG);' \
-      --replace-fail 'gdb_assert (GS < ELF_NGREG);' 'gdb_assert (GS < ELF_NGREG);
-#endif'
+        # 9. Fix FS/GS assert on x86_64 Android (where ELF_NGREG layout differs)
+        substituteInPlace gdb/amd64-linux-nat.c \
+          --replace-fail 'gdb_assert (FS < ELF_NGREG);' '#ifndef __ANDROID__
+          gdb_assert (FS < ELF_NGREG);' \
+          --replace-fail 'gdb_assert (GS < ELF_NGREG);' 'gdb_assert (GS < ELF_NGREG);
+    #endif'
   '';
 
   preConfigure = ''
-    # 1. Localized host CC wrapper for build-time tools (e.g. bfd/doc/chew)
-    # Host GCC fails if given Clang-specific Bionic flags (-nostdlibinc, -fno-emulated-tls).
-    mkdir -p "$PWD/build-bin"
-    cat > "$PWD/build-bin/build-cc" << 'BUILD_CC_EOF'
-#!/bin/sh
-NIX_CFLAGS_COMPILE="" NIX_LDFLAGS="" exec "${buildPackages.stdenv.cc}/bin/cc" "$@"
-BUILD_CC_EOF
-    chmod +x "$PWD/build-bin/build-cc"
-    configureFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
-    makeFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+        # 1. Localized host CC wrapper for build-time tools (e.g. bfd/doc/chew)
+        # Host GCC fails if given Clang-specific Bionic flags (-nostdlibinc, -fno-emulated-tls).
+        mkdir -p "$PWD/build-bin"
+        cat > "$PWD/build-bin/build-cc" << 'BUILD_CC_EOF'
+    #!/bin/sh
+    NIX_CFLAGS_COMPILE="" NIX_LDFLAGS="" exec "${buildPackages.stdenv.cc}/bin/cc" "$@"
+    BUILD_CC_EOF
+        chmod +x "$PWD/build-bin/build-cc"
+        configureFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+        makeFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
 
-    # 2. Python cross-compilation integration
-    ${lib.optionalString pythonSupport ''
-      pyHelper="$PWD/python-config-cross.sh"
-      cat > "$pyHelper" << 'EOF'
-#!/bin/sh
-case "$*" in
-  *--includes*) echo "-I${python3}/include/python3.13" ;;
-  *--ldflags*) echo "-L${python3}/lib -lpython3.13" ;;
-  *--exec-prefix*) echo "${python3}" ;;
-  *) exit 1 ;;
-esac
-EOF
-      chmod +x "$pyHelper"
-      configureFlagsArray+=("--with-python=$pyHelper")
-    ''}
-    ${lib.optionalString (!pythonSupport) ''
-      configureFlagsArray+=("--without-python")
-    ''}
+        # 2. Python cross-compilation integration
+        ${lib.optionalString pythonSupport ''
+                pyHelper="$PWD/python-config-cross.sh"
+                cat > "$pyHelper" << 'EOF'
+          #!/bin/sh
+          case "$*" in
+            *--includes*) echo "-I${python3}/include/python3.13" ;;
+            *--ldflags*) echo "-L${python3}/lib -lpython3.13" ;;
+            *--exec-prefix*) echo "${python3}" ;;
+            *) exit 1 ;;
+          esac
+          EOF
+                chmod +x "$pyHelper"
+                configureFlagsArray+=("--with-python=$pyHelper")
+        ''}
+        ${lib.optionalString (!pythonSupport) ''
+          configureFlagsArray+=("--without-python")
+        ''}
 
-    # 3. GDB must be built out of tree
-    mkdir _build
-    cd _build
+        # 3. GDB must be built out of tree
+        mkdir _build
+        cd _build
   '';
   configureScript = "../configure";
 
