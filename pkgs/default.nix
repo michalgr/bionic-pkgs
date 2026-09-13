@@ -55,6 +55,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   # Core Unix Utilities
   curl = self.callPackage ./core/curl { };
   socat = self.callPackage ./core/socat { };
+  htop = self.callPackage ./core/htop { };
 
   # Bundled Archives
   sysroot = self.callPackage ./bundles/sysroot {
@@ -70,6 +71,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.bcc
       self.curl
       self.socat
+      self.htop
     ];
   };
 

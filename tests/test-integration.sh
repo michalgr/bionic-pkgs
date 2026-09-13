@@ -120,4 +120,8 @@ assert_contains "$output" "Linux version" "curl local file fetch in sysroot"
 output="$(adb_shell "${ENV_WRAPPER} echo 'socat_sysroot_integration' | ${SYSROOT_DIR}/bin/socat - - 2>&1" || true)"
 assert_contains "$output" "socat_sysroot_integration" "socat pipe transfer in sysroot"
 
+# 10. htop process inspection in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/htop --version 2>&1" || true)"
+assert_contains "$output" "htop 3." "htop version check in sysroot"
+
 print_summary
