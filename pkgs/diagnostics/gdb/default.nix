@@ -1,16 +1,17 @@
-{ stdenv
-, fetchurl
-, lib
-, buildPackages
-, python3
-, expat
-, gmp
-, mpfr
-, ncurses
-, readline
-, zlib
-, zstd
-, pythonSupport ? true
+{
+  stdenv,
+  fetchurl,
+  lib,
+  buildPackages,
+  python3,
+  expat,
+  gmp,
+  mpfr,
+  ncurses,
+  readline,
+  zlib,
+  zstd,
+  pythonSupport ? true,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
