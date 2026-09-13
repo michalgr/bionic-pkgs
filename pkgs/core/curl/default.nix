@@ -20,7 +20,9 @@ stdenv.mkDerivation (finalAttrs: {
   src = fetchurl {
     urls = [
       "https://curl.se/download/curl-${finalAttrs.version}.tar.xz"
-      "https://github.com/curl/curl/releases/download/curl-${builtins.replaceStrings [ "." ] [ "_" ] finalAttrs.version}/curl-${finalAttrs.version}.tar.xz"
+      "https://github.com/curl/curl/releases/download/curl-${
+        builtins.replaceStrings [ "." ] [ "_" ] finalAttrs.version
+      }/curl-${finalAttrs.version}.tar.xz"
     ];
     hash = "sha256-9+866KIuUh8omAP+k1Q+tkwym1iqc6niJN/ZFaKl9Pc=";
   };
