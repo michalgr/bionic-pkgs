@@ -26,6 +26,9 @@ for py_dir in "\$BASE_DIR"/lib/python3.*; do
     if [ -d "\$py_dir/site-packages" ]; then
       export PYTHONPATH="\$py_dir/site-packages\${PYTHONPATH:+:\$PYTHONPATH}"
     fi
+    if [ -d "\$BASE_DIR/share/gdb/python" ]; then
+      export PYTHONPATH="\$BASE_DIR/share/gdb/python\${PYTHONPATH:+:\$PYTHONPATH}"
+    fi
     break
   fi
 done

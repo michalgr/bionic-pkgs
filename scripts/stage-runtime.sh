@@ -82,7 +82,7 @@ for pkg in "${PKG_PATHS[@]}"; do
       [ -e "$item" ] || continue
       base="$(basename "$item")"
       case "$base" in
-        man|doc|info|locale|aclocal|pkgconfig|gdb)
+        man|doc|info|locale|aclocal|pkgconfig)
           ;;
         *)
           cp -a "$item" "$STAGE_DIR/share/"
