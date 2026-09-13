@@ -349,6 +349,36 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
      - `-DLLDB_PYTHON_EXT_SUFFIX=.cpython-313-<arch>-linux-android.so`
    - Adding `python3` to LLDB's `buildInputs` ensures `adb-push.sh` and sysroot bundles automatically aggregate `libpython3.13.so` and Python standard library paths into the device deployment directory.
 
+### Case Study 9: `gdb` & `gdbserver` (GNU Debugger & Companion Remote Server)
+`gdb` provides GNU interactive debugging, breakpoint management, thread inspection, core analysis, and remote server connectivity on Android 14+ (Bionic libc) alongside companion `gdbserver`.
+
+1. **Gnulib `__bos` & Fortify Level Collision**:
+   - Gnulib's bundled `cdefs.h` undefines `__bos` when `__GNUC__` is detected and assumes glibc's internal `__USE_FORTIFY_LEVEL` declarations. On Android Bionic, `<bits/fortify/stdio.h>` relies on `__bos` for buffer safety checks.
+   - **Resolution**: Pass `-D__USE_FORTIFY_LEVEL=0` in `NIX_CFLAGS_COMPILE` to disable glibc macro collisions cleanly without mutating source headers.
+2. **Overloaded `::open` Template Deduction Failure (`gdbsupport/eintr.h`)**:
+   - Bionic's `<fcntl.h>` provides overloaded declarations for `::open(const char*, int)` and `::open(const char*, int, mode_t)`.
+   - Upstream `gdb::handle_eintr` attempts template deduction with `return gdb::handle_eintr(-1, ::open, ...)`, causing Clang template deduction ambiguity errors.
+   - **Resolution**: Substitute with an explicit EINTR retry loop in `postPatch`:
+     ```cpp
+     int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;
+     ```
+3. **Host Build Compiler Isolation (`CC_FOR_BUILD`)**:
+   - GDB builds internal host documentation generators (e.g. `bfd/doc/chew.c`) during `make`.
+   - Because target Bionic flags (`-nostdlibinc`, `-fno-emulated-tls`) are exported into `NIX_CFLAGS_COMPILE`, host `gcc` wrappers fail when building host tools.
+   - **Resolution**: Wrap `CC_FOR_BUILD` with a localized shell script in `preConfigure` that empties `NIX_CFLAGS_COMPILE` and `NIX_LDFLAGS`, keeping host compiler flags pristine without touching global stdenv overlays.
+4. **Python 3 Cross-Compilation Integration**:
+   - GDB configure expects `--with-python=<path>`. Passing host Python causes host glibc library leakage, while passing target `python3-config` fails because it is an Android ELF binary that cannot run on the host.
+   - **Resolution**: In `preConfigure`, generate a lightweight helper script (`python-config-cross.sh`) returning target includes (`-I${python3}/include/python3.13`), linker flags (`-L${python3}/lib -lpython3.13`), and prefix, passed via `--with-python=$PWD/python-config-cross.sh`.
+5. **Signal Disposition & Non-Root Process Control**:
+   - Bionic reserves `SIGRTMIN` through `SIGRTMIN + 7` for internal thread lifecycle management. GDB warns about preinstalled signal handlers. Guard the warning loop with `#ifndef __ANDROID__` in `gdbsupport/signals-state-save-restore.cc`.
+   - Replace `setpgid(getpid(), getpid())` with `setpgid(0, 0)` in `gdbsupport/job-control.cc` to allow non-root inferior debugging.
+6. **Dynamic 16 KB Page Size & Solib Search Path**:
+   - Bionic lacks static `PAGE_SIZE` macros on 64-bit architectures. `gdb/nat/linux-btrace.c` is patched to define `PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))`.
+   - `gdb/solib.c` initializes `solib_search_path` to `/system/lib64:/system/vendor/lib64` (and `/system/lib:/system/vendor/lib` on 32-bit) to resolve Android platform shared libraries automatically.
+7. **x86_64 Register Assertions & `gdbserver` Auxv Detection**:
+   - `gdbserver/configure` contains a legacy `*-android*)` pattern that disabled `Elf32_auxv_t` / `Elf64_auxv_t` detection. Renaming the pattern enables modern Bionic auxv detection.
+   - `gdb/amd64-linux-nat.c` assertions (`FS < ELF_NGREG`, `GS < ELF_NGREG`) are guarded with `#ifndef __ANDROID__`.
+
 ### Case Study 8: `openssl` (OpenSSL Cryptographic & SSL/TLS Toolkit)
 `openssl` provides shared cryptographic libraries (`libssl.so`, `libcrypto.so`), engines, providers (`legacy.so`), and the `openssl` command-line utility for Android.
 
