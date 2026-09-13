@@ -52,6 +52,9 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   # Runtime Environments & Interpreters
   python3 = self.callPackage ./runtime/python3 { };
 
+  # Core Unix Utilities
+  curl = self.callPackage ./core/curl { };
+
   # Bundled Archives
   sysroot = self.callPackage ./bundles/sysroot {
     packages = [
@@ -64,6 +67,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.radare2
       self.rizin
       self.bcc
+      self.curl
     ];
   };
 

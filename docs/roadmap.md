@@ -31,7 +31,8 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/reversing/radare2`: Standalone binary analysis framework.
   - [x] `pkgs/reversing/rizin`: Reverse engineering framework and command-line disassembler.
 - [ ] **`pkgs/core/` (Core Unix CLI Utilities)**:
-  - `pkgs/core/htop`, `pkgs/core/curl`, `pkgs/core/socat`.
+  - `pkgs/core/htop`, `pkgs/core/socat`.
+  - [x] `pkgs/core/curl`: Cross-compiled cURL with OpenSSL 3 TLS and Zstandard support for Android.
 
 ---
 
@@ -40,7 +41,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/tracing/bcc`: BPF Compiler Collection.
   - [x] `pkgs/tracing/bpftrace`: High-level kernel dynamic tracing language and runtime.
   - [x] `pkgs/tracing/libbpf`: Core BPF object loader library.
-- [ ] **`pkgs/diagnostics/` (Debuggers)**:
+- [x] **`pkgs/diagnostics/` (Debuggers)**:
   - [x] `pkgs/diagnostics/gdb`: GDB & `gdbserver` cross-compiled for Bionic with Python 3 scripting support.
   - [x] `pkgs/diagnostics/lldb`: LLVM native target debugger & `lldb-server`.
 
