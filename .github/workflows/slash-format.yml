@@ -54,7 +54,7 @@ jobs:
       - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
-          repository: ${{ fromJson(steps.pr.outputs.result).is_fork && fromJson(steps.pr.outputs.result).repo_full_name || format('{0}/{1}', context.repo.owner, context.repo.repo) }}
+          repository: ${{ fromJson(steps.pr.outputs.result).repo_full_name }}
           ref: ${{ fromJson(steps.pr.outputs.result).ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
