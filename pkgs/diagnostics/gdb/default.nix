@@ -56,7 +56,7 @@ stdenv.mkDerivation (finalAttrs: {
         # 1. Fix ::open template deduction in gdbsupport/eintr.h for Bionic
         substituteInPlace gdbsupport/eintr.h \
           --replace-fail 'return gdb::handle_eintr (-1, ::open, pathname, flags);' \
-                         'int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;'
+                         'return gdb::handle_eintr (-1, static_cast<int (*)(const char *, int, ...)>(::open), pathname, flags);'
 
         # 2. Fix Android shell and temporary paths in gdbsupport/pathstuff.cc
         substituteInPlace gdbsupport/pathstuff.cc \

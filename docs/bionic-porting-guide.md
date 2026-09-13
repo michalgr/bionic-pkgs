@@ -382,11 +382,11 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Gnulib's bundled `cdefs.h` undefines `__bos` when `__GNUC__` is detected and assumes glibc's internal `__USE_FORTIFY_LEVEL` declarations. On Android Bionic, `<bits/fortify/stdio.h>` relies on `__bos` for buffer safety checks.
    - **Resolution**: Pass `-D__USE_FORTIFY_LEVEL=0` in `NIX_CFLAGS_COMPILE` to disable glibc macro collisions cleanly without mutating source headers.
 2. **Overloaded `::open` Template Deduction Failure (`gdbsupport/eintr.h`)**:
-   - Bionic's `<fcntl.h>` provides overloaded declarations for `::open(const char*, int)` and `::open(const char*, int, mode_t)`.
-   - Upstream `gdb::handle_eintr` attempts template deduction with `return gdb::handle_eintr(-1, ::open, ...)`, causing Clang template deduction ambiguity errors.
-   - **Resolution**: Substitute with an explicit EINTR retry loop in `postPatch`:
+   - Bionic's `<fcntl.h>` provides fortified overloads (`__overloadable`) for `::open`. In C++, passing an overloaded function name prevents Clang from inferring template argument `Fun` in `gdb::handle_eintr(-1, ::open, pathname, flags)`.
+   - Furthermore, Bionic's 2-argument inline overload (`open(const char*, int)`) has `__pass_object_size` which prevents taking its address. The underlying addressable C library symbol in Bionic is variadic (`int open(const char*, int, ...)`).
+   - **Resolution**: Disambiguate `::open` in `postPatch` with an explicit function pointer cast while preserving GDB's native `handle_eintr` architecture:
      ```cpp
-     int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;
+     return gdb::handle_eintr (-1, static_cast<int (*)(const char *, int, ...)>(::open), pathname, flags);
      ```
 3. **Host Build Compiler Isolation (`CC_FOR_BUILD`)**:
    - GDB builds internal host documentation generators (e.g. `bfd/doc/chew.c`) during `make`.
