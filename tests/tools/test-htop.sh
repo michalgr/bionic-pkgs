@@ -59,7 +59,15 @@ assert_contains "$output" "Print this help screen" "htop help banner"
 assert_contains "$output" "--max-iterations" "htop iterations option check"
 
 # 3. Single iteration procfs scanning & display test
-output="$(adb_shell "TERM=vt100 ${HTOP_BIN} -n 1 2>&1" || true)"
+HTOP_DIR="$(dirname "${HTOP_BIN}")"
+TERMINFO_ENV=""
+if adb_shell "[ -d '${HTOP_DIR}/share/terminfo' ]" 2>/dev/null; then
+  TERMINFO_ENV="TERMINFO=${HTOP_DIR}/share/terminfo"
+elif adb_shell "[ -d '${HTOP_DIR}/../share/terminfo' ]" 2>/dev/null; then
+  TERMINFO_ENV="TERMINFO=${HTOP_DIR}/../share/terminfo"
+fi
+
+output="$(adb_shell "TERM=vt100 ${TERMINFO_ENV} ${HTOP_BIN} -n 1 2>&1" || true)"
 assert_match "PID|CPU%|MEM%" "$output" "htop single iteration procfs scanning (-n 1)"
 
 print_summary

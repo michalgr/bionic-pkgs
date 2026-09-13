@@ -20,6 +20,10 @@ fi
 
 export PATH="\$BASE_DIR/bin:\$PATH"
 
+if [ -d "\$BASE_DIR/share/terminfo" ]; then
+  export TERMINFO="\$BASE_DIR/share/terminfo"
+fi
+
 for py_dir in "\$BASE_DIR"/lib/python3.*; do
   if [ -d "\$py_dir" ]; then
     export PYTHONHOME="\$BASE_DIR"
