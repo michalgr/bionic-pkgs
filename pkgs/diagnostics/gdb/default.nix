@@ -1,6 +1,3 @@
-# pkgs/diagnostics/gdb/default.nix
-# GNU Debugger (GDB) & gdbserver for Android 14+ (Bionic libc).
-
 {
   stdenv,
   fetchurl,
@@ -17,13 +14,6 @@
   pythonSupport ? true,
 }:
 
-let
-  solibSearchPath =
-    if stdenv.hostPlatform.is64bit then
-      "/system/lib64:/system/vendor/lib64"
-    else
-      "/system/lib:/system/vendor/lib";
-in
 stdenv.mkDerivation (finalAttrs: {
   pname = "gdb";
   version = "17.2";
@@ -83,7 +73,7 @@ stdenv.mkDerivation (finalAttrs: {
   postPatch = ''
     substituteInPlace gdbsupport/eintr.h \
       --replace-fail 'return gdb::handle_eintr (-1, ::open, pathname, flags);' \
-                     'int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;'
+      'int ret; do { errno = 0; ret = ::open(pathname, flags); } while (ret == -1 && errno == EINTR); return ret;'
 
     substituteInPlace gdbsupport/pathstuff.cc \
       --replace-fail 'return "/tmp";' 'return "/data/local/tmp";' \
@@ -100,45 +90,45 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail 'retval = setpgid (getpid (), getpid ());' 'retval = setpgid (0, 0);'
 
     substituteInPlace gdb/nat/linux-btrace.c \
-      --replace-fail '#include <signal.h>' "#include <signal.h>\n#ifndef PAGE_SIZE\n#define PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))\n#endif"
+      --replace-fail '#include <signal.h>' $'#include <signal.h>\n#ifndef PAGE_SIZE\n#define PAGE_SIZE ((size_t) sysconf(_SC_PAGESIZE))\n#endif'
 
     substituteInPlace gdb/solib.c \
-      --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' "#ifdef __ANDROID__\n  solib_search_path = \"${solibSearchPath}\";\n#endif\n  add_alias_cmd (\"solib-absolute-prefix\", sysroot_cmds.set, class_support, 0,"
+      --replace-fail 'add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,' $'#ifdef __ANDROID__\n  solib_search_path = "${if stdenv.hostPlatform.is64bit then "/system/lib64:/system/vendor/lib64" else "/system/lib:/system/vendor/lib"}";\n#endif\n  add_alias_cmd ("solib-absolute-prefix", sysroot_cmds.set, class_support, 0,'
 
     substituteInPlace gdbserver/configure \
       --replace-fail '  *-android*)' '  *-android-disabled-auxv-override*)'
 
     substituteInPlace gdb/amd64-linux-nat.c \
-      --replace-fail 'gdb_assert (FS < ELF_NGREG);' "#ifndef __ANDROID__\n  gdb_assert (FS < ELF_NGREG);" \
-      --replace-fail 'gdb_assert (GS < ELF_NGREG);' "gdb_assert (GS < ELF_NGREG);\n#endif"
+      --replace-fail 'gdb_assert (FS < ELF_NGREG);' $'#ifndef __ANDROID__\n  gdb_assert (FS < ELF_NGREG);' \
+      --replace-fail 'gdb_assert (GS < ELF_NGREG);' $'gdb_assert (GS < ELF_NGREG);\n#endif'
   '';
 
   preConfigure = ''
-        # Localized host CC wrapper for build-time tools (e.g. bfd/doc/chew)
-        # Host GCC fails if given Clang-specific Bionic flags (-nostdlibinc, -fno-emulated-tls).
-        mkdir -p "$PWD/build-bin"
-        cat > "$PWD/build-bin/build-cc" << 'BUILD_CC_EOF'
-    #!/bin/sh
-    NIX_CFLAGS_COMPILE="" NIX_LDFLAGS="" exec "${buildPackages.stdenv.cc}/bin/cc" "$@"
-    BUILD_CC_EOF
-        chmod +x "$PWD/build-bin/build-cc"
-        configureFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
-        makeFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+    # Localized host CC wrapper for build-time tools (e.g. bfd/doc/chew)
+    # Host GCC fails if given Clang-specific Bionic flags (-nostdlibinc, -fno-emulated-tls).
+    mkdir -p "$PWD/build-bin"
+    cat > "$PWD/build-bin/build-cc" << 'BUILD_CC_EOF'
+#!/bin/sh
+NIX_CFLAGS_COMPILE="" NIX_LDFLAGS="" exec "${buildPackages.stdenv.cc}/bin/cc" "$@"
+BUILD_CC_EOF
+    chmod +x "$PWD/build-bin/build-cc"
+    configureFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
+    makeFlagsArray+=("CC_FOR_BUILD=$PWD/build-bin/build-cc")
 
-        pyHelper="$PWD/python-config-cross.sh"
-        cat > "$pyHelper" << 'PY_HELPER_EOF'
-    #!/bin/sh
-    case "$*" in
-      *--includes*) echo "-I${python3}/include/python3.13" ;;
-      *--ldflags*) echo "-L${python3}/lib -lpython3.13" ;;
-      *--exec-prefix*) echo "${python3}" ;;
-      *) exit 1 ;;
-    esac
-    PY_HELPER_EOF
-        chmod +x "$pyHelper"
-        ${lib.optionalString pythonSupport ''
-          configureFlagsArray+=("--with-python=$pyHelper")
-        ''}
+    pyHelper="$PWD/python-config-cross.sh"
+    cat > "$pyHelper" << 'PY_HELPER_EOF'
+#!/bin/sh
+case "$*" in
+  *--includes*) echo "-I${python3}/include/python3.13" ;;
+  *--ldflags*) echo "-L${python3}/lib -lpython3.13" ;;
+  *--exec-prefix*) echo "${python3}" ;;
+  *) exit 1 ;;
+esac
+PY_HELPER_EOF
+    chmod +x "$pyHelper"
+    ${lib.optionalString pythonSupport ''
+      configureFlagsArray+=("--with-python=$pyHelper")
+    ''}
   '';
 
   meta = {
