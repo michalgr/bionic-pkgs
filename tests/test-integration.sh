@@ -101,4 +101,19 @@ assert_contains "$output" "LLDB_API_OK: True" "lldb embedded python module and t
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lldb --batch -o \"target create ${SYSROOT_DIR}/bin/strace\" -o \"image list\" -o \"quit\" 2>&1" || true)"
 assert_contains "$output" "strace" "lldb target inspection of sysroot binary"
 
+# 7. gdb inspecting sysroot binary and testing python scripting
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/gdb --batch -ex 'file ${SYSROOT_DIR}/bin/strace' -ex 'info files' -ex 'quit' 2>&1" || true)"
+assert_contains "$output" "strace" "gdb target inspection of sysroot binary"
+
+output="$(adb_shell "${ENV_WRAPPER} PYTHONHOME=${SYSROOT_DIR} PYTHONPATH=${SYSROOT_DIR}/lib/python3.13:${SYSROOT_DIR}/share/gdb/python ${SYSROOT_DIR}/bin/gdb --batch -ex 'python import gdb; print(\"GDB_INTEGRATION_OK:\", gdb.VERSION)' -ex 'quit' 2>&1" || true)"
+assert_contains "$output" "GDB_INTEGRATION_OK:" "gdb embedded python module in sysroot"
+
+# 8. curl local file transfer and version verification in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/curl --version 2>&1" || true)"
+assert_contains "$output" "curl" "curl version check in sysroot"
+assert_contains "$output" "OpenSSL" "curl OpenSSL backend check in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/curl -s file:///proc/version 2>&1" || true)"
+assert_contains "$output" "Linux version" "curl local file fetch in sysroot"
+
 print_summary
