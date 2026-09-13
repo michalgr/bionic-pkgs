@@ -34,7 +34,35 @@ jobs:
         run: nix flake check --no-build --all-systems
 
       - name: Check Nix Code Formatting
-        run: nix fmt -- --ci
+        run: |
+          if ! nix fmt -- --ci; then
+            echo "::error::Nix code formatting check failed! Run 'nix fmt' locally or comment '/format' on the PR."
+            # Ensure formatted changes are written to disk for diff generation
+            nix fmt >/dev/null 2>&1 || true
+            git --no-pager diff > formatting.patch
+            echo "==================== NIX FORMATTING DIFF ===================="
+            cat formatting.patch
+            echo "============================================================="
+            if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+              {
+                echo "### ⚠️ Nix Code Formatting Check Failed"
+                echo "The following files do not match formatting rules. Run \`nix fmt\` locally, comment \`/format\` on the PR, or apply this patch:"
+                echo ""
+                echo '```diff'
+                cat formatting.patch
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 1
+          fi
+
+      - name: Upload Formatting Patch
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatting-patch
+          path: formatting.patch
+          if-no-files-found: ignore
 
   verify-apps:
     name: Verify ADB Push Apps Evaluation (${{ matrix.system }})
