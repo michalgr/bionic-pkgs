@@ -164,4 +164,8 @@ assert_contains "$output" "Nping version 7.99" "nping version check in sysroot"
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/nmap -sn 127.0.0.1 2>&1" || true)"
 assert_contains "$output" "Nmap done: 1 IP address (1 host up)" "nmap localhost ping scan in sysroot"
 
+# 15. tmux checks in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/tmux -V 2>&1" || true)"
+assert_contains "$output" "tmux 3.7" "tmux version check in sysroot"
+
 print_summary

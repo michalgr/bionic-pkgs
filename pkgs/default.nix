@@ -14,6 +14,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   libclang = self.callPackage ./libs/llvm/libclang.nix { };
   libpcap = self.callPackage ./libs/libpcap { };
   pcre2 = self.callPackage ./libs/pcre2 { };
+  libevent = self.callPackage ./libs/libevent { };
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
   readline = self.callPackage ./libs/readline { };
@@ -62,6 +63,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   curl = self.callPackage ./core/curl { };
   socat = self.callPackage ./core/socat { };
   htop = self.callPackage ./core/htop { };
+  tmux = self.callPackage ./core/tmux { };
 
   # Bundled Archives
   sysroot = self.callPackage ./bundles/sysroot {
@@ -82,6 +84,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.iperf3
       self.lsof
       self.nmap
+      self.tmux
     ];
   };
 
