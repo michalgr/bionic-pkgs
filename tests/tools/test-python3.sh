@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 PYTHON_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       PYTHON_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$PYTHON_BIN" ]; then
-        PYTHON_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$PYTHON_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,22 +42,26 @@ done
 
 adb_wait_and_root
 
-if [ -z "$PYTHON_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/python3/run.sh ]" 2>/dev/null; then
-    PYTHON_BIN="/data/local/tmp/bionic-pkgs/python3/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/python-launcher.sh ]" 2>/dev/null; then
-    PYTHON_BIN="/data/local/tmp/test-sysroot/python-launcher.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/python3 ]" 2>/dev/null; then
-    PYTHON_BIN="/data/local/tmp/test-sysroot/bin/python3"
+if [ -z "$TARGET_DIR" ] && [ -z "$PYTHON_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/python3/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/python3"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    PYTHON_BIN="/data/local/tmp/bionic-pkgs/python3/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/python3"
   fi
 fi
 
-log_info "Testing python3 via: ${PYTHON_BIN}"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing python3 via dir: ${TARGET_DIR}"
+  PYTHON_CMD="${TARGET_DIR}/env.sh python3"
+else
+  log_info "Testing python3 via: ${PYTHON_BIN}"
+  PYTHON_CMD="${PYTHON_BIN}"
+fi
 
 # 1. Stdlib & platform check
-output="$(adb_shell "${PYTHON_BIN} -c \"import sys, os; print('PLATFORM_OK:', sys.platform, os.name)\" 2>&1" || true)"
+output="$(adb_shell "${PYTHON_CMD} -c \"import sys, os; print('PLATFORM_OK:', sys.platform, os.name)\" 2>&1" || true)"
 if echo "$output" | grep -E -q "PLATFORM_OK: (linux|android) posix" 2>/dev/null; then
   log_pass "python3 stdlib and platform check"
 else
@@ -60,28 +69,28 @@ else
 fi
 
 # 2. Built-in HACL* hashes check
-output="$(adb_shell "${PYTHON_BIN} -c \"import hashlib; print('SHA256:', hashlib.sha256(b'bionic').hexdigest(), 'MD5:', hashlib.md5(b'bionic').hexdigest())\" 2>&1" || true)"
+output="$(adb_shell "${PYTHON_CMD} -c \"import hashlib; print('SHA256:', hashlib.sha256(b'bionic').hexdigest(), 'MD5:', hashlib.md5(b'bionic').hexdigest())\" 2>&1" || true)"
 assert_contains "$output" "SHA256: 1a0a" "python3 built-in hashlib sha256 check"
 assert_contains "$output" "MD5:" "python3 built-in hashlib md5 check"
 
 # 3. Dynamic C-extensions check
-output="$(adb_shell "${PYTHON_BIN} -c \"import ctypes, lzma, bz2; print('C_EXT_OK')\" 2>&1" || true)"
+output="$(adb_shell "${PYTHON_CMD} -c \"import ctypes, lzma, bz2; print('C_EXT_OK')\" 2>&1" || true)"
 assert_contains "$output" "C_EXT_OK" "python3 dynamic C-extensions (_ctypes, _lzma, _bz2)"
 
 # 4. Bionic ctypes foreign function calls
-output="$(adb_shell "${PYTHON_BIN} -c \"import ctypes; libc = ctypes.CDLL('libc.so'); pid = libc.getpid(); t = libc.time(None); print('CTYPES_BIONIC_OK:', pid > 0, t > 1000000000)\" 2>&1" || true)"
+output="$(adb_shell "${PYTHON_CMD} -c \"import ctypes; libc = ctypes.CDLL('libc.so'); pid = libc.getpid(); t = libc.time(None); print('CTYPES_BIONIC_OK:', pid > 0, t > 1000000000)\" 2>&1" || true)"
 assert_contains "$output" "CTYPES_BIONIC_OK: True True" "python3 Bionic ctypes libc calls (getpid, time)"
 
 # 5. In-memory compression round-trip
-output="$(adb_shell "${PYTHON_BIN} -c \"import lzma, bz2; data = b'bionic'*100; assert lzma.decompress(lzma.compress(data)) == data; assert bz2.decompress(bz2.compress(data)) == data; print('COMPRESS_OK')\" 2>&1" || true)"
+output="$(adb_shell "${PYTHON_CMD} -c \"import lzma, bz2; data = b'bionic'*100; assert lzma.decompress(lzma.compress(data)) == data; assert bz2.decompress(bz2.compress(data)) == data; print('COMPRESS_OK')\" 2>&1" || true)"
 assert_contains "$output" "COMPRESS_OK" "python3 in-memory compression round-trip (lzma, bz2)"
 
 # 6. Readline module check
-output="$(adb_shell "${PYTHON_BIN} -c \"import readline; print('READLINE_OK')\" 2>&1" || true)"
+output="$(adb_shell "${PYTHON_CMD} -c \"import readline; print('READLINE_OK')\" 2>&1" || true)"
 assert_contains "$output" "READLINE_OK" "python3 readline module check"
 
 # 7. SQLite3 database support check
-output="$(adb_shell "${PYTHON_BIN} -c \"import sqlite3; con = sqlite3.connect(':memory:'); con.execute('create table t(x);'); con.commit(); print('SQLITE3_OK')\" 2>&1" || true)"
+output="$(adb_shell "${PYTHON_CMD} -c \"import sqlite3; con = sqlite3.connect(':memory:'); con.execute('create table t(x);'); con.commit(); print('SQLITE3_OK')\" 2>&1" || true)"
 assert_contains "$output" "SQLITE3_OK" "python3 sqlite3 database support check"
 
 print_summary

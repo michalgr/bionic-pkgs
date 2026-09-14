@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 BPFTRACE_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       BPFTRACE_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$BPFTRACE_BIN" ]; then
-        BPFTRACE_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$BPFTRACE_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,33 +42,41 @@ done
 
 adb_wait_and_root
 
-if [ -z "$BPFTRACE_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/test-bpftrace-static/bin/bpftrace ]" 2>/dev/null; then
-    BPFTRACE_BIN="/data/local/tmp/test-bpftrace-static/bin/bpftrace"
-  elif adb_shell "[ -f /data/local/tmp/bionic-pkgs/bpftrace/run.sh ]" 2>/dev/null; then
-    BPFTRACE_BIN="/data/local/tmp/bionic-pkgs/bpftrace/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/bpftrace ]" 2>/dev/null; then
-    BPFTRACE_BIN="/data/local/tmp/test-sysroot/bin/bpftrace"
+if [ -z "$TARGET_DIR" ] && [ -z "$BPFTRACE_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/bpftrace/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/bpftrace"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    BPFTRACE_BIN="/data/local/tmp/test-bpftrace-static/bin/bpftrace"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/bpftrace"
   fi
 fi
 
-log_info "Testing bpftrace via: ${BPFTRACE_BIN}"
-
-BIN_NAME="$(basename "$BPFTRACE_BIN")"
-if [ "$BIN_NAME" = "run.sh" ]; then
-  BASE_DIR="$(dirname "$BPFTRACE_BIN")"
-  BPFTRACE_CMD="${BPFTRACE_BIN}"
-  SYSCOUNT_CMD="${BASE_DIR}/bin/syscount"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing bpftrace via dir: ${TARGET_DIR}"
+  if adb_shell "[ -f '${TARGET_DIR}/env.sh' ]" 2>/dev/null; then
+    BPFTRACE_CMD="${TARGET_DIR}/env.sh bpftrace"
+    SYSCOUNT_CMD="${TARGET_DIR}/env.sh syscount"
+  else
+    BPFTRACE_CMD="${TARGET_DIR}/bin/bpftrace"
+    SYSCOUNT_CMD="${TARGET_DIR}/bin/syscount"
+  fi
 else
-  BASE_DIR="$(dirname "$BPFTRACE_BIN")/.."
-  if [ -d "${BASE_DIR}/lib" ]; then
+  log_info "Testing bpftrace via: ${BPFTRACE_BIN}"
+  BIN_NAME="$(basename "$BPFTRACE_BIN")"
+  if [ "$BIN_NAME" = "run.sh" ]; then
+    BASE_DIR="$(dirname "$BPFTRACE_BIN")"
     BPFTRACE_CMD="${BPFTRACE_BIN}"
     SYSCOUNT_CMD="${BASE_DIR}/bin/syscount"
   else
-    BPFTRACE_CMD="${BPFTRACE_BIN}"
-    SYSCOUNT_CMD="$(dirname "$BPFTRACE_BIN")/syscount"
+    BASE_DIR="$(dirname "$BPFTRACE_BIN")/.."
+    if [ -d "${BASE_DIR}/lib" ]; then
+      BPFTRACE_CMD="${BPFTRACE_BIN}"
+      SYSCOUNT_CMD="${BASE_DIR}/bin/syscount"
+    else
+      BPFTRACE_CMD="${BPFTRACE_BIN}"
+      SYSCOUNT_CMD="$(dirname "$BPFTRACE_BIN")/syscount"
+    fi
   fi
 fi
 

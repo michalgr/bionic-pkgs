@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 TMUX_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       TMUX_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TMUX_BIN" ]; then
-        TMUX_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$TMUX_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,39 +42,42 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TMUX_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/tmux/run.sh ]" 2>/dev/null; then
-    TMUX_BIN="/data/local/tmp/bionic-pkgs/tmux/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/tmux ]" 2>/dev/null; then
-    TMUX_BIN="/data/local/tmp/test-sysroot/bin/tmux"
+if [ -z "$TARGET_DIR" ] && [ -z "$TMUX_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/tmux/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/tmux"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    TMUX_BIN="/data/local/tmp/bionic-pkgs/tmux/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/tmux"
   fi
 fi
 
-log_info "Testing tmux via: ${TMUX_BIN}"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing tmux via dir: ${TARGET_DIR}"
+  TMUX_CMD="${TARGET_DIR}/env.sh tmux"
+else
+  log_info "Testing tmux via: ${TMUX_BIN}"
+  TMUX_CMD="${TMUX_BIN}"
+fi
 
 # 1. Version check
-output="$(adb_shell "${TMUX_BIN} -V 2>&1" || true)"
+output="$(adb_shell "${TMUX_CMD} -V 2>&1" || true)"
 assert_contains "$output" "tmux 3.7" "tmux version check (-V)"
 
-# 2. Start a detached session running a simple echo command
-adb_shell "${TMUX_BIN} kill-server 2>/dev/null || true"
-adb_shell "rm -f /data/local/tmp/tmux_test.out"
+# 2. Help output
+output="$(adb_shell "${TMUX_CMD} -h 2>&1" || true)"
+assert_contains "$output" "usage: tmux" "tmux help usage banner"
 
-adb_shell "${TMUX_BIN} new-session -d -s bionic-test '/system/bin/sh -c \"echo tmux-alive > /data/local/tmp/tmux_test.out; sleep 2\"'"
-
-# 3. Verify session was created
-output="$(adb_shell "${TMUX_BIN} list-sessions 2>&1" || true)"
-assert_contains "$output" "bionic-test" "tmux list-sessions check"
-
-# 4. Verify executed command inside tmux pane wrote to output file
+# 3. Headless session creation & command execution
+SESSION_NAME="bionic_tmux_test_$$"
+adb_shell "${TMUX_CMD} kill-session -t ${SESSION_NAME} >/dev/null 2>&1 || true"
+adb_shell "${TMUX_CMD} new-session -d -s ${SESSION_NAME} 'echo tmux_session_ok > /data/local/tmp/tmux_test_out.txt'"
 sleep 1
-output="$(adb_shell "cat /data/local/tmp/tmux_test.out 2>/dev/null || true")"
-assert_contains "$output" "tmux-alive" "tmux command execution verification"
 
-# 5. Clean up server and test file
-adb_shell "${TMUX_BIN} kill-server 2>/dev/null || true"
-adb_shell "rm -f /data/local/tmp/tmux_test.out"
+output="$(adb_shell "cat /data/local/tmp/tmux_test_out.txt 2>&1" || true)"
+assert_contains "$output" "tmux_session_ok" "tmux detached session command execution"
+
+adb_shell "${TMUX_CMD} kill-session -t ${SESSION_NAME} >/dev/null 2>&1 || true"
+adb_shell "rm -f /data/local/tmp/tmux_test_out.txt"
 
 print_summary

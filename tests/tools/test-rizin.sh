@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 RIZIN_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       RIZIN_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$RIZIN_BIN" ]; then
-        RIZIN_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$RIZIN_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,32 +42,38 @@ done
 
 adb_wait_and_root
 
-if [ -z "$RIZIN_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/rizin/run.sh ]" 2>/dev/null; then
-    RIZIN_BIN="/data/local/tmp/bionic-pkgs/rizin/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/rizin ]" 2>/dev/null; then
-    RIZIN_BIN="/data/local/tmp/test-sysroot/bin/rizin"
+if [ -z "$TARGET_DIR" ] && [ -z "$RIZIN_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/rizin/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/rizin"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    RIZIN_BIN="/data/local/tmp/bionic-pkgs/rizin/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/rizin"
   fi
 fi
 
-log_info "Testing rizin via: ${RIZIN_BIN}"
-
-# Determine base directory and companion tool invocation wrappers
-BIN_NAME="$(basename "$RIZIN_BIN")"
-if [ "$BIN_NAME" = "run.sh" ]; then
-  BASE_DIR="$(dirname "$RIZIN_BIN")"
-  RZ_CMD="${RIZIN_BIN}"
-  RZ_ASM_CMD="${BASE_DIR}/bin/rz-asm"
-  RZ_BIN_CMD="${BASE_DIR}/bin/rz-bin"
-  RZ_HASH_CMD="${BASE_DIR}/bin/rz-hash"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing rizin via dir: ${TARGET_DIR}"
+  RZ_CMD="${TARGET_DIR}/env.sh rizin"
+  RZ_ASM_CMD="${TARGET_DIR}/env.sh rz-asm"
+  RZ_BIN_CMD="${TARGET_DIR}/env.sh rz-bin"
+  RZ_HASH_CMD="${TARGET_DIR}/env.sh rz-hash"
 else
-  BASE_DIR="$(dirname "$RIZIN_BIN")/.."
-  RZ_CMD="${RIZIN_BIN}"
-  RZ_ASM_CMD="${BASE_DIR}/bin/rz-asm"
-  RZ_BIN_CMD="${BASE_DIR}/bin/rz-bin"
-  RZ_HASH_CMD="${BASE_DIR}/bin/rz-hash"
+  log_info "Testing rizin via: ${RIZIN_BIN}"
+  BIN_NAME="$(basename "$RIZIN_BIN")"
+  if [ "$BIN_NAME" = "run.sh" ]; then
+    BASE_DIR="$(dirname "$RIZIN_BIN")"
+    RZ_CMD="${RIZIN_BIN}"
+    RZ_ASM_CMD="${BASE_DIR}/bin/rz-asm"
+    RZ_BIN_CMD="${BASE_DIR}/bin/rz-bin"
+    RZ_HASH_CMD="${BASE_DIR}/bin/rz-hash"
+  else
+    BASE_DIR="$(dirname "$RIZIN_BIN")/.."
+    RZ_CMD="${RIZIN_BIN}"
+    RZ_ASM_CMD="${BASE_DIR}/bin/rz-asm"
+    RZ_BIN_CMD="${BASE_DIR}/bin/rz-bin"
+    RZ_HASH_CMD="${BASE_DIR}/bin/rz-hash"
+  fi
 fi
 
 # 1. Version check

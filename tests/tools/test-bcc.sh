@@ -10,12 +10,17 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 BCC_BIN=""
 PYTHON_BIN="${PYTHON_BIN:-${BCC_PYTHON_BIN:-}}"
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       BCC_BIN="$2"
       shift 2
@@ -29,8 +34,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$BCC_BIN" ]; then
-        BCC_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$BCC_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,54 +47,54 @@ done
 
 adb_wait_and_root
 
-if [ -z "$BCC_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/bcc/run.sh ]" 2>/dev/null; then
-    BCC_BIN="/data/local/tmp/bionic-pkgs/bcc/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/python-launcher.sh ]" 2>/dev/null; then
-    BCC_BIN="/data/local/tmp/test-sysroot/python-launcher.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/bps ]" 2>/dev/null; then
-    BCC_BIN="/data/local/tmp/test-sysroot/bin/bps"
+if [ -z "$TARGET_DIR" ] && [ -z "$BCC_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/bcc/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/bcc"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    BCC_BIN="/data/local/tmp/bionic-pkgs/bcc/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/bcc"
   fi
 fi
 
-log_info "Testing bcc via: ${BCC_BIN}"
-
-# Determine base directory and wrapper helper for bps and python
-BIN_NAME="$(basename "$BCC_BIN")"
-if [ "$BIN_NAME" = "run.sh" ] || [ "$BIN_NAME" = "python-launcher.sh" ]; then
-  BASE_DIR="$(dirname "$BCC_BIN")"
+ENV_PREFIX=""
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing bcc via dir: ${TARGET_DIR}"
+  BPS_CMD="${TARGET_DIR}/env.sh bps"
+  PY_CMD="${TARGET_DIR}/env.sh python3"
+  EXECSNOOP_CMD="${TARGET_DIR}/env.sh execsnoop"
 else
-  BASE_DIR="$(dirname "$BCC_BIN")/.."
-fi
-
-EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
-
-if adb_shell "[ -f '${BASE_DIR}/bin/bps' ]" 2>/dev/null; then
-  BPS_CMD="${BASE_DIR}/bin/bps"
-else
-  BPS_CMD="${BCC_BIN}"
-fi
-
-if [ -z "$PYTHON_BIN" ]; then
-  if adb_shell "[ -x '${BASE_DIR}/bin/python3' ]" 2>/dev/null; then
-    PYTHON_BIN="${BASE_DIR}/bin/python3"
-  elif adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
-    PYTHON_BIN="${BASE_DIR}/python-launcher.sh"
-  fi
-fi
-
-if [ -n "$PYTHON_BIN" ]; then
-  ENV_PREFIX="BCC_PYTHON_BIN='${PYTHON_BIN}' "
-  if [ "$PYTHON_BIN" = "${BASE_DIR}/python-launcher.sh" ]; then
-    PY_CMD="${PYTHON_BIN}"
+  log_info "Testing bcc via: ${BCC_BIN}"
+  BIN_NAME="$(basename "$BCC_BIN")"
+  if [ "$BIN_NAME" = "run.sh" ] || [ "$BIN_NAME" = "python-launcher.sh" ]; then
+    BASE_DIR="$(dirname "$BCC_BIN")"
   else
-    PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${PYTHON_BIN}'"
+    BASE_DIR="$(dirname "$BCC_BIN")/.."
   fi
-else
-  log_fail "Python 3 interpreter not found in ${BASE_DIR} and --python-bin was not specified."
-  exit 1
+  EXECSNOOP_CMD="${BASE_DIR}/bin/execsnoop"
+  if adb_shell "[ -f '${BASE_DIR}/bin/bps' ]" 2>/dev/null; then
+    BPS_CMD="${BASE_DIR}/bin/bps"
+  else
+    BPS_CMD="${BCC_BIN}"
+  fi
+  if [ -z "$PYTHON_BIN" ]; then
+    if adb_shell "[ -x '${BASE_DIR}/bin/python3' ]" 2>/dev/null; then
+      PYTHON_BIN="${BASE_DIR}/bin/python3"
+    elif adb_shell "[ -f '${BASE_DIR}/python-launcher.sh' ]" 2>/dev/null; then
+      PYTHON_BIN="${BASE_DIR}/python-launcher.sh"
+    fi
+  fi
+  if [ -n "$PYTHON_BIN" ]; then
+    ENV_PREFIX="BCC_PYTHON_BIN='${PYTHON_BIN}' "
+    if [ "$PYTHON_BIN" = "${BASE_DIR}/python-launcher.sh" ]; then
+      PY_CMD="${PYTHON_BIN}"
+    else
+      PY_CMD="PYTHONPATH=\"${BASE_DIR}/lib/python3.13/site-packages\" '${PYTHON_BIN}'"
+    fi
+  else
+    log_fail "Python 3 interpreter not found in ${BASE_DIR} and --python-bin was not specified."
+    exit 1
+  fi
 fi
 
 # Ensure tracefs/debugfs mounted
