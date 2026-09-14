@@ -62,28 +62,28 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   postPatch = ''
-    substituteInPlace liblua/Makefile \
-      --replace-fail '$(AR) $@' '$(AR) rcu $@'
+        substituteInPlace liblua/Makefile \
+          --replace-fail '$(AR) $@' '$(AR) rcu $@'
 
-    substituteInPlace libdnet-stripped/src/route-linux.c \
-      --replace-fail "!IN6_IS_ADDR_UNSPECIFIED(&entry->route_gw.addr_ip6)" \
-                     "!IN6_IS_ADDR_UNSPECIFIED((const struct in6_addr *)&entry->route_gw.addr_ip6)"
+        substituteInPlace libdnet-stripped/src/route-linux.c \
+          --replace-fail "!IN6_IS_ADDR_UNSPECIFIED(&entry->route_gw.addr_ip6)" \
+                         "!IN6_IS_ADDR_UNSPECIFIED((const struct in6_addr *)&entry->route_gw.addr_ip6)"
 
-    substituteInPlace nping/EchoServer.cc \
-      --replace-fail "bind(master_sd" "::bind(master_sd"
+        substituteInPlace nping/EchoServer.cc \
+          --replace-fail "bind(master_sd" "::bind(master_sd"
 
-    substituteInPlace ncat/ncat_posix.c \
-      --replace-fail '"/bin/sh"' '"/system/bin/sh"'
+        substituteInPlace ncat/ncat_posix.c \
+          --replace-fail '"/bin/sh"' '"/system/bin/sh"'
 
-    substituteInPlace ncat/ncat_main.c \
-      --replace-fail '"/bin/sh"' '"/system/bin/sh"'
+        substituteInPlace ncat/ncat_main.c \
+          --replace-fail '"/bin/sh"' '"/system/bin/sh"'
 
-    substituteInPlace ncat/sockaddr_u.h \
-      --replace-fail '#if HAVE_SYS_UN_H' '#if HAVE_SYS_UN_H
-#ifndef SUN_LEN
-#include <string.h>
-#define SUN_LEN(ptr) ((sizeof(*(ptr)) - sizeof((ptr)->sun_path)) + strlen((ptr)->sun_path))
-#endif'
+        substituteInPlace ncat/sockaddr_u.h \
+          --replace-fail '#if HAVE_SYS_UN_H' '#if HAVE_SYS_UN_H
+    #ifndef SUN_LEN
+    #include <string.h>
+    #define SUN_LEN(ptr) ((sizeof(*(ptr)) - sizeof((ptr)->sun_path)) + strlen((ptr)->sun_path))
+    #endif'
   '';
 
   enableParallelBuilding = true;
