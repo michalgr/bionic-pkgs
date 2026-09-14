@@ -1,8 +1,8 @@
 # flake.nix
-# Android 14+ (Bionic libc) cross-compilation package repository and tool suite.
+# Android (Bionic libc) cross-compilation package repository and tool suite.
 
 {
-  description = "Cross-compiled CLI tools, debugging suites, and profilers for Android 14+ (Bionic libc)";
+  description = "Cross-compiled CLI tools, debugging suites, and profilers for Android (Bionic libc)";
 
   nixConfig = {
     extra-substituters = [ "https://bionic-pkgs.cachix.org" ];

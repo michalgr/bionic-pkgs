@@ -345,7 +345,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Generated wrapper scripts in `$out/bin/` (`execsnoop`, `opensnoop`, `runqlat`, `biosnoop`, `pidpersec`, `syscount`, `tcpconnect`, etc.) that execute via `/system/bin/sh` without setting `LD_LIBRARY_PATH`, relying on `bpftrace`'s embedded relative `DT_RUNPATH` (`$ORIGIN/../lib`).
 
 ### Case Study 8: `lldb` & `lldb-server` (LLVM Debugger & Companion Server)
-`lldb` provides high-performance native debugging, target image inspection, breakpoint management, and process control on Android 14+ (Bionic libc) alongside companion `lldb-server` and `lldb-dap`.
+`lldb` provides high-performance native debugging, target image inspection, breakpoint management, and process control on Android (Bionic libc) alongside companion `lldb-server` and `lldb-dap`.
 
 1. **Host TableGen Suite (`tblgen`) Integration**:
    - Upstream LLDB standalone cross-compilation attempts to build host tablegen tools using a nested CMake NATIVE subproject (`llvm_create_cross_target`). In Nix cross-compilation, this subproject incorrectly inherits target sysroot flags and fails.
@@ -376,7 +376,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Adding `python3` to LLDB's `buildInputs` ensures `adb-push.sh` and sysroot bundles automatically aggregate `libpython3.13.so` and Python standard library paths into the device deployment directory.
 
 ### Case Study 9: `gdb` & `gdbserver` (GNU Debugger & Companion Remote Server)
-`gdb` provides GNU interactive debugging, breakpoint management, thread inspection, core analysis, and remote server connectivity on Android 14+ (Bionic libc) alongside companion `gdbserver`.
+`gdb` provides GNU interactive debugging, breakpoint management, thread inspection, core analysis, and remote server connectivity on Android (Bionic libc) alongside companion `gdbserver`.
 
 1. **Gnulib `__bos` & Fortify Level Collision**:
    - Gnulib's bundled `cdefs.h` undefines `__bos` when `__GNUC__` is detected and assumes glibc's internal `__USE_FORTIFY_LEVEL` declarations. On Android Bionic, `<bits/fortify/stdio.h>` relies on `__bos` for buffer safety checks.
