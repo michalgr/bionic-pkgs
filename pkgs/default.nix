@@ -40,6 +40,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   lldb = self.callPackage ./diagnostics/lldb { };
   gdb = self.callPackage ./diagnostics/gdb { };
   tcpdump = self.callPackage ./diagnostics/tcpdump { };
+  iperf3 = self.callPackage ./diagnostics/iperf3 { };
 
   # Tracing & Kernel Diagnostics
   libbpf = self.callPackage ./tracing/libbpf { };
@@ -75,6 +76,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.socat
       self.htop
       self.tcpdump
+      self.iperf3
     ];
   };
 

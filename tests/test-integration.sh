@@ -132,4 +132,15 @@ assert_contains "$output" "libpcap version" "libpcap integration check in sysroo
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/tcpdump -d 'ip and tcp' 2>&1" || true)"
 assert_contains "$output" "(000)" "tcpdump BPF filter compilation in sysroot"
 
+# 12. iperf3 version and loopback transfer in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/iperf3 --version 2>&1" || true)"
+assert_contains "$output" "iperf 3." "iperf3 version check in sysroot"
+assert_contains "$output" "OpenSSL" "iperf3 OpenSSL integration check in sysroot"
+
+adb_shell "nohup ${ENV_WRAPPER} ${SYSROOT_DIR}/bin/iperf3 -s -1 -p 5210 > /data/local/tmp/iperf3-int-srv.log 2>&1 &"
+sleep 1
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/iperf3 -c 127.0.0.1 -p 5210 -t 1 2>&1" || true)"
+assert_contains "$output" "receiver" "iperf3 localhost loopback transfer in sysroot"
+
 print_summary
