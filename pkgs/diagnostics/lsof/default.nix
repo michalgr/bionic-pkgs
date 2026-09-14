@@ -38,7 +38,7 @@ stdenv.mkDerivation (finalAttrs: {
   meta = {
     description = "List open files diagnostic utility for Android 14+ (Bionic libc)";
     homepage = "https://github.com/lsof-org/lsof";
-    license = lib.licenses.purdueBsd;
+    license = lib.licenses.purdueBsd or lib.licenses.lsof;
     platforms = lib.platforms.linux;
     maintainers = [ ];
     mainProgram = "lsof";
