@@ -50,7 +50,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 
 ## ⚡ Phase 4: Extended Tools & Legacy 32-bit ABI Support
 - [ ] Legacy 32-bit Android ABI support (`armv7a-android`, `i686-android`) via custom Bionic sysroot bootstrap.
-- [ ] Port additional diagnostic & networking utilities:
+- [x] Port additional diagnostic & networking utilities:
   - [x] `pkgs/diagnostics/tcpdump`: Network packet analyzer and live capture suite (with `pkgs/libs/libpcap`).
   - [x] `pkgs/diagnostics/lsof`: Full list open files utility with socket & IPC tracking.
   - [x] `pkgs/diagnostics/nmap`: Network discovery, port scanning, Ncat, and Nping suite.
