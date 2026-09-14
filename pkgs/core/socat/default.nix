@@ -14,7 +14,7 @@ stdenv.mkDerivation (finalAttrs: {
   version = "1.8.1.3";
 
   src = fetchurl {
-    url = "http://www.dest-unreach.org/socat/download/socat-${finalAttrs.version}.tar.bz2";
+    url = "https://www.dest-unreach.org/socat/download/socat-${finalAttrs.version}.tar.bz2";
     hash = "sha256-JbxkdikrLmFCIJicd7C2/Kh7slJdl0ezGmY5sftgJBg=";
   };
 
@@ -54,7 +54,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     description = "Multipurpose relay for bidirectional data transfer";
-    homepage = "http://www.dest-unreach.org/socat/";
+    homepage = "https://www.dest-unreach.org/socat/";
     license = lib.licenses.gpl2Only;
     platforms = lib.platforms.linux;
     maintainers = [ ];
