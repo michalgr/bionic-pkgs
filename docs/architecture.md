@@ -90,8 +90,8 @@ bionic-pkgs/
 │       ├── stdenv.nix
 │       └── llvm.nix
 ├── scripts/
+│   ├── env.sh                # Universal environment wrapper script for staged runtime archives
 │   ├── stage-runtime.sh      # Factored runtime staging, pruning, and launcher generation
-│   ├── generate-launcher.sh  # Android runtime entrypoint launcher script generator
 │   ├── ci-fast-smoke-test.sh # Fast smoke triad deployment and test runner
 │   ├── ci-emulator-test.sh   # Sysroot and static bpftrace integration runner
 │   └── check-elf.sh          # ELF alignment, dynamic linker, and dependency audit
@@ -228,7 +228,7 @@ Every testable CLI package implements a dedicated test script under `tests/tools
    - **Location**: `scripts/stage-runtime.sh`
    - **Role**: Accepts a target staging directory and package store paths to aggregate binaries (`bin/`), shared libraries (`lib/`), and share assets (`share/`).
    - **Pruning & Cleaning**: Strips non-runtime build artifacts (`*.a`, `*.la`, `*.o`, `pkgconfig/`, `cmake/`, `doc`, `man`, `info`, `locale`).
-   - **Fixups & Launchers**: Optionally calls `scripts/generate-launcher.sh` to create entrypoint wrappers (e.g., `python-launcher.sh`).
+   - **Fixups & Launchers**: Installs `scripts/env.sh` at `$STAGE_DIR/env.sh` with `bin/env.sh -> ../env.sh` compatibility symlink, and generates launcher entrypoint wrappers delegating to `./env.sh`.
 
 3. **Layer 3: High-Level Runtime Bundle Builder (`runtime-archive`)**
    - **Location**: `pkgs/build-support/runtime-archive/default.nix`
