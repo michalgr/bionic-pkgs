@@ -151,4 +151,17 @@ output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lsof -p 1 2>&1" || true)"
 assert_contains "$output" "COMMAND" "lsof process table check in sysroot"
 assert_match "init|systemd" "$output" "lsof PID 1 command check in sysroot"
 
+# 14. nmap, ncat, and nping checks in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/nmap --version 2>&1" || true)"
+assert_contains "$output" "Nmap version 7.99" "nmap version check in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/ncat --version 2>&1" || true)"
+assert_contains "$output" "Ncat: Version 7.99" "ncat version check in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/nping --version 2>&1" || true)"
+assert_contains "$output" "Nping version 7.99" "nping version check in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/nmap -sn 127.0.0.1 2>&1" || true)"
+assert_contains "$output" "Nmap done: 1 IP address (1 host up)" "nmap localhost ping scan in sysroot"
+
 print_summary

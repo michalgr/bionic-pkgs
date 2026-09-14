@@ -13,6 +13,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   libllvm = self.callPackage ./libs/llvm/libllvm.nix { };
   libclang = self.callPackage ./libs/llvm/libclang.nix { };
   libpcap = self.callPackage ./libs/libpcap { };
+  pcre2 = self.callPackage ./libs/pcre2 { };
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
   readline = self.callPackage ./libs/readline { };
@@ -42,6 +43,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   tcpdump = self.callPackage ./diagnostics/tcpdump { };
   iperf3 = self.callPackage ./diagnostics/iperf3 { };
   lsof = self.callPackage ./diagnostics/lsof { };
+  nmap = self.callPackage ./diagnostics/nmap { };
 
   # Tracing & Kernel Diagnostics
   libbpf = self.callPackage ./tracing/libbpf { };
@@ -79,6 +81,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.tcpdump
       self.iperf3
       self.lsof
+      self.nmap
     ];
   };
 
