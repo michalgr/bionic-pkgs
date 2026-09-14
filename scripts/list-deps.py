@@ -44,7 +44,6 @@ def is_target_dep(drv_path, drv_info, target_triple):
     cross_config = env.get("crossConfig", "")
     configure_flags = env.get("configureFlags", "")
     cmake_flags = env.get("cmakeFlags", "")
-    meson_flags = env.get("mesonFlags", "")
     cargo_target = env.get("CARGO_BUILD_TARGET", "")
     cflags = env.get("NIX_CROSS_CFLAGS_COMPILE", "") or env.get("NIX_CFLAGS_COMPILE", "")
 
