@@ -34,6 +34,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/core/htop`: Interactive terminal process viewer cross-compiled for Android Bionic.
   - [x] `pkgs/core/socat`: Multipurpose relay tool for Android IPC, UNIX domain sockets, and TCP/UDP forwarding.
   - [x] `pkgs/core/curl`: Cross-compiled cURL with OpenSSL 3 TLS and Zstandard support for Android.
+  - [x] `pkgs/core/jq`: Command-line JSON processor with Oniguruma (`pkgs/libs/oniguruma`) regex support for Android.
 
 ---
 
