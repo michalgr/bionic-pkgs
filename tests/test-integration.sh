@@ -143,4 +143,12 @@ sleep 1
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/iperf3 -c 127.0.0.1 -p 5210 -t 1 2>&1" || true)"
 assert_contains "$output" "receiver" "iperf3 localhost loopback transfer in sysroot"
 
+# 13. lsof version and PID 1 inspection in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lsof -v 2>&1" || true)"
+assert_contains "$output" "4.99." "lsof version check in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/lsof -p 1 2>&1" || true)"
+assert_contains "$output" "COMMAND" "lsof process table check in sysroot"
+assert_match "init|systemd" "$output" "lsof PID 1 command check in sysroot"
+
 print_summary
