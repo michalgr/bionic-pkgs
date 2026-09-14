@@ -1,5 +1,5 @@
 # pkgs/libs/openssl/default.nix
-# OpenSSL 3.6.3 cryptographic and SSL/TLS toolkit for Android 14+ (Bionic libc).
+# OpenSSL 3.6.3 cryptographic and SSL/TLS toolkit for Android (Bionic libc).
 
 {
   lib,
@@ -90,7 +90,7 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   meta = {
-    description = "OpenSSL cryptographic and SSL/TLS toolkit for Android (Bionic)";
+    description = "OpenSSL cryptographic and SSL/TLS toolkit";
     homepage = "https://www.openssl.org/";
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;

@@ -1,5 +1,5 @@
 # pkgs/diagnostics/iperf3/default.nix
-# iperf3 active network throughput measurement tool for Android 14+ (Bionic libc).
+# iperf3 active network bandwidth and throughput measurement tool for Android (Bionic libc).
 
 {
   lib,
@@ -35,7 +35,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Active network bandwidth and throughput measurement tool for Android 14+ (Bionic libc)";
+    description = "Active network bandwidth and throughput measurement tool";
     homepage = "https://software.es.net/iperf/";
     license = lib.licenses.bsd3;
     platforms = lib.platforms.linux;

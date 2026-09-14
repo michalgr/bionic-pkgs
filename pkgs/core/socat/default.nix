@@ -1,5 +1,5 @@
 # pkgs/core/socat/default.nix
-# Socat multipurpose bidirectional relay for Android 14+ (Bionic libc).
+# Socat multipurpose bidirectional relay for Android (Bionic libc).
 
 {
   lib,
@@ -53,7 +53,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Multipurpose relay for bidirectional data transfer on Android (Bionic)";
+    description = "Multipurpose relay for bidirectional data transfer";
     homepage = "http://www.dest-unreach.org/socat/";
     license = lib.licenses.gpl2Only;
     platforms = lib.platforms.linux;

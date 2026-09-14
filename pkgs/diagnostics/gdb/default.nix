@@ -173,7 +173,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   meta = {
-    description = "GNU Debugger (GDB) and gdbserver with Python 3 support for Android 14+ (Bionic libc)";
+    description = "GNU Debugger (GDB) and gdbserver with Python 3 support";
     homepage = "https://www.gnu.org/software/gdb/";
     license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.linux;

@@ -1,5 +1,5 @@
 # pkgs/diagnostics/strace/default.nix
-# Strace derivation optimized for Android 14+ (Bionic libc) cross-compilation.
+# Strace derivation optimized for Android (Bionic libc) cross-compilation.
 
 {
   lib,
@@ -57,7 +57,7 @@ stdenv.mkDerivation (finalAttrs: {
   enableParallelBuilding = true;
 
   meta = {
-    description = "Diagnostic, debugging, and instructional userspace tracer for Linux/Android system calls";
+    description = "Diagnostic, debugging, and instructional userspace tracer for Linux system calls";
     homepage = "https://strace.io/";
     license = with lib.licenses; [
       lgpl21Plus # strace tool and shared libraries (LGPL-2.1-or-later)

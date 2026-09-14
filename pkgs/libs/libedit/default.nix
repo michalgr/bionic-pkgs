@@ -1,5 +1,5 @@
 # pkgs/libs/libedit/default.nix
-# NetBSD Editline library (libedit) BSD replacement for GNU readline for Android 14+ (Bionic libc).
+# NetBSD Editline library (libedit) BSD replacement for GNU readline for Android (Bionic libc).
 
 {
   lib,

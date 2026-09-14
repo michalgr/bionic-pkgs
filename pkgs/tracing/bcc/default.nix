@@ -1,5 +1,5 @@
 # pkgs/tracing/bcc/default.nix
-# BPF Compiler Collection (BCC) for Android 14+ (Bionic libc).
+# BPF Compiler Collection (BCC) for Android (Bionic libc).
 
 {
   lib,
@@ -131,7 +131,7 @@ stdenv.mkDerivation (
     '';
 
     meta = {
-      description = "Dynamic Tracing Tools for Linux / Android (Bionic libc)";
+      description = "Dynamic Tracing Tools for Linux BPF";
       homepage = "https://iovisor.github.io/bcc/";
       license = lib.licenses.asl20;
       platforms = lib.platforms.linux;

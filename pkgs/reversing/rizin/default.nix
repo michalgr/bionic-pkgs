@@ -1,5 +1,5 @@
 # pkgs/reversing/rizin/default.nix
-# Rizin reverse engineering framework optimized for Android 14+ (Bionic libc).
+# Rizin reverse engineering framework optimized for Android (Bionic libc).
 
 {
   lib,

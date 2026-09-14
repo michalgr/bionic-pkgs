@@ -1,5 +1,5 @@
 # pkgs/reversing/radare2/default.nix
-# Radare2 reverse engineering framework optimized for Android 14+ (Bionic libc).
+# Radare2 reverse engineering framework optimized for Android (Bionic libc).
 
 {
   lib,

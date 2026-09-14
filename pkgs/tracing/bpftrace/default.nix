@@ -1,5 +1,5 @@
 # pkgs/tracing/bpftrace/default.nix
-# High-level tracing language for Linux eBPF on Android 14+ (Bionic libc).
+# High-level tracing language for Linux eBPF on Android (Bionic libc).
 
 {
   lib,
@@ -112,7 +112,7 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   meta = {
-    description = "High-level tracing language for Linux eBPF / Android (Bionic libc)";
+    description = "High-level tracing language for Linux eBPF";
     homepage = "https://github.com/bpftrace/bpftrace";
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;

@@ -1,5 +1,5 @@
 # pkgs/core/htop/default.nix
-# htop interactive process viewer for Android 14+ (Bionic libc).
+# htop interactive process viewer for Android (Bionic libc).
 
 {
   lib,
@@ -57,7 +57,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Interactive process viewer for Android 14+ (Bionic libc)";
+    description = "Interactive process viewer";
     homepage = "https://htop.dev/";
     license = lib.licenses.gpl2Only;
     platforms = lib.platforms.linux;

@@ -1,5 +1,5 @@
 # pkgs/libs/sqlite/default.nix
-# SQLite embedded SQL database engine library and CLI tool for Android 14+ (Bionic libc).
+# SQLite embedded SQL database engine library and CLI tool for Android (Bionic libc).
 
 {
   lib,

@@ -1,5 +1,5 @@
 # pkgs/libs/llvm/libllvm.nix
-# Standalone target LLVM library (libLLVM.so) and CMake modules for Android 14+ (Bionic libc).
+# Standalone target LLVM library (libLLVM.so) and CMake modules for Android (Bionic libc).
 
 {
   lib,
@@ -59,7 +59,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   meta = {
-    description = "LLVM core shared library (libLLVM.so) and headers for Android (Bionic)";
+    description = "LLVM core shared library (libLLVM.so) and headers";
     homepage = "https://llvm.org/";
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;

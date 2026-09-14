@@ -1,5 +1,5 @@
 # pkgs/core/curl/default.nix
-# cURL command-line tool and libcurl library for Android 14+ (Bionic libc).
+# cURL command-line tool and libcurl library for Android (Bionic libc).
 
 {
   lib,
@@ -77,7 +77,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Command line tool and library for transferring data with URLs on Android (Bionic)";
+    description = "Command line tool and library for transferring data with URLs";
     homepage = "https://curl.se/";
     license = lib.licenses.curl;
     platforms = lib.platforms.linux;

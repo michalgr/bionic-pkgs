@@ -1,5 +1,5 @@
 # pkgs/diagnostics/lldb/default.nix
-# LLVM LLDB debugger and lldb-server for Android 14+ (Bionic libc).
+# LLVM LLDB debugger and lldb-server for Android (Bionic libc).
 
 {
   lib,
@@ -108,7 +108,7 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   meta = {
-    description = "Next-generation high-performance debugger (LLDB & lldb-server) for Android (Bionic)";
+    description = "Next-generation high-performance debugger (LLDB and lldb-server)";
     homepage = "https://lldb.llvm.org/";
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;

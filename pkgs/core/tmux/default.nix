@@ -1,5 +1,5 @@
 # pkgs/core/tmux/default.nix
-# Terminal multiplexer for Android 14+ (Bionic libc).
+# Terminal multiplexer for Android (Bionic libc).
 
 {
   lib,
@@ -52,7 +52,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Terminal multiplexer for Android 14+ (Bionic libc)";
+    description = "Terminal multiplexer";
     homepage = "https://tmux.github.io/";
     license = lib.licenses.isc;
     platforms = lib.platforms.linux;

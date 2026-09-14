@@ -1,5 +1,5 @@
 # pkgs/libs/readline/default.nix
-# GNU Readline library for Android 14+ (Bionic libc).
+# GNU Readline library for Android (Bionic libc).
 
 {
   lib,
@@ -36,7 +36,7 @@ stdenv.mkDerivation (finalAttrs: {
   enableParallelBuilding = true;
 
   meta = {
-    description = "GNU Readline library for Android (Bionic)";
+    description = "GNU Readline library";
     homepage = "https://tiswww.case.edu/php/chet/readline/rltop.html";
     license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.linux;

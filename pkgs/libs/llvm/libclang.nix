@@ -1,5 +1,5 @@
 # pkgs/libs/llvm/libclang.nix
-# Standalone target Clang libraries (libclang.so, libclang-cpp.so), headers, and builtin compiler headers for Android 14+ (Bionic libc).
+# Standalone target Clang libraries (libclang.so, libclang-cpp.so), headers, and builtin compiler headers for Android (Bionic libc).
 
 {
   lib,
@@ -52,7 +52,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   meta = {
-    description = "C/C++ front-end libraries (libclang, libclang-cpp) and builtin headers for Android (Bionic)";
+    description = "C/C++ front-end libraries (libclang, libclang-cpp) and builtin headers";
     homepage = "https://clang.llvm.org/";
     license = lib.licenses.asl20;
     platforms = lib.platforms.linux;
