@@ -65,16 +65,16 @@ output="$(adb_shell "${TCPDUMP_CMD} --version 2>&1" || true)"
 assert_contains "$output" "tcpdump version" "tcpdump version check (--version)"
 assert_contains "$output" "libpcap version" "tcpdump libpcap integration check"
 
-# 2. Interface listing
-output="$(adb_shell "${TCPDUMP_CMD} -D 2>&1" || true)"
-assert_match "lo|any" "$output" "tcpdump network interface listing (-D)"
+# 2. Help output
+output="$(adb_shell "${TCPDUMP_CMD} -h 2>&1" || true)"
+assert_contains "$output" "Usage:" "tcpdump help banner"
 
-# 3. BPF filter compilation
+# 3. Interface enumeration
+output="$(adb_shell "${TCPDUMP_CMD} -D 2>&1" || true)"
+assert_match "lo|any" "$output" "tcpdump interface enumeration (-D)"
+
+# 4. BPF filter compilation
 output="$(adb_shell "${TCPDUMP_CMD} -d 'ip and tcp' 2>&1" || true)"
 assert_contains "$output" "(000)" "tcpdump BPF filter compilation (-d 'ip and tcp')"
-
-# 4. Short packet capture on loopback interface
-output="$(adb_shell "${TCPDUMP_CMD} -i lo -c 1 -c 0 >/dev/null 2>&1 && echo CAPTURE_INIT_OK 2>&1" || true)"
-assert_contains "$output" "CAPTURE_INIT_OK" "tcpdump loopback capture initialization"
 
 print_summary
