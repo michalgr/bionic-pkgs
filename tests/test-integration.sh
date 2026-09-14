@@ -40,8 +40,18 @@ log_info "Running Cross-Tool Integration Suite on sysroot: ${SYSROOT_DIR}"
 adb_wait_and_root
 adb_mount_tracefs
 
-ENV_WRAPPER="export PATH=${SYSROOT_DIR}/bin:\${PATH};"
+ENV_WRAPPER="${SYSROOT_DIR}/bin/env.sh"
 PY_LAUNCHER="${SYSROOT_DIR}/python-launcher.sh"
+
+# 0. Validate universal bin/env.sh environment wrapper and root symlink env.sh
+output="$(adb_shell "${ENV_WRAPPER} sh -c 'echo \"PATH:\$PATH;TERMINFO:\$TERMINFO\"' 2>&1" || true)"
+assert_contains "$output" "PATH:${SYSROOT_DIR}/bin:" "bin/env.sh setting PATH"
+if adb_shell "[ -d ${SYSROOT_DIR}/share/terminfo ]" >/dev/null 2>&1; then
+  assert_contains "$output" "TERMINFO:${SYSROOT_DIR}/share/terminfo" "bin/env.sh setting TERMINFO"
+fi
+
+output="$(adb_shell "${SYSROOT_DIR}/env.sh sh -c 'echo ROOT_ENV_OK' 2>&1" || true)"
+assert_contains "$output" "ROOT_ENV_OK" "env.sh root symlink execution"
 
 # 1. strace tracing python3
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/strace -e trace=openat,write ${PY_LAUNCHER} -c \"import sys; print('strace+python integration ok')\" 2>&1" || true)"
