@@ -54,7 +54,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/diagnostics/tcpdump`: Network packet analyzer and live capture suite (with `pkgs/libs/libpcap`).
   - `pkgs/diagnostics/lsof`
   - `pkgs/diagnostics/nmap`
-  - `pkgs/diagnostics/iperf3`
+  - [x] `pkgs/diagnostics/iperf3`: Active network bandwidth and throughput measurement tool.
 
 ---
 
