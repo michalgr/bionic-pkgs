@@ -124,4 +124,12 @@ assert_contains "$output" "socat_sysroot_integration" "socat pipe transfer in sy
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/htop --version 2>&1" || true)"
 assert_contains "$output" "htop 3." "htop version check in sysroot"
 
+# 11. tcpdump version and BPF filter compilation in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/tcpdump --version 2>&1" || true)"
+assert_contains "$output" "tcpdump version" "tcpdump version check in sysroot"
+assert_contains "$output" "libpcap version" "libpcap integration check in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/tcpdump -d 'ip and tcp' 2>&1" || true)"
+assert_contains "$output" "(000)" "tcpdump BPF filter compilation in sysroot"
+
 print_summary
