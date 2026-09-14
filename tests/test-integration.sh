@@ -168,4 +168,14 @@ assert_contains "$output" "Nmap done: 1 IP address (1 host up)" "nmap localhost 
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/tmux -V 2>&1" || true)"
 assert_contains "$output" "tmux 3.7" "tmux version check in sysroot"
 
+# 16. jq version and JSON processing checks in sysroot
+output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/jq --version 2>&1" || true)"
+assert_contains "$output" "jq-" "jq version check in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} echo '{\"status\":\"ok\",\"code\":200}' | ${SYSROOT_DIR}/bin/jq -r .status 2>&1" || true)"
+assert_contains "$output" "ok" "jq JSON property extraction in sysroot"
+
+output="$(adb_shell "${ENV_WRAPPER} echo '[\"apple\", \"banana\", \"cherry\"]' | ${SYSROOT_DIR}/bin/jq 'map(test(\"^b\")) | any' 2>&1" || true)"
+assert_contains "$output" "true" "jq Oniguruma regex matching in sysroot"
+
 print_summary

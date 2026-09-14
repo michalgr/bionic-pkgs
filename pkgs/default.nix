@@ -15,6 +15,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   libpcap = self.callPackage ./libs/libpcap { };
   pcre2 = self.callPackage ./libs/pcre2 { };
   libevent = self.callPackage ./libs/libevent { };
+  oniguruma = self.callPackage ./libs/oniguruma { };
   libffi = self.callPackage ./libs/libffi { };
   libedit = self.callPackage ./libs/libedit { };
   readline = self.callPackage ./libs/readline { };
@@ -64,6 +65,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   socat = self.callPackage ./core/socat { };
   htop = self.callPackage ./core/htop { };
   tmux = self.callPackage ./core/tmux { };
+  jq = self.callPackage ./core/jq { };
 
   # Bundled Archives
   sysroot = self.callPackage ./bundles/sysroot {
@@ -85,6 +87,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.lsof
       self.nmap
       self.tmux
+      self.jq
     ];
   };
 

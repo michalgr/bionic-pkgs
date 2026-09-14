@@ -28,6 +28,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] Supporting optional libraries: `pkgs/libs/openssl`.
   - [x] `pkgs/libs/libevent`: Event notification library for tmux.
   - [x] `pkgs/libs/pcre2`: Perl-compatible regular expressions library.
+  - [x] `pkgs/libs/oniguruma`: Regular expression library for jq.
   - [x] `pkgs/libs/elfutils`: Minimalistic ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, etc.) and DWARF debugging (`libdw`, `libasm`) suite.
 - [x] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - [x] `pkgs/reversing/radare2`: Standalone binary analysis framework.
@@ -37,6 +38,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/core/socat`: Multipurpose relay tool for Android IPC, UNIX domain sockets, and TCP/UDP forwarding.
   - [x] `pkgs/core/curl`: Cross-compiled cURL with OpenSSL 3 TLS and Zstandard support for Android.
   - [x] `pkgs/core/tmux`: Terminal multiplexer with multi-pane session persistence (with `pkgs/libs/libevent`).
+  - [x] `pkgs/core/jq`: Command-line JSON processor with Oniguruma (`pkgs/libs/oniguruma`) regex support for Android.
 
 ---
 
