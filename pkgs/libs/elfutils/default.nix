@@ -1,5 +1,5 @@
 # pkgs/libs/elfutils/default.nix
-# Minimal elfutils package derivation for Android 14+ (Bionic libc) cross-compilation.
+# Minimal elfutils package derivation for Android (Bionic libc) cross-compilation.
 
 {
   lib,

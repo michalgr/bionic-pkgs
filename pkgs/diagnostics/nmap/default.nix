@@ -1,5 +1,5 @@
 # pkgs/diagnostics/nmap/default.nix
-# Nmap network scanner, Ncat, and Nping for Android 14+ (Bionic libc).
+# Nmap network scanner, Ncat, and Nping for Android (Bionic libc).
 
 {
   lib,
@@ -90,7 +90,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Network discovery and security auditing tool suite (nmap, ncat, nping) for Android 14+ (Bionic libc)";
+    description = "Network discovery and security auditing tool suite (nmap, ncat, nping)";
     homepage = "https://nmap.org/";
     license = lib.licenses.gpl2Plus;
     platforms = lib.platforms.linux;

@@ -1,5 +1,5 @@
 # pkgs/libs/pcre2/default.nix
-# PCRE2 regular expression library for Android 14+ (Bionic libc).
+# PCRE2 regular expression library for Android (Bionic libc).
 
 {
   lib,
@@ -35,7 +35,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Perl Compatible Regular Expressions (v2) for Android 14+ (Bionic libc)";
+    description = "Perl Compatible Regular Expressions (v2)";
     homepage = "https://www.pcre.org/";
     license = lib.licenses.bsd3;
     platforms = lib.platforms.linux;

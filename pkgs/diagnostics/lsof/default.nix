@@ -1,5 +1,5 @@
 # pkgs/diagnostics/lsof/default.nix
-# lsof list open files diagnostic utility for Android 14+ (Bionic libc).
+# lsof list open files diagnostic utility for Android (Bionic libc).
 
 {
   lib,
@@ -36,7 +36,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "List open files diagnostic utility for Android 14+ (Bionic libc)";
+    description = "List open files diagnostic utility";
     homepage = "https://github.com/lsof-org/lsof";
     license = lib.licenses.purdueBsd or lib.licenses.lsof;
     platforms = lib.platforms.linux;

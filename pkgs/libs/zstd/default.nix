@@ -1,5 +1,5 @@
 # pkgs/libs/zstd/default.nix
-# Zstandard compression library (libzstd) and CLI tools for Android 14+ (Bionic libc).
+# Zstandard compression library (libzstd) and CLI tools for Android (Bionic libc).
 
 {
   lib,
@@ -45,7 +45,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Zstandard fast real-time compression algorithm (libzstd) and CLI tools for Android (Bionic)";
+    description = "Zstandard fast real-time compression algorithm (libzstd) and CLI tools";
     homepage = "https://facebook.github.io/zstd/";
     license = with lib.licenses; [
       bsd3

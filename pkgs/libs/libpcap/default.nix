@@ -1,5 +1,5 @@
 # pkgs/libs/libpcap/default.nix
-# Packet capture library (libpcap) for Android 14+ (Bionic libc).
+# Packet capture library (libpcap) for Android (Bionic libc).
 
 {
   lib,
@@ -62,7 +62,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Packet capture library for Android 14+ (Bionic libc)";
+    description = "Packet capture library";
     homepage = "https://www.tcpdump.org/";
     license = lib.licenses.bsd3;
     platforms = lib.platforms.linux;

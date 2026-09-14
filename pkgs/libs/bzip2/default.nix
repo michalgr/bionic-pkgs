@@ -1,5 +1,5 @@
 # pkgs/libs/bzip2/default.nix
-# High-quality data compressor (libbz2) and CLI tools for Android 14+ (Bionic libc).
+# High-quality data compressor (libbz2) and CLI tools for Android (Bionic libc).
 
 {
   lib,
@@ -112,7 +112,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "High-quality data compressor (libbz2) and CLI tools for Android (Bionic)";
+    description = "High-quality data compressor (libbz2) and CLI tools";
     homepage = "https://sourceware.org/bzip2/";
     license = lib.licenses.bsdOriginal;
     platforms = lib.platforms.linux;

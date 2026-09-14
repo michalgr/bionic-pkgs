@@ -1,5 +1,5 @@
 # pkgs/tracing/libbpf/default.nix
-# eBPF object loader and manipulation library for Android 14+ (Bionic libc).
+# eBPF object loader and manipulation library for Android (Bionic libc).
 
 {
   lib,

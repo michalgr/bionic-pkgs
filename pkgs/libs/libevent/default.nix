@@ -1,5 +1,5 @@
 # pkgs/libs/libevent/default.nix
-# Event notification library for Android 14+ (Bionic libc).
+# Event notification library for Android (Bionic libc).
 
 {
   lib,
@@ -49,7 +49,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Event notification library for Android 14+ (Bionic libc)";
+    description = "Event notification library";
     homepage = "https://libevent.org/";
     license = lib.licenses.bsd3;
     platforms = lib.platforms.linux;

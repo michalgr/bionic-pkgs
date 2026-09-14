@@ -1,5 +1,5 @@
 # pkgs/runtime/python3/default.nix
-# Minimal Python 3 runtime for Android 14+ (Bionic libc) with libffi, libedit, and sqlite3.
+# Minimal Python 3 runtime for Android (Bionic libc) with libffi, libedit, and sqlite3.
 
 {
   lib,
@@ -85,7 +85,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "High-level programming language with dynamic typing and support for libffi, libedit, sqlite3, lzma, bz2 for Android (Bionic)";
+    description = "High-level programming language with dynamic typing (minimal build with libffi, libedit, sqlite3, lzma, bz2)";
     homepage = "https://www.python.org/";
     license = lib.licenses.psfl;
     platforms = lib.platforms.linux;

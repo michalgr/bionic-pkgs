@@ -1,5 +1,5 @@
 # pkgs/diagnostics/tcpdump/default.nix
-# tcpdump command-line packet analyzer for Android 14+ (Bionic libc).
+# tcpdump command-line packet analyzer for Android (Bionic libc).
 
 {
   lib,
@@ -51,7 +51,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "Command-line packet analyzer for Android 14+ (Bionic libc)";
+    description = "Command-line packet analyzer";
     homepage = "https://www.tcpdump.org/";
     license = lib.licenses.bsd3;
     platforms = lib.platforms.linux;

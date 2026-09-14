@@ -1,5 +1,5 @@
 # pkgs/libs/xz/default.nix
-# XZ Utils (liblzma) compression library and CLI tools for Android 14+ (Bionic libc).
+# XZ Utils (liblzma) compression library and CLI tools for Android (Bionic libc).
 
 {
   lib,
@@ -33,7 +33,7 @@ stdenv.mkDerivation (finalAttrs: {
   doCheck = false;
 
   meta = {
-    description = "XZ Utils compression library (liblzma) and CLI tools for Android (Bionic)";
+    description = "XZ Utils compression library (liblzma) and CLI tools";
     homepage = "https://tukaani.org/xz/";
     license = with lib.licenses; [
       publicDomain
