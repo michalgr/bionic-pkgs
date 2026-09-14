@@ -116,26 +116,15 @@ for tool in "${SELECTED_TOOLS[@]}"; do
     continue
   fi
 
-  TOOL_BIN=""
+  TARGET_DIR=""
   if [ "$DEPLOY_MODE" = "push" ]; then
-    TOOL_BIN="/data/local/tmp/bionic-pkgs/${tool}/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/${tool}"
   else
-    case "$tool" in
-      python3) TOOL_BIN="${SYSROOT_DIR}/python-launcher.sh" ;;
-      elfutils) TOOL_BIN="${SYSROOT_DIR}/bin/eu-readelf" ;;
-      bcc) TOOL_BIN="${SYSROOT_DIR}/python-launcher.sh" ;;
-      lldb) TOOL_BIN="${SYSROOT_DIR}/bin/lldb" ;;
-      *) TOOL_BIN="${SYSROOT_DIR}/bin/${tool}" ;;
-    esac
-  fi
-
-  EXTRA_ARGS=()
-  if [ "$DEPLOY_MODE" = "push" ] && [ "$tool" = "bcc" ]; then
-    EXTRA_ARGS+=(--python-bin "/data/local/tmp/bionic-pkgs/python3/bin/python3")
+    TARGET_DIR="${SYSROOT_DIR}"
   fi
 
   set +e
-  "$TEST_SCRIPT" --bin "$TOOL_BIN" ${SERIAL:+-s "$SERIAL"} "${EXTRA_ARGS[@]}"
+  "$TEST_SCRIPT" --dir "$TARGET_DIR" ${SERIAL:+-s "$SERIAL"}
   res=$?
   set -e
 

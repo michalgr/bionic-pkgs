@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 RADARE2_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       RADARE2_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$RADARE2_BIN" ]; then
-        RADARE2_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$RADARE2_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,30 +42,35 @@ done
 
 adb_wait_and_root
 
-if [ -z "$RADARE2_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/radare2/run.sh ]" 2>/dev/null; then
-    RADARE2_BIN="/data/local/tmp/bionic-pkgs/radare2/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/radare2 ]" 2>/dev/null; then
-    RADARE2_BIN="/data/local/tmp/test-sysroot/bin/radare2"
+if [ -z "$TARGET_DIR" ] && [ -z "$RADARE2_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/radare2/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/radare2"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    RADARE2_BIN="/data/local/tmp/bionic-pkgs/radare2/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/radare2"
   fi
 fi
 
-log_info "Testing radare2 via: ${RADARE2_BIN}"
-
-# Determine base directory and companion tool invocation wrappers
-BIN_NAME="$(basename "$RADARE2_BIN")"
-if [ "$BIN_NAME" = "run.sh" ]; then
-  BASE_DIR="$(dirname "$RADARE2_BIN")"
-  R2_CMD="${RADARE2_BIN}"
-  RASM2_CMD="${BASE_DIR}/bin/rasm2"
-  RABIN2_CMD="${BASE_DIR}/bin/rabin2"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing radare2 via dir: ${TARGET_DIR}"
+  R2_CMD="${TARGET_DIR}/env.sh radare2"
+  RASM2_CMD="${TARGET_DIR}/env.sh rasm2"
+  RABIN2_CMD="${TARGET_DIR}/env.sh rabin2"
 else
-  BASE_DIR="$(dirname "$RADARE2_BIN")/.."
-  R2_CMD="${RADARE2_BIN}"
-  RASM2_CMD="${BASE_DIR}/bin/rasm2"
-  RABIN2_CMD="${BASE_DIR}/bin/rabin2"
+  log_info "Testing radare2 via: ${RADARE2_BIN}"
+  BIN_NAME="$(basename "$RADARE2_BIN")"
+  if [ "$BIN_NAME" = "run.sh" ]; then
+    BASE_DIR="$(dirname "$RADARE2_BIN")"
+    R2_CMD="${RADARE2_BIN}"
+    RASM2_CMD="${BASE_DIR}/bin/rasm2"
+    RABIN2_CMD="${BASE_DIR}/bin/rabin2"
+  else
+    BASE_DIR="$(dirname "$RADARE2_BIN")/.."
+    R2_CMD="${RADARE2_BIN}"
+    RASM2_CMD="${BASE_DIR}/bin/rasm2"
+    RABIN2_CMD="${BASE_DIR}/bin/rabin2"
+  fi
 fi
 
 # 1. Version check

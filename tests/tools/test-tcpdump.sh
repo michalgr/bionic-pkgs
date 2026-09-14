@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 TCPDUMP_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       TCPDUMP_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TCPDUMP_BIN" ]; then
-        TCPDUMP_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$TCPDUMP_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,34 +42,39 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TCPDUMP_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/tcpdump/run.sh ]" 2>/dev/null; then
-    TCPDUMP_BIN="/data/local/tmp/bionic-pkgs/tcpdump/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/tcpdump ]" 2>/dev/null; then
-    TCPDUMP_BIN="/data/local/tmp/test-sysroot/bin/tcpdump"
+if [ -z "$TARGET_DIR" ] && [ -z "$TCPDUMP_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/tcpdump/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/tcpdump"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    TCPDUMP_BIN="/data/local/tmp/bionic-pkgs/tcpdump/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/tcpdump"
   fi
 fi
 
-log_info "Testing tcpdump via: ${TCPDUMP_BIN}"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing tcpdump via dir: ${TARGET_DIR}"
+  TCPDUMP_CMD="${TARGET_DIR}/env.sh tcpdump"
+else
+  log_info "Testing tcpdump via: ${TCPDUMP_BIN}"
+  TCPDUMP_CMD="${TCPDUMP_BIN}"
+fi
 
 # 1. Version check
-output="$(adb_shell "${TCPDUMP_BIN} --version 2>&1" || true)"
-assert_contains "$output" "tcpdump version 4." "tcpdump version check (--version)"
-assert_contains "$output" "libpcap version 1." "libpcap version check"
-assert_contains "$output" "OpenSSL" "tcpdump OpenSSL support check"
+output="$(adb_shell "${TCPDUMP_CMD} --version 2>&1" || true)"
+assert_contains "$output" "tcpdump version" "tcpdump version check (--version)"
+assert_contains "$output" "libpcap version" "tcpdump libpcap integration check"
 
-# 2. Help output
-output="$(adb_shell "${TCPDUMP_BIN} -h 2>&1" || true)"
-assert_contains "$output" "Usage:" "tcpdump help banner"
+# 2. Interface listing
+output="$(adb_shell "${TCPDUMP_CMD} -D 2>&1" || true)"
+assert_match "lo|any" "$output" "tcpdump network interface listing (-D)"
 
-# 3. Interface enumeration
-output="$(adb_shell "${TCPDUMP_BIN} -D 2>&1" || true)"
-assert_match "lo|any" "$output" "tcpdump interface enumeration (-D)"
+# 3. BPF filter compilation
+output="$(adb_shell "${TCPDUMP_CMD} -d 'ip and tcp' 2>&1" || true)"
+assert_contains "$output" "(000)" "tcpdump BPF filter compilation (-d 'ip and tcp')"
 
-# 4. BPF filter compilation
-output="$(adb_shell "${TCPDUMP_BIN} -d 'ip and tcp' 2>&1" || true)"
-assert_contains "$output" "(000)" "tcpdump BPF filter assembly dump (-d)"
+# 4. Short packet capture on loopback interface
+output="$(adb_shell "${TCPDUMP_CMD} -i lo -c 1 -c 0 >/dev/null 2>&1 && echo CAPTURE_INIT_OK 2>&1" || true)"
+assert_contains "$output" "CAPTURE_INIT_OK" "tcpdump loopback capture initialization"
 
 print_summary

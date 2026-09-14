@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 IPERF3_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       IPERF3_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$IPERF3_BIN" ]; then
-        IPERF3_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$IPERF3_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,33 +42,39 @@ done
 
 adb_wait_and_root
 
-if [ -z "$IPERF3_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/iperf3/run.sh ]" 2>/dev/null; then
-    IPERF3_BIN="/data/local/tmp/bionic-pkgs/iperf3/run.sh"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/iperf3 ]" 2>/dev/null; then
-    IPERF3_BIN="/data/local/tmp/test-sysroot/bin/iperf3"
+if [ -z "$TARGET_DIR" ] && [ -z "$IPERF3_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/iperf3/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/iperf3"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    IPERF3_BIN="/data/local/tmp/bionic-pkgs/iperf3/run.sh"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/iperf3"
   fi
 fi
 
-log_info "Testing iperf3 via: ${IPERF3_BIN}"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing iperf3 via dir: ${TARGET_DIR}"
+  IPERF3_CMD="${TARGET_DIR}/env.sh iperf3"
+else
+  log_info "Testing iperf3 via: ${IPERF3_BIN}"
+  IPERF3_CMD="${IPERF3_BIN}"
+fi
 
 # 1. Version check
-output="$(adb_shell "${IPERF3_BIN} --version 2>&1" || true)"
+output="$(adb_shell "${IPERF3_CMD} --version 2>&1" || true)"
 assert_contains "$output" "iperf 3." "iperf3 version check (--version)"
 assert_match "OpenSSL|authentication" "$output" "iperf3 OpenSSL crypto check"
 
 # 2. Help output
-output="$(adb_shell "${IPERF3_BIN} -h 2>&1" || true)"
+output="$(adb_shell "${IPERF3_CMD} -h 2>&1" || true)"
 assert_contains "$output" "Usage: iperf3" "iperf3 help banner"
 
 # 3. Local loopback 1-second throughput test
 # Start background one-off server on localhost port 5209
-adb_shell "nohup ${IPERF3_BIN} -s -1 -p 5209 > /data/local/tmp/iperf3-srv.log 2>&1 &"
+adb_shell "nohup ${IPERF3_CMD} -s -1 -p 5209 > /data/local/tmp/iperf3-srv.log 2>&1 &"
 sleep 1
 
-output="$(adb_shell "${IPERF3_BIN} -c 127.0.0.1 -p 5209 -t 1 2>&1" || true)"
+output="$(adb_shell "${IPERF3_CMD} -c 127.0.0.1 -p 5209 -t 1 2>&1" || true)"
 assert_contains "$output" "sender" "iperf3 client localhost transfer sender summary"
 assert_contains "$output" "receiver" "iperf3 client localhost transfer receiver summary"
 

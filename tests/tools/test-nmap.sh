@@ -10,11 +10,16 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
+TARGET_DIR=""
 NMAP_BIN=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
     --bin)
       NMAP_BIN="$2"
       shift 2
@@ -24,8 +29,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$NMAP_BIN" ]; then
-        NMAP_BIN="$1"
+      if [ -z "$TARGET_DIR" ] && [ -z "$NMAP_BIN" ]; then
+        TARGET_DIR="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -37,41 +42,47 @@ done
 
 adb_wait_and_root
 
-if [ -z "$NMAP_BIN" ]; then
-  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/nmap/run.sh ]" 2>/dev/null; then
-    NMAP_BIN="/data/local/tmp/bionic-pkgs/nmap/run.sh"
-    BIN_DIR="/data/local/tmp/bionic-pkgs/nmap/bin"
-  elif adb_shell "[ -f /data/local/tmp/test-sysroot/bin/nmap ]" 2>/dev/null; then
-    NMAP_BIN="/data/local/tmp/test-sysroot/bin/nmap"
-    BIN_DIR="/data/local/tmp/test-sysroot/bin"
+if [ -z "$TARGET_DIR" ] && [ -z "$NMAP_BIN" ]; then
+  if adb_shell "[ -f /data/local/tmp/bionic-pkgs/nmap/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/nmap"
+  elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
+    TARGET_DIR="/data/local/tmp/test-sysroot"
   else
-    NMAP_BIN="/data/local/tmp/bionic-pkgs/nmap/run.sh"
-    BIN_DIR="/data/local/tmp/bionic-pkgs/nmap/bin"
+    TARGET_DIR="/data/local/tmp/bionic-pkgs/nmap"
   fi
-else
-  BIN_DIR="$(dirname "$NMAP_BIN")"
 fi
 
-log_info "Testing nmap via: ${NMAP_BIN} (BIN_DIR=${BIN_DIR})"
+if [ -n "$TARGET_DIR" ]; then
+  log_info "Testing nmap via dir: ${TARGET_DIR}"
+  NMAP_CMD="${TARGET_DIR}/env.sh nmap"
+  NCAT_CMD="${TARGET_DIR}/env.sh ncat"
+  NPING_CMD="${TARGET_DIR}/env.sh nping"
+else
+  log_info "Testing nmap via: ${NMAP_BIN}"
+  BIN_DIR="$(dirname "$NMAP_BIN")"
+  NMAP_CMD="${NMAP_BIN}"
+  NCAT_CMD="PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/ncat"
+  NPING_CMD="PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/nping"
+fi
 
 # 1. Nmap version check
-output="$(adb_shell "${NMAP_BIN} --version 2>&1" || true)"
+output="$(adb_shell "${NMAP_CMD} --version 2>&1" || true)"
 assert_contains "$output" "Nmap version 7.99" "nmap version check (--version)"
 
 # 2. Ncat version check
-output="$(adb_shell "PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/ncat --version 2>&1" || true)"
+output="$(adb_shell "${NCAT_CMD} --version 2>&1" || true)"
 assert_contains "$output" "Ncat: Version 7.99" "ncat version check (--version)"
 
 # 3. Nping version check
-output="$(adb_shell "PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/nping --version 2>&1" || true)"
+output="$(adb_shell "${NPING_CMD} --version 2>&1" || true)"
 assert_contains "$output" "Nping version 7.99" "nping version check (--version)"
 
 # 4. Nmap ping sweep on localhost
-output="$(adb_shell "${NMAP_BIN} -sn 127.0.0.1 2>&1" || true)"
+output="$(adb_shell "${NMAP_CMD} -sn 127.0.0.1 2>&1" || true)"
 assert_contains "$output" "Nmap done: 1 IP address (1 host up)" "nmap localhost ping scan (-sn)"
 
 # 5. Nping ICMP echo probe on localhost
-output="$(adb_shell "PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/nping --tcp -c 1 -p 80 127.0.0.1 2>&1" || true)"
+output="$(adb_shell "${NPING_CMD} --tcp -c 1 -p 80 127.0.0.1 2>&1" || true)"
 assert_contains "$output" "Nping done: 1 IP address pinged" "nping TCP probe to localhost"
 
 print_summary
