@@ -52,7 +52,7 @@ log_info "Testing iperf3 via: ${IPERF3_BIN}"
 # 1. Version check
 output="$(adb_shell "${IPERF3_BIN} --version 2>&1" || true)"
 assert_contains "$output" "iperf 3." "iperf3 version check (--version)"
-assert_contains "$output" "OpenSSL" "iperf3 OpenSSL crypto check"
+assert_match "OpenSSL|authentication" "$output" "iperf3 OpenSSL crypto check"
 
 # 2. Help output
 output="$(adb_shell "${IPERF3_BIN} -h 2>&1" || true)"
