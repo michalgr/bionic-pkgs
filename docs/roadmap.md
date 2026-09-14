@@ -16,16 +16,18 @@ This document outlines the phased development roadmap for `bionic-pkgs`.
 ## 🛠 Phase 2: Initial Core Tooling (Diagnostics, Reversing & Python)
 Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-v8a`) and `x86_64-android`:
 - [x] **`pkgs/diagnostics/` (System Diagnostics & Tracing)**:
-  - [x] `pkgs/diagnostics/strace`: Full syscall decoding, MPERS support, and verified live on Android 14+ devices.
+  - [x] `pkgs/diagnostics/strace`: Full syscall decoding, MPERS support, and verified live on Android devices.
 - [x] **`pkgs/runtime/` & `pkgs/libs/` (Python 3 Runtime & Shared Libraries)**:
   - [x] `pkgs/runtime/python3`: Standalone minimal CLI runtime for Android.
   - [x] `pkgs/libs/libffi`: Cross-compiled for Bionic to support Python `ctypes` (essential for dynamic C library interaction and memory inspection without APK wrappers).
-  - [x] `lib/sysroot`: Unified Android 14+ / API 34 Bionic libc & NDK r27 sysroot with built-in shims and platform stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
+  - [x] `lib/sysroot`: Unified Android / API 34 Bionic libc & NDK r27 sysroot with built-in shims and platform stubs (`libz.so`, `liblog.so`, `libandroid.so`, etc.).
   - [x] `pkgs/libs/xz`: Cross-compiled XZ Utils compression library (`liblzma`) and CLI tools (`xz`, `unxz`, `xzcat`, `lzma`) for Android.
   - [x] `pkgs/libs/zstd`: Cross-compiled Zstandard compression library (`libzstd`) and CLI tools (`zstd`, `unzstd`, `zstdcat`, `zstdmt`) for Android.
   - [x] `pkgs/libs/bzip2`: Cross-compiled bzip2 compression library (`libbz2`) and CLI tools (`bzip2`, `bunzip2`, `bzcat`) for Android.
   - [x] `pkgs/libs/readline`: Cross-compiled GNU Readline library for Android (Bionic).
   - [x] Supporting optional libraries: `pkgs/libs/openssl`.
+  - [x] `pkgs/libs/libevent`: Event notification library for tmux.
+  - [x] `pkgs/libs/pcre2`: Perl-compatible regular expressions library.
   - [x] `pkgs/libs/elfutils`: Minimalistic ELF manipulation (`libelf`, `eu-readelf`, `eu-nm`, `eu-strip`, etc.) and DWARF debugging (`libdw`, `libasm`) suite.
 - [x] **`pkgs/reversing/` (Disassembly & Binary Analysis)**:
   - [x] `pkgs/reversing/radare2`: Standalone binary analysis framework.
@@ -34,6 +36,7 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
   - [x] `pkgs/core/htop`: Interactive terminal process viewer cross-compiled for Android Bionic.
   - [x] `pkgs/core/socat`: Multipurpose relay tool for Android IPC, UNIX domain sockets, and TCP/UDP forwarding.
   - [x] `pkgs/core/curl`: Cross-compiled cURL with OpenSSL 3 TLS and Zstandard support for Android.
+  - [x] `pkgs/core/tmux`: Terminal multiplexer with multi-pane session persistence (with `pkgs/libs/libevent`).
 
 ---
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/adb-push.sh
-# Standalone ADB deployment utility for Android 14+ (Bionic libc) prebuilt runtime archives.
+# Standalone ADB deployment utility for Android (Bionic libc) prebuilt runtime archives.
 
 set -euo pipefail
 
