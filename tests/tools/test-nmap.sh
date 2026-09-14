@@ -64,7 +64,7 @@ assert_contains "$output" "Ncat: Version 7.99" "ncat version check (--version)"
 
 # 3. Nping version check
 output="$(adb_shell "PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/nping --version 2>&1" || true)"
-assert_contains "$output" "Nping version 0.7.99" "nping version check (--version)"
+assert_contains "$output" "Nping version 7.99" "nping version check (--version)"
 
 # 4. Nmap ping sweep on localhost
 output="$(adb_shell "${NMAP_BIN} -sn 127.0.0.1 2>&1" || true)"

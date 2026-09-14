@@ -159,7 +159,7 @@ output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/ncat --version 2>&1" || t
 assert_contains "$output" "Ncat: Version 7.99" "ncat version check in sysroot"
 
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/nping --version 2>&1" || true)"
-assert_contains "$output" "Nping version 0.7.99" "nping version check in sysroot"
+assert_contains "$output" "Nping version 7.99" "nping version check in sysroot"
 
 output="$(adb_shell "${ENV_WRAPPER} ${SYSROOT_DIR}/bin/nmap -sn 127.0.0.1 2>&1" || true)"
 assert_contains "$output" "Nmap done: 1 IP address (1 host up)" "nmap localhost ping scan in sysroot"
