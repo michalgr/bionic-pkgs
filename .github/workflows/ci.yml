@@ -224,10 +224,30 @@ jobs:
         run: |
           cd release-assets
           sha256sum *.tar.gz > SHA256SUMS.txt
+
           echo "### Release Checksums (SHA-256)" > RELEASE_NOTES.md
           echo '```' >> RELEASE_NOTES.md
           cat SHA256SUMS.txt >> RELEASE_NOTES.md
           echo '```' >> RELEASE_NOTES.md
+
+          cat << 'EOF' > LATEST_NOTES.md
+          Continuous pre-release builds of `bionic-pkgs` for Android 14+ (API 34).
+          All binaries are 16 KB page-aligned and verified on device.
+
+          ### Included Archives
+          - `sysroot-aarch64.tar.gz`: Full sysroot suite for 64-bit ARM (`aarch64`)
+          - `sysroot-x86_64.tar.gz`: Full sysroot suite for 64-bit x86 (`x86_64`)
+          - `bpftrace-static-*.tar.gz`: Standalone statically-linked eBPF tracing binaries
+
+          ### Checksums (SHA-256)
+          ```
+          EOF
+          cat SHA256SUMS.txt >> LATEST_NOTES.md
+          cat << 'EOF' >> LATEST_NOTES.md
+          ```
+
+          See [README.md](https://github.com/michalgr/bionic-pkgs#readme) for installation and usage instructions.
+          EOF
 
       - name: Publish GitHub Release (v* tag)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -247,21 +267,7 @@ jobs:
         with:
           tag_name: latest
           name: "Bionic Packages (Latest Build)"
-          body: |
-            Continuous pre-release builds of `bionic-pkgs` for Android 14+ (API 34).
-            All binaries are 16 KB page-aligned and verified on device.
-
-            ### Included Archives
-            - `sysroot-aarch64.tar.gz`: Full sysroot suite for 64-bit ARM (`aarch64`)
-            - `sysroot-x86_64.tar.gz`: Full sysroot suite for 64-bit x86 (`x86_64`)
-            - `bpftrace-static-*.tar.gz`: Standalone statically-linked eBPF tracing binaries
-
-            ### Checksums (SHA-256)
-            ```
-            $(cat release-assets/SHA256SUMS.txt)
-            ```
-
-            See [README.md](https://github.com/michalgr/bionic-pkgs#readme) for installation and usage instructions.
+          body_path: release-assets/LATEST_NOTES.md
           files: |
             release-assets/*.tar.gz
             release-assets/SHA256SUMS.txt
