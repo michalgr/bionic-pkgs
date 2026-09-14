@@ -41,9 +41,45 @@ For detailed architectural specifications, toolchain strategy, and Bionic portin
 
 > *Note: `bionic-pkgs` is currently in early active setup. Flake schema details are finalized in [docs/architecture.md](docs/architecture.md).*
 
-### Binary Cache (Cachix)
+### Precompiled Standalone Installation (Non-Nix Users)
 
-`bionic-pkgs` uses a Cachix binary cache to speed up builds. By default, the `flake.nix` is configured to use the `bionic-pkgs` cache. When you run your first `nix build` or `nix run` command, Nix will ask if you want to trust the cache settings provided by the flake. We recommend saying `y` to avoid having to compile packages from source.
+Precompiled binary bundles for Android devices are published automatically on every main branch update and tag release:
+- 📦 **[Download Precompiled Bundles from GitHub Releases (Latest)](https://github.com/michalgr/bionic-pkgs/releases/tag/latest)**
+
+Follow these step-by-step instructions to push, extract, and execute tools on your Android device via ADB:
+
+```bash
+# 1. Download sysroot-<arch>.tar.gz from GitHub Releases (latest)
+# 2. Push to Android device
+adb push sysroot-aarch64.tar.gz /data/local/tmp/
+
+# 3. Extract to /data/local/tmp/sysroot
+adb shell "mkdir -p /data/local/tmp/sysroot && tar -xzf /data/local/tmp/sysroot-aarch64.tar.gz -C /data/local/tmp/sysroot"
+
+# 4. Run tools via the environment launcher wrapper
+adb shell "/data/local/tmp/sysroot/bin/env.sh tmux"
+adb shell "/data/local/tmp/sysroot/bin/env.sh nmap -sn 127.0.0.1"
+adb shell "/data/local/tmp/sysroot/bin/env.sh strace -p 1"
+```
+
+---
+
+### Binary Cache (Cachix) & Nix Usage
+
+`bionic-pkgs` maintains a Cachix binary cache containing prebuilt binaries for Linux (`x86_64-linux`) and macOS (`aarch64-darwin`).
+
+To configure the Cachix substituter on your system:
+
+```bash
+cachix use bionic-pkgs
+```
+
+You can run tools directly from the Flake without building from source:
+
+```bash
+# Push and run tmux directly to a connected Android device:
+nix run github:michalgr/bionic-pkgs#push-aarch64-android-tmux
+```
 
 ### Building a package for Android ARM64
 
@@ -66,6 +102,19 @@ nix run .#push-aarch64-android-strace
 # Or specify explicit host system:
 nix run .#apps.x86_64-linux.push-aarch64-android-strace
 ```
+
+---
+
+## 📦 Tool Catalog Table
+
+`bionic-pkgs` provides a comprehensive suite of precompiled, 16 KB page-aligned utilities for Android system analysis:
+
+| Category | Available Tools |
+| :--- | :--- |
+| **Diagnostics** | `strace`, `gdb`, `lldb`, `tcpdump`, `iperf3`, `lsof`, `nmap` (`ncat`, `nping`) |
+| **Tracing & Kernel** | `libbpf`, `bcc`, `bpftrace` |
+| **Reversing** | `radare2`, `rizin`, `elfutils` |
+| **Core & Runtimes** | `python3`, `tmux`, `curl`, `socat`, `htop` |
 
 ---
 

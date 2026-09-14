@@ -63,4 +63,5 @@ Port, patch, and verify initial priority packages for `aarch64-android` (`arm64-
 - [x] `devShells` featuring cross-compilers, ADB binaries, and environment variables.
 - [x] Modular on-device test framework (`tests/lib/`, `tests/tools/`, `tests/test-integration.sh`, `tests/run-device-tests.sh`) with codified tests for ported packages (`strace`, `python3`, `radare2`, `rizin`, `elfutils`, `bpftrace`, `bcc`, `lldb`).
 - [x] 2-tier CI testing matrix: Tier 1 Fast Smoke with single emulator instance (`strace`, `elfutils`, `python3` via `.github/workflows/fast-smoke.yml`), Tier 2 Full Sysroot Integration runner (`.github/workflows/ci.yml` & `scripts/ci-emulator-test.sh`), and unified Audit workflow (`.github/workflows/audit.yml`).
-- [ ] Enable Cachix binary cache substituters for prebuilt package distribution.
+- [x] Enable Cachix binary cache substituters for prebuilt package distribution.
+- [x] Automated GitHub Releases publishing tested sysroot and static tool bundles on tag and main push.
