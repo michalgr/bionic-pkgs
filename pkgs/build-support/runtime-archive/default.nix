@@ -7,7 +7,7 @@
   bash,
   makeArchive,
   stageRuntimeScript ? ../../../scripts/stage-runtime.sh,
-  generateLauncher ? ../../../scripts/generate-launcher.sh,
+  envScript ? ../../../scripts/env.sh,
 }:
 
 {
@@ -92,7 +92,7 @@ let
     buildCommand = ''
       bash ${stageRuntimeScript} \
         --stage "$out" \
-        --generate-launcher ${generateLauncher} \
+        --env-script ${envScript} \
         ${lib.optionalString (launcherProgram != null) "--launcher ${launcherProgram}"} \
         ${lib.optionalString (launcherName != null) "--launcher-name ${launcherName}"} \
         $packagePaths
