@@ -34,7 +34,16 @@ stdenv.mkDerivation (finalAttrs: {
   #    Disables unnecessary hardware capture/sniffing backends (USB, Bluetooth, Netmap, RDMA, DAG, DBus, Remote).
   # 3. Shared Library:
   #    Builds libpcap.so with 16 KB page alignment and standard $ORIGIN/../lib RUNPATH.
+  # 4. Header Coordination:
+  #    In Bionic, <sys/types.h> includes <bits/in_addr.h> defining struct in_addr before <linux/in.h>.
+  #    Force-including <sys/types.h> prevents incomplete type errors in gencode.c during compilation.
+  NIX_CFLAGS_COMPILE = [
+    "-include sys/types.h"
+  ];
+
   cmakeFlags = [
+    "-DCMAKE_INSTALL_LIBDIR=lib"
+    "-DCMAKE_INSTALL_MANDIR=share/man"
     "-DENABLE_PROFILING=OFF"
     "-DDISABLE_LINUX_USBMON=ON"
     "-DDISABLE_BLUETOOTH=ON"

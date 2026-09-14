@@ -14,6 +14,9 @@ typedef uint32_t in_addr_t;
 #ifndef __UAPI_DEF_IN_ADDR
 #define __UAPI_DEF_IN_ADDR 0
 #endif
+#ifndef _NETINET_IN_H
+#define _NETINET_IN_H 1
+#endif
 struct in_addr {
   in_addr_t s_addr;
 };
