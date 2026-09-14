@@ -3,6 +3,7 @@ name: CI / Matrix Build & Sysroot Integration
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -200,3 +201,68 @@ jobs:
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim -no-metrics -no-snapshot-save -camera-back none
           script: ./scripts/ci-emulator-test.sh dist
+
+  publish-release:
+    name: Publish Release Packages
+    needs: [matrix-build, emulator-test-x86_64]
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && github.repository == 'michalgr/bionic-pkgs'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all target archives
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: archives-*
+          merge-multiple: true
+
+      - name: Generate Checksums and Release Inventory
+        run: |
+          cd release-assets
+          sha256sum *.tar.gz > SHA256SUMS.txt
+          echo "### Release Checksums (SHA-256)" > RELEASE_NOTES.md
+          echo '```' >> RELEASE_NOTES.md
+          cat SHA256SUMS.txt >> RELEASE_NOTES.md
+          echo '```' >> RELEASE_NOTES.md
+
+      - name: Publish GitHub Release (v* tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/*.tar.gz
+            release-assets/SHA256SUMS.txt
+          body_path: release-assets/RELEASE_NOTES.md
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Publish Rolling Latest Release (main branch)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Bionic Packages (Latest Build)"
+          body: |
+            Continuous pre-release builds of `bionic-pkgs` for Android 14+ (API 34).
+            All binaries are 16 KB page-aligned and verified on device.
+
+            ### Included Archives
+            - `sysroot-aarch64.tar.gz`: Full sysroot suite for 64-bit ARM (`aarch64`)
+            - `sysroot-x86_64.tar.gz`: Full sysroot suite for 64-bit x86 (`x86_64`)
+            - `bpftrace-static-*.tar.gz`: Standalone statically-linked eBPF tracing binaries
+
+            ### Checksums (SHA-256)
+            ```
+            $(cat release-assets/SHA256SUMS.txt)
+            ```
+
+            See [README.md](https://github.com/michalgr/bionic-pkgs#readme) for installation and usage instructions.
+          files: |
+            release-assets/*.tar.gz
+            release-assets/SHA256SUMS.txt
+          prerelease: true
