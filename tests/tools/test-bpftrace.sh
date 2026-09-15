@@ -10,18 +10,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
-TARGET_DIR=""
-BPFTRACE_BIN=""
+TARGET_ROOT=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    --bin)
-      BPFTRACE_BIN="$2"
+    -r|--root|--root-dir)
+      TARGET_ROOT="$2"
       shift 2
       ;;
     -s|--serial)
@@ -29,8 +24,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TARGET_DIR" ] && [ -z "$BPFTRACE_BIN" ]; then
-        TARGET_DIR="$1"
+      if [ -z "$TARGET_ROOT" ]; then
+        TARGET_ROOT="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,42 +37,23 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TARGET_DIR" ] && [ -z "$BPFTRACE_BIN" ]; then
+if [ -z "$TARGET_ROOT" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/bpftrace/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/bpftrace"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/bpftrace"
   elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/test-sysroot"
+    TARGET_ROOT="/data/local/tmp/test-sysroot"
   else
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/bpftrace"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/bpftrace"
   fi
 fi
 
-if [ -n "$TARGET_DIR" ]; then
-  log_info "Testing bpftrace via dir: ${TARGET_DIR}"
-  if adb_shell "[ -f '${TARGET_DIR}/env.sh' ]" 2>/dev/null; then
-    BPFTRACE_CMD="${TARGET_DIR}/env.sh bpftrace"
-    SYSCOUNT_CMD="${TARGET_DIR}/env.sh syscount"
-  else
-    BPFTRACE_CMD="${TARGET_DIR}/bin/bpftrace"
-    SYSCOUNT_CMD="${TARGET_DIR}/bin/syscount"
-  fi
+log_info "Testing bpftrace via root: ${TARGET_ROOT}"
+if adb_shell "[ -f '${TARGET_ROOT}/env.sh' ]" 2>/dev/null; then
+  BPFTRACE_CMD="${TARGET_ROOT}/env.sh bpftrace"
+  SYSCOUNT_CMD="${TARGET_ROOT}/env.sh syscount"
 else
-  log_info "Testing bpftrace via: ${BPFTRACE_BIN}"
-  BIN_NAME="$(basename "$BPFTRACE_BIN")"
-  if [ "$BIN_NAME" = "run.sh" ]; then
-    BASE_DIR="$(dirname "$BPFTRACE_BIN")"
-    BPFTRACE_CMD="${BPFTRACE_BIN}"
-    SYSCOUNT_CMD="${BASE_DIR}/bin/syscount"
-  else
-    BASE_DIR="$(dirname "$BPFTRACE_BIN")/.."
-    if [ -d "${BASE_DIR}/lib" ]; then
-      BPFTRACE_CMD="${BPFTRACE_BIN}"
-      SYSCOUNT_CMD="${BASE_DIR}/bin/syscount"
-    else
-      BPFTRACE_CMD="${BPFTRACE_BIN}"
-      SYSCOUNT_CMD="$(dirname "$BPFTRACE_BIN")/syscount"
-    fi
-  fi
+  BPFTRACE_CMD="${TARGET_ROOT}/bin/bpftrace"
+  SYSCOUNT_CMD="${TARGET_ROOT}/bin/syscount"
 fi
 
 # Ensure tracefs/debugfs mounted

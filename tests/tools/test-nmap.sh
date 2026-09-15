@@ -10,18 +10,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
-TARGET_DIR=""
-NMAP_BIN=""
+TARGET_ROOT=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    --bin)
-      NMAP_BIN="$2"
+    -r|--root|--root-dir)
+      TARGET_ROOT="$2"
       shift 2
       ;;
     -s|--serial)
@@ -29,8 +24,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TARGET_DIR" ] && [ -z "$NMAP_BIN" ]; then
-        TARGET_DIR="$1"
+      if [ -z "$TARGET_ROOT" ]; then
+        TARGET_ROOT="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,28 +37,20 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TARGET_DIR" ] && [ -z "$NMAP_BIN" ]; then
+if [ -z "$TARGET_ROOT" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/nmap/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/nmap"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/nmap"
   elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/test-sysroot"
+    TARGET_ROOT="/data/local/tmp/test-sysroot"
   else
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/nmap"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/nmap"
   fi
 fi
 
-if [ -n "$TARGET_DIR" ]; then
-  log_info "Testing nmap via dir: ${TARGET_DIR}"
-  NMAP_CMD="${TARGET_DIR}/env.sh nmap"
-  NCAT_CMD="${TARGET_DIR}/env.sh ncat"
-  NPING_CMD="${TARGET_DIR}/env.sh nping"
-else
-  log_info "Testing nmap via: ${NMAP_BIN}"
-  BIN_DIR="$(dirname "$NMAP_BIN")"
-  NMAP_CMD="${NMAP_BIN}"
-  NCAT_CMD="PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/ncat"
-  NPING_CMD="PATH=\"${BIN_DIR}:\$PATH\" ${BIN_DIR}/nping"
-fi
+log_info "Testing nmap via root: ${TARGET_ROOT}"
+NMAP_CMD="${TARGET_ROOT}/env.sh nmap"
+NCAT_CMD="${TARGET_ROOT}/env.sh ncat"
+NPING_CMD="${TARGET_ROOT}/env.sh nping"
 
 # 1. Nmap version check
 output="$(adb_shell "${NMAP_CMD} --version 2>&1" || true)"

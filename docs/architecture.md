@@ -174,7 +174,7 @@ To make testing binaries on Android hardware or emulators frictionless, every ex
 - `tests/lib/adb-helpers.sh`: ADB invocation wrapper supporting `--serial`/`$ANDROID_SERIAL`, device readiness and `adb root` elevation, `tracefs`/`debugfs` mount helpers, and device architecture detection (`adb_get_arch`).
 
 ### Codified Tool Test Scripts (`tests/tools/`)
-Every testable CLI package implements a dedicated test script under `tests/tools/test-<tool>.sh` accepting `--bin <path_or_launcher>`. Initial tool test scripts include:
+Every testable CLI package implements a dedicated test script under `tests/tools/test-<tool>.sh` accepting `--root <path>` pointing to the sysroot or package bundle root directory. Executions run binaries via `${TARGET_ROOT}/env.sh <tool>`. Initial tool test scripts include:
 - **`strace`**: Version check, write syscall tracing, child process following (`-f`), openat/write file I/O tracing.
 - **`python3`**: Stdlib and platform inspection, built-in HACL* SHA-256/MD5 hashes, dynamic C-extensions (`_ctypes`, `_lzma`, `_bz2`), Bionic `libc.so` foreign function calls via `ctypes` (`getpid`, `time`), and compression round-trip.
 - **`radare2`**: Version check, `rasm2` instruction assembly/disassembly, `rabin2` binary format inspection, headless analysis (`aaa; afl`), and function disassembly (`s entry0; pdf`).
@@ -186,7 +186,7 @@ Every testable CLI package implements a dedicated test script under `tests/tools
 
 ### Integration Suite & Master Orchestrator (`tests/`)
 - `tests/test-integration.sh`: Cross-tool cohabitation integration test verifying `strace` tracing `python3`, `python3` executing BPF programs with `bcc`, `bpftrace` tracing syscalls, `eu-readelf` validating sysroot binaries, and `radare2`/`rizin` disassembling sysroot binaries.
-- `tests/run-device-tests.sh`: Master test orchestrator supporting `--tools <list|all>`, `--deploy-mode <push|sysroot>`, `--sysroot-dir <path>`, and `--serial <id>`.
+- `tests/run-device-tests.sh`: Master test orchestrator supporting `--tools <list|all>`, `--deploy-mode <push|sysroot>`, `--sysroot-dir <path>`, and `--serial <id>`, invoking individual tool test scripts with `--root`.
 
 ---
 

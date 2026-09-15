@@ -10,18 +10,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
-TARGET_DIR=""
-ELFUTILS_BIN=""
+TARGET_ROOT=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    --bin)
-      ELFUTILS_BIN="$2"
+    -r|--root|--root-dir)
+      TARGET_ROOT="$2"
       shift 2
       ;;
     -s|--serial)
@@ -29,8 +24,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TARGET_DIR" ] && [ -z "$ELFUTILS_BIN" ]; then
-        TARGET_DIR="$1"
+      if [ -z "$TARGET_ROOT" ]; then
+        TARGET_ROOT="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,36 +37,20 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TARGET_DIR" ] && [ -z "$ELFUTILS_BIN" ]; then
+if [ -z "$TARGET_ROOT" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/elfutils/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/elfutils"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/elfutils"
   elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/test-sysroot"
+    TARGET_ROOT="/data/local/tmp/test-sysroot"
   else
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/elfutils"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/elfutils"
   fi
 fi
 
-if [ -n "$TARGET_DIR" ]; then
-  log_info "Testing elfutils via dir: ${TARGET_DIR}"
-  READELF_CMD="${TARGET_DIR}/env.sh eu-readelf"
-  NM_CMD="${TARGET_DIR}/env.sh eu-nm"
-  SIZE_CMD="${TARGET_DIR}/env.sh eu-size"
-else
-  log_info "Testing elfutils via: ${ELFUTILS_BIN}"
-  BIN_NAME="$(basename "$ELFUTILS_BIN")"
-  if [ "$BIN_NAME" = "run.sh" ]; then
-    BASE_DIR="$(dirname "$ELFUTILS_BIN")"
-    READELF_CMD="${ELFUTILS_BIN}"
-    NM_CMD="${BASE_DIR}/bin/eu-nm"
-    SIZE_CMD="${BASE_DIR}/bin/eu-size"
-  else
-    BASE_DIR="$(dirname "$ELFUTILS_BIN")/.."
-    READELF_CMD="${ELFUTILS_BIN}"
-    NM_CMD="${BASE_DIR}/bin/eu-nm"
-    SIZE_CMD="${BASE_DIR}/bin/eu-size"
-  fi
-fi
+log_info "Testing elfutils via root: ${TARGET_ROOT}"
+READELF_CMD="${TARGET_ROOT}/env.sh eu-readelf"
+NM_CMD="${TARGET_ROOT}/env.sh eu-nm"
+SIZE_CMD="${TARGET_ROOT}/env.sh eu-size"
 
 TARGET_ELF="/system/bin/sh"
 

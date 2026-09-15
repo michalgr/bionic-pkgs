@@ -10,18 +10,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
-TARGET_DIR=""
-GDB_BIN=""
+TARGET_ROOT=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    --bin)
-      GDB_BIN="$2"
+    -r|--root|--root-dir)
+      TARGET_ROOT="$2"
       shift 2
       ;;
     -s|--serial)
@@ -29,8 +24,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TARGET_DIR" ] && [ -z "$GDB_BIN" ]; then
-        TARGET_DIR="$1"
+      if [ -z "$TARGET_ROOT" ]; then
+        TARGET_ROOT="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,35 +37,19 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TARGET_DIR" ] && [ -z "$GDB_BIN" ]; then
+if [ -z "$TARGET_ROOT" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/gdb/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/gdb"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/gdb"
   elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/test-sysroot"
+    TARGET_ROOT="/data/local/tmp/test-sysroot"
   else
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/gdb"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/gdb"
   fi
 fi
 
-if [ -n "$TARGET_DIR" ]; then
-  log_info "Testing gdb via dir: ${TARGET_DIR}"
-  GDB_CMD="${TARGET_DIR}/env.sh gdb"
-  GDBSERVER_BIN="${TARGET_DIR}/env.sh gdbserver"
-else
-  log_info "Testing gdb via: ${GDB_BIN}"
-  BIN_NAME="$(basename "$GDB_BIN")"
-  if [ "$BIN_NAME" = "run.sh" ]; then
-    GDB_DIR="$(dirname "$GDB_BIN")"
-    GDBSERVER_BIN="${GDB_DIR}/bin/gdbserver"
-    GDB_CMD="${GDB_BIN}"
-  else
-    GDB_DIR="$(dirname "$GDB_BIN")"
-    BASE_DIR="$(dirname "$GDB_DIR")"
-    GDBSERVER_BIN="${GDB_DIR}/gdbserver"
-    GDB_CMD="PYTHONHOME='${BASE_DIR}' PYTHONPATH='${BASE_DIR}/lib/python3.13:${BASE_DIR}/share/gdb/python' '${GDB_BIN}'"
-  fi
-  log_info "Testing gdbserver via: ${GDBSERVER_BIN}"
-fi
+log_info "Testing gdb via root: ${TARGET_ROOT}"
+GDB_CMD="${TARGET_ROOT}/env.sh gdb"
+GDBSERVER_BIN="${TARGET_ROOT}/env.sh gdbserver"
 
 # 1. Version check for gdb CLI (banner verification)
 output="$(adb_shell "${GDB_CMD} --version 2>&1" || true)"

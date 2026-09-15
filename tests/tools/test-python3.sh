@@ -10,18 +10,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
-TARGET_DIR=""
-PYTHON_BIN=""
+TARGET_ROOT=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    --bin)
-      PYTHON_BIN="$2"
+    -r|--root|--root-dir)
+      TARGET_ROOT="$2"
       shift 2
       ;;
     -s|--serial)
@@ -29,8 +24,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TARGET_DIR" ] && [ -z "$PYTHON_BIN" ]; then
-        TARGET_DIR="$1"
+      if [ -z "$TARGET_ROOT" ]; then
+        TARGET_ROOT="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,23 +37,18 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TARGET_DIR" ] && [ -z "$PYTHON_BIN" ]; then
+if [ -z "$TARGET_ROOT" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/python3/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/python3"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/python3"
   elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/test-sysroot"
+    TARGET_ROOT="/data/local/tmp/test-sysroot"
   else
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/python3"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/python3"
   fi
 fi
 
-if [ -n "$TARGET_DIR" ]; then
-  log_info "Testing python3 via dir: ${TARGET_DIR}"
-  PYTHON_CMD="${TARGET_DIR}/env.sh python3"
-else
-  log_info "Testing python3 via: ${PYTHON_BIN}"
-  PYTHON_CMD="${PYTHON_BIN}"
-fi
+log_info "Testing python3 via root: ${TARGET_ROOT}"
+PYTHON_CMD="${TARGET_ROOT}/env.sh python3"
 
 # 1. Stdlib & platform check
 output="$(adb_shell "${PYTHON_CMD} -c \"import sys, os; print('PLATFORM_OK:', sys.platform, os.name)\" 2>&1" || true)"
