@@ -230,17 +230,19 @@ jobs:
           cat SHA256SUMS.txt >> RELEASE_NOTES.md
           echo '```' >> RELEASE_NOTES.md
 
-          cat << 'EOF' > LATEST_NOTES.md
-          Continuous pre-release builds of `bionic-pkgs` for Android 14+ (API 34).
+          cat << EOF > LATEST_NOTES.md
+          Continuous pre-release builds of \`bionic-pkgs\` for Android 14+ (API 34).
           All binaries are 16 KB page-aligned and verified on device.
 
+          Built from commit [\`${GITHUB_SHA::8}\`](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA}).
+
           ### Included Archives
-          - `sysroot-aarch64.tar.gz`: Full sysroot suite for 64-bit ARM (`aarch64`)
-          - `sysroot-x86_64.tar.gz`: Full sysroot suite for 64-bit x86 (`x86_64`)
-          - `bpftrace-static-*.tar.gz`: Standalone statically-linked eBPF tracing binaries
+          - \`sysroot-aarch64.tar.gz\`: Full sysroot suite for 64-bit ARM (\`aarch64\`)
+          - \`sysroot-x86_64.tar.gz\`: Full sysroot suite for 64-bit x86 (\`x86_64\`)
+          - \`bpftrace-static-*.tar.gz\`: Standalone statically-linked eBPF tracing binaries
 
           ### Checksums (SHA-256)
-          ```
+          \`\`\`
           EOF
           cat SHA256SUMS.txt >> LATEST_NOTES.md
           cat << 'EOF' >> LATEST_NOTES.md
@@ -261,11 +263,18 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: Update latest git tag pointer
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag -f latest "${{ github.sha }}"
+          git push -f origin latest
+
       - name: Publish Rolling Latest Release (main branch)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
+          target_commitish: ${{ github.sha }}
           name: "Bionic Packages (Latest Build)"
           body_path: release-assets/LATEST_NOTES.md
           files: |
