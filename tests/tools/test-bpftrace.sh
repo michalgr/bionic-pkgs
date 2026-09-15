@@ -48,8 +48,13 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing bpftrace via root: ${TARGET_ROOT}"
-BPFTRACE_CMD="${TARGET_ROOT}/env.sh bpftrace"
-SYSCOUNT_CMD="${TARGET_ROOT}/env.sh syscount"
+if adb_shell "[ -f '${TARGET_ROOT}/env.sh' ]" 2>/dev/null; then
+  BPFTRACE_CMD="${TARGET_ROOT}/env.sh bpftrace"
+  SYSCOUNT_CMD="${TARGET_ROOT}/env.sh syscount"
+else
+  BPFTRACE_CMD="${TARGET_ROOT}/bin/bpftrace"
+  SYSCOUNT_CMD="${TARGET_ROOT}/bin/syscount"
+fi
 
 # Ensure tracefs/debugfs mounted
 adb_mount_tracefs
