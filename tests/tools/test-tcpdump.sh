@@ -48,23 +48,23 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing tcpdump via root: ${TARGET_ROOT}"
-TCPDUMP_CMD="${TARGET_ROOT}/env.sh tcpdump"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${TCPDUMP_CMD} --version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} tcpdump --version 2>&1" || true)"
 assert_contains "$output" "tcpdump version" "tcpdump version check (--version)"
 assert_contains "$output" "libpcap version" "tcpdump libpcap integration check"
 
 # 2. Help output
-output="$(adb_shell "${TCPDUMP_CMD} -h 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} tcpdump -h 2>&1" || true)"
 assert_contains "$output" "Usage:" "tcpdump help banner"
 
 # 3. Interface enumeration
-output="$(adb_shell "${TCPDUMP_CMD} -D 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} tcpdump -D 2>&1" || true)"
 assert_match "lo|any" "$output" "tcpdump interface enumeration (-D)"
 
 # 4. BPF filter compilation
-output="$(adb_shell "${TCPDUMP_CMD} -d 'ip and tcp' 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} tcpdump -d 'ip and tcp' 2>&1" || true)"
 assert_contains "$output" "(000)" "tcpdump BPF filter compilation (-d 'ip and tcp')"
 
 print_summary

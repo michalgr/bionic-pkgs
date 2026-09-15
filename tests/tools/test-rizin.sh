@@ -48,39 +48,36 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing rizin via root: ${TARGET_ROOT}"
-RZ_CMD="${TARGET_ROOT}/env.sh rizin"
-RZ_ASM_CMD="${TARGET_ROOT}/env.sh rz-asm"
-RZ_BIN_CMD="${TARGET_ROOT}/env.sh rz-bin"
-RZ_HASH_CMD="${TARGET_ROOT}/env.sh rz-hash"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${RZ_CMD} -v 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} rizin -v 2>&1" || true)"
 assert_contains "$output" "rizin" "rizin version check (-v)"
 
 # 2. Assembler/disassembler verification via rz-asm
 arch="$(adb_get_arch)"
 if [ "$arch" = "x86_64" ] || [ "$arch" = "i686" ]; then
-  output="$(adb_shell "${RZ_ASM_CMD} -a x86 -b 64 'nop' 2>&1" || true)"
+  output="$(adb_shell "${ENV_SH} rz-asm -a x86 -b 64 'nop' 2>&1" || true)"
   assert_contains "$output" "90" "rz-asm assembly verification (x86_64 nop)"
 else
-  output="$(adb_shell "${RZ_ASM_CMD} -a arm -b 64 'nop' 2>&1" || true)"
+  output="$(adb_shell "${ENV_SH} rz-asm -a arm -b 64 'nop' 2>&1" || true)"
   assert_contains "$output" "1f2003d5" "rz-asm assembly verification (arm64 nop)"
 fi
 
 # 3. Binary inspection via rz-bin
-output="$(adb_shell "${RZ_BIN_CMD} -I /system/bin/sh 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} rz-bin -I /system/bin/sh 2>&1" || true)"
 assert_contains "$output" "elf" "rz-bin binary inspection (-I /system/bin/sh)"
 
 # 4. Headless analysis
-output="$(adb_shell "${RZ_CMD} -q -c 'aa; afl' /system/bin/sh 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} rizin -q -c 'aa; afl' /system/bin/sh 2>&1" || true)"
 assert_match "entry|main|sym" "$output" "rizin headless analysis (aa; afl /system/bin/sh)"
 
 # 5. Entrypoint disassembly
-output="$(adb_shell "${RZ_CMD} -q -c 'pdf' /system/bin/sh 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} rizin -q -c 'pdf' /system/bin/sh 2>&1" || true)"
 assert_match "0x|entry" "$output" "rizin entrypoint disassembly (pdf)"
 
 # 6. Checksum inspection via rz-hash
-output="$(adb_shell "${RZ_HASH_CMD} -a sha256 /system/bin/sh 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} rz-hash -a sha256 /system/bin/sh 2>&1" || true)"
 assert_match "[0-9a-f]{64}" "$output" "rz-hash SHA-256 calculation (/system/bin/sh)"
 
 print_summary

@@ -48,23 +48,23 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing iperf3 via root: ${TARGET_ROOT}"
-IPERF3_CMD="${TARGET_ROOT}/env.sh iperf3"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${IPERF3_CMD} --version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} iperf3 --version 2>&1" || true)"
 assert_contains "$output" "iperf 3." "iperf3 version check (--version)"
 assert_match "OpenSSL|authentication" "$output" "iperf3 OpenSSL crypto check"
 
 # 2. Help output
-output="$(adb_shell "${IPERF3_CMD} -h 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} iperf3 -h 2>&1" || true)"
 assert_contains "$output" "Usage: iperf3" "iperf3 help banner"
 
 # 3. Local loopback 1-second throughput test
 # Start background one-off server on localhost port 5209
-adb_shell "nohup ${IPERF3_CMD} -s -1 -p 5209 > /data/local/tmp/iperf3-srv.log 2>&1 &"
+adb_shell "nohup ${ENV_SH} iperf3 -s -1 -p 5209 > /data/local/tmp/iperf3-srv.log 2>&1 &"
 sleep 1
 
-output="$(adb_shell "${IPERF3_CMD} -c 127.0.0.1 -p 5209 -t 1 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} iperf3 -c 127.0.0.1 -p 5209 -t 1 2>&1" || true)"
 assert_contains "$output" "sender" "iperf3 client localhost transfer sender summary"
 assert_contains "$output" "receiver" "iperf3 client localhost transfer receiver summary"
 

@@ -48,35 +48,34 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing lldb via root: ${TARGET_ROOT}"
-LLDB_CMD="${TARGET_ROOT}/env.sh lldb"
-LLDB_SERVER_BIN="${TARGET_ROOT}/env.sh lldb-server"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check for lldb CLI
-output="$(adb_shell "${LLDB_CMD} --version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lldb --version 2>&1" || true)"
 assert_contains "$output" "lldb version" "lldb version check (--version)"
 
 # 2. Version check for companion lldb-server
-output="$(adb_shell "${LLDB_SERVER_BIN} v 2>&1 || ${LLDB_SERVER_BIN} version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lldb-server v 2>&1 || ${ENV_SH} lldb-server version 2>&1" || true)"
 assert_match "lldb-server|version" "$output" "lldb-server version check"
 
 # 3. Batch execution & process tracing
-output="$(adb_shell "${LLDB_CMD} --batch -o 'file /system/bin/echo' -o 'run bionic-test' -o 'quit' 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lldb --batch -o 'file /system/bin/echo' -o 'run bionic-test' -o 'quit' 2>&1" || true)"
 assert_match "bionic-test|exited with status" "$output" "lldb batch execution & process tracing"
 
 # 4. Target image inspection
-output="$(adb_shell "${LLDB_CMD} --batch -o 'target create /system/bin/sh' -o 'image list' -o 'quit' 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lldb --batch -o 'target create /system/bin/sh' -o 'image list' -o 'quit' 2>&1" || true)"
 assert_contains "$output" "/system/bin/sh" "lldb target image inspection"
 
 # 5. Breakpoint and control flow
-output="$(adb_shell "${LLDB_CMD} --batch -o 'file /system/bin/echo' -o 'breakpoint set -n main' -o 'run test' -o 'continue' -o 'quit' 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lldb --batch -o 'file /system/bin/echo' -o 'breakpoint set -n main' -o 'run test' -o 'continue' -o 'quit' 2>&1" || true)"
 assert_match "Breakpoint|stopped|exited" "$output" "lldb breakpoint set and control flow"
 
 # 6. Python interpreter execution in LLDB batch mode
-output="$(adb_shell "${LLDB_CMD} --batch -o 'script print(1234 + 5678)' 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lldb --batch -o 'script print(1234 + 5678)' 2>&1" || true)"
 assert_contains "$output" "6912" "lldb python script execution"
 
 # 7. LLDB module import and API access
-output="$(adb_shell "${LLDB_CMD} --batch -o 'script import lldb; print(lldb.debugger.GetVersionString())' 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lldb --batch -o 'script import lldb; print(lldb.debugger.GetVersionString())' 2>&1" || true)"
 assert_contains "$output" "lldb version" "lldb python module import and API access"
 
 print_summary

@@ -48,19 +48,19 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing htop via root: ${TARGET_ROOT}"
-HTOP_CMD="${TARGET_ROOT}/env.sh htop"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${HTOP_CMD} --version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} htop --version 2>&1" || true)"
 assert_contains "$output" "htop 3." "htop version check (--version)"
 
 # 2. Help output
-output="$(adb_shell "${HTOP_CMD} --help 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} htop --help 2>&1" || true)"
 assert_contains "$output" "Print this help screen" "htop help banner"
 assert_contains "$output" "--max-iterations" "htop iterations option check"
 
 # 3. Single iteration procfs scanning & display test
-output="$(adb_shell "TERM=vt100 ${HTOP_CMD} -n 1 2>&1" || true)"
+output="$(adb_shell "TERM=vt100 ${ENV_SH} htop -n 1 2>&1" || true)"
 assert_match "PID|CPU%|MEM%" "$output" "htop single iteration procfs scanning (-n 1)"
 
 print_summary

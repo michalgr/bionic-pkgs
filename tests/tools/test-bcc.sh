@@ -11,17 +11,12 @@ source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
 TARGET_ROOT=""
-PYTHON_BIN="${PYTHON_BIN:-${BCC_PYTHON_BIN:-}}"
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -r|--root|--root-dir)
       TARGET_ROOT="$2"
-      shift 2
-      ;;
-    --python-bin)
-      PYTHON_BIN="$2"
       shift 2
       ;;
     -s|--serial)
@@ -52,17 +47,14 @@ if [ -z "$TARGET_ROOT" ]; then
   fi
 fi
 
-ENV_PREFIX=""
 log_info "Testing bcc via root: ${TARGET_ROOT}"
-BPS_CMD="${TARGET_ROOT}/env.sh bps"
-PY_CMD="${TARGET_ROOT}/env.sh python3"
-EXECSNOOP_CMD="${TARGET_ROOT}/env.sh execsnoop"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # Ensure tracefs/debugfs mounted
 adb_mount_tracefs
 
 # 1. Introspection utility verification (bps)
-output="$(adb_shell "${BPS_CMD} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} bps 2>&1" || true)"
 if echo "$output" | grep -E -q "BID|PID|COMM|TASK|bps" 2>/dev/null; then
   log_pass "BCC introspection utility verification (bps)"
 else
@@ -74,11 +66,11 @@ else
 fi
 
 # 2. Python BCC module verification
-output="$(adb_shell "${PY_CMD} -c \"import bcc; print('BCC_VERSION:', bcc.__version__)\" 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} python3 -c \"import bcc; print('BCC_VERSION:', bcc.__version__)\" 2>&1" || true)"
 assert_contains "$output" "BCC_VERSION:" "Python BCC module import and version check"
 
 # 3. Standalone tool help verification
-output="$(adb_shell "${ENV_PREFIX}${EXECSNOOP_CMD} -h 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} execsnoop -h 2>&1" || true)"
 assert_match "execsnoop|USAGE|options|Trace" "$output" "BCC standalone tool help verification (execsnoop -h)"
 
 # 4. BPF C program compilation and execution using bcc.BPF
@@ -93,7 +85,7 @@ except Exception as e:
     print('BCC_COMPILE_ERR:', e)
 "
 
-output="$(adb_shell "${PY_CMD} -c \"${bcc_test_code}\" 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} python3 -c \"${bcc_test_code}\" 2>&1" || true)"
 
 if [[ "$output" == *"BCC_C_COMPILE_OK"* ]]; then
   log_pass "BCC C program compilation and execution (bcc.BPF)"

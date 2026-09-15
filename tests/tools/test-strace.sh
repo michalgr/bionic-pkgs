@@ -48,24 +48,24 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing strace via root: ${TARGET_ROOT}"
-STRACE_CMD="${TARGET_ROOT}/env.sh strace"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${STRACE_CMD} -V 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} strace -V 2>&1" || true)"
 assert_contains "$output" "strace -- version" "strace version check (-V)"
 
 # 2. Basic execution & tracing banner
-output="$(adb_shell "${STRACE_CMD} /system/bin/echo strace-test-banner 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} strace /system/bin/echo strace-test-banner 2>&1" || true)"
 assert_contains "$output" "strace-test-banner" "strace inferior stdout output"
 assert_match "execve\(|write\(" "$output" "strace tracing syscall output"
 
 # 3. System call filtering (-e trace=write)
-output="$(adb_shell "${STRACE_CMD} -e trace=write /system/bin/echo strace-filter-test 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} strace -e trace=write /system/bin/echo strace-filter-test 2>&1" || true)"
 assert_contains "$output" "strace-filter-test" "strace filtered inferior stdout output"
 assert_contains "$output" "write(" "strace syscall filter matching write()"
 
 # 4. Summary statistics (-c)
-output="$(adb_shell "${STRACE_CMD} -c /system/bin/true 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} strace -c /system/bin/true 2>&1" || true)"
 assert_match "% time|syscall|calls" "$output" "strace syscall summary statistics (-c)"
 
 print_summary
