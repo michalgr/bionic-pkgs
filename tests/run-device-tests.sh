@@ -124,7 +124,7 @@ for tool in "${SELECTED_TOOLS[@]}"; do
   fi
 
   set +e
-  "$TEST_SCRIPT" --dir "$TARGET_DIR" ${SERIAL:+-s "$SERIAL"}
+  "$TEST_SCRIPT" --root "$TARGET_DIR" ${SERIAL:+-s "$SERIAL"}
   res=$?
   set -e
 

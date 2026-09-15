@@ -10,18 +10,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
-TARGET_DIR=""
-LLDB_BIN=""
+TARGET_ROOT=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    --bin)
-      LLDB_BIN="$2"
+    -r|--root|--root-dir)
+      TARGET_ROOT="$2"
       shift 2
       ;;
     -s|--serial)
@@ -29,8 +24,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TARGET_DIR" ] && [ -z "$LLDB_BIN" ]; then
-        TARGET_DIR="$1"
+      if [ -z "$TARGET_ROOT" ]; then
+        TARGET_ROOT="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,35 +37,19 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TARGET_DIR" ] && [ -z "$LLDB_BIN" ]; then
+if [ -z "$TARGET_ROOT" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/lldb/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/lldb"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/lldb"
   elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/test-sysroot"
+    TARGET_ROOT="/data/local/tmp/test-sysroot"
   else
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/lldb"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/lldb"
   fi
 fi
 
-if [ -n "$TARGET_DIR" ]; then
-  log_info "Testing lldb via dir: ${TARGET_DIR}"
-  LLDB_CMD="${TARGET_DIR}/env.sh lldb"
-  LLDB_SERVER_BIN="${TARGET_DIR}/env.sh lldb-server"
-else
-  log_info "Testing lldb via: ${LLDB_BIN}"
-  BIN_NAME="$(basename "$LLDB_BIN")"
-  if [ "$BIN_NAME" = "run.sh" ]; then
-    LLDB_DIR="$(dirname "$LLDB_BIN")"
-    LLDB_SERVER_BIN="${LLDB_DIR}/bin/lldb-server"
-    LLDB_CMD="${LLDB_BIN}"
-  else
-    LLDB_DIR="$(dirname "$LLDB_BIN")"
-    BASE_DIR="$(dirname "$LLDB_DIR")"
-    LLDB_SERVER_BIN="${LLDB_DIR}/lldb-server"
-    LLDB_CMD="PYTHONHOME='${BASE_DIR}' PYTHONPATH='${BASE_DIR}/lib/python3.13/site-packages' '${LLDB_BIN}'"
-  fi
-  log_info "Testing lldb-server via: ${LLDB_SERVER_BIN}"
-fi
+log_info "Testing lldb via root: ${TARGET_ROOT}"
+LLDB_CMD="${TARGET_ROOT}/env.sh lldb"
+LLDB_SERVER_BIN="${TARGET_ROOT}/env.sh lldb-server"
 
 # 1. Version check for lldb CLI
 output="$(adb_shell "${LLDB_CMD} --version 2>&1" || true)"

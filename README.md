@@ -57,9 +57,9 @@ adb push sysroot-aarch64.tar.gz /data/local/tmp/
 adb shell "mkdir -p /data/local/tmp/sysroot && tar -xzf /data/local/tmp/sysroot-aarch64.tar.gz -C /data/local/tmp/sysroot"
 
 # 4. Run tools via the environment launcher wrapper
-adb shell "/data/local/tmp/sysroot/bin/env.sh tmux"
-adb shell "/data/local/tmp/sysroot/bin/env.sh nmap -sn 127.0.0.1"
-adb shell "/data/local/tmp/sysroot/bin/env.sh strace -p 1"
+adb shell "/data/local/tmp/sysroot/env.sh tmux"
+adb shell "/data/local/tmp/sysroot/env.sh nmap -sn 127.0.0.1"
+adb shell "/data/local/tmp/sysroot/env.sh strace -p 1"
 ```
 
 ---

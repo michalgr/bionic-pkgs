@@ -10,18 +10,13 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$ROOT_DIR/tests/lib/common.sh"
 source "$ROOT_DIR/tests/lib/adb-helpers.sh"
 
-TARGET_DIR=""
-JQ_BIN=""
+TARGET_ROOT=""
 SERIAL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dir)
-      TARGET_DIR="$2"
-      shift 2
-      ;;
-    --bin)
-      JQ_BIN="$2"
+    -r|--root|--root-dir)
+      TARGET_ROOT="$2"
       shift 2
       ;;
     -s|--serial)
@@ -29,8 +24,8 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      if [ -z "$TARGET_DIR" ] && [ -z "$JQ_BIN" ]; then
-        TARGET_DIR="$1"
+      if [ -z "$TARGET_ROOT" ]; then
+        TARGET_ROOT="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -42,23 +37,18 @@ done
 
 adb_wait_and_root
 
-if [ -z "$TARGET_DIR" ] && [ -z "$JQ_BIN" ]; then
+if [ -z "$TARGET_ROOT" ]; then
   if adb_shell "[ -f /data/local/tmp/bionic-pkgs/jq/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/jq"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/jq"
   elif adb_shell "[ -f /data/local/tmp/test-sysroot/env.sh ]" 2>/dev/null; then
-    TARGET_DIR="/data/local/tmp/test-sysroot"
+    TARGET_ROOT="/data/local/tmp/test-sysroot"
   else
-    TARGET_DIR="/data/local/tmp/bionic-pkgs/jq"
+    TARGET_ROOT="/data/local/tmp/bionic-pkgs/jq"
   fi
 fi
 
-if [ -n "$TARGET_DIR" ]; then
-  log_info "Testing jq via dir: ${TARGET_DIR}"
-  JQ_CMD="${TARGET_DIR}/env.sh jq"
-else
-  log_info "Testing jq via: ${JQ_BIN}"
-  JQ_CMD="${JQ_BIN}"
-fi
+log_info "Testing jq via root: ${TARGET_ROOT}"
+JQ_CMD="${TARGET_ROOT}/env.sh jq"
 
 # 1. Version check
 output="$(adb_shell "${JQ_CMD} --version 2>&1" || true)"

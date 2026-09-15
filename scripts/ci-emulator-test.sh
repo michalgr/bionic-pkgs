@@ -77,7 +77,7 @@ adb shell "chmod -R 755 /data/local/tmp/test-sysroot 2>/dev/null || true"
 echo "============================================================"
 echo "==> 1. Testing Standalone bpftrace-static"
 echo "============================================================"
-./tests/tools/test-bpftrace.sh --dir /data/local/tmp/test-bpftrace-static
+./tests/tools/test-bpftrace.sh --root /data/local/tmp/test-bpftrace-static
 
 echo "============================================================"
 echo "==> 2. Testing Master Sysroot Orchestrator"
