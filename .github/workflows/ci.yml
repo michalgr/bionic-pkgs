@@ -253,15 +253,14 @@ jobs:
 
       - name: Publish GitHub Release (v* tag)
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release-assets/*.tar.gz
-            release-assets/SHA256SUMS.txt
-          body_path: release-assets/RELEASE_NOTES.md
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file release-assets/RELEASE_NOTES.md \
+            --generate-notes \
+            release-assets/*.tar.gz release-assets/SHA256SUMS.txt
 
       - name: Update latest git tag pointer
         if: github.ref == 'refs/heads/main'
@@ -271,13 +270,17 @@ jobs:
 
       - name: Publish Rolling Latest Release (main branch)
         if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          target_commitish: ${{ github.sha }}
-          name: "Bionic Packages (Latest Build)"
-          body_path: release-assets/LATEST_NOTES.md
-          files: |
-            release-assets/*.tar.gz
-            release-assets/SHA256SUMS.txt
-          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit latest \
+            --title "Bionic Packages (Latest Build)" \
+            --notes-file release-assets/LATEST_NOTES.md \
+            --target "${{ github.sha }}" \
+            --prerelease || \
+          gh release create latest \
+            --title "Bionic Packages (Latest Build)" \
+            --notes-file release-assets/LATEST_NOTES.md \
+            --target "${{ github.sha }}" \
+            --prerelease
+          gh release upload latest release-assets/*.tar.gz release-assets/SHA256SUMS.txt --clobber
