@@ -48,26 +48,26 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing tmux via root: ${TARGET_ROOT}"
-TMUX_CMD="${TARGET_ROOT}/env.sh tmux"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${TMUX_CMD} -V 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} tmux -V 2>&1" || true)"
 assert_contains "$output" "tmux 3.7" "tmux version check (-V)"
 
 # 2. Help output
-output="$(adb_shell "${TMUX_CMD} -h 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} tmux -h 2>&1" || true)"
 assert_contains "$output" "usage: tmux" "tmux help usage banner"
 
 # 3. Headless session creation & command execution
 SESSION_NAME="bionic_tmux_test_$$"
-adb_shell "${TMUX_CMD} kill-session -t ${SESSION_NAME} >/dev/null 2>&1 || true"
-adb_shell "${TMUX_CMD} new-session -d -s ${SESSION_NAME} 'echo tmux_session_ok > /data/local/tmp/tmux_test_out.txt'"
+adb_shell "${ENV_SH} tmux kill-session -t ${SESSION_NAME} >/dev/null 2>&1 || true"
+adb_shell "${ENV_SH} tmux new-session -d -s ${SESSION_NAME} 'echo tmux_session_ok > /data/local/tmp/tmux_test_out.txt'"
 sleep 1
 
 output="$(adb_shell "cat /data/local/tmp/tmux_test_out.txt 2>&1" || true)"
 assert_contains "$output" "tmux_session_ok" "tmux detached session command execution"
 
-adb_shell "${TMUX_CMD} kill-session -t ${SESSION_NAME} >/dev/null 2>&1 || true"
+adb_shell "${ENV_SH} tmux kill-session -t ${SESSION_NAME} >/dev/null 2>&1 || true"
 adb_shell "rm -f /data/local/tmp/tmux_test_out.txt"
 
 print_summary

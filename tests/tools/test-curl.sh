@@ -48,10 +48,10 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing curl via root: ${TARGET_ROOT}"
-CURL_CMD="${TARGET_ROOT}/env.sh curl"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${CURL_CMD} --version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} curl --version 2>&1" || true)"
 assert_contains "$output" "curl 8." "curl version check (--version)"
 assert_contains "$output" "OpenSSL/" "curl OpenSSL TLS backend check"
 assert_contains "$output" "zlib/" "curl zlib compression support"
@@ -64,11 +64,11 @@ assert_contains "$output" "https" "curl HTTPS protocol support"
 assert_contains "$output" "file" "curl FILE protocol support"
 
 # 3. Local file retrieval
-output="$(adb_shell "${CURL_CMD} -s file:///proc/version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} curl -s file:///proc/version 2>&1" || true)"
 assert_contains "$output" "Linux version" "curl local file fetch (file:///proc/version)"
 
 # 4. Command-line options & status formatting
-output="$(adb_shell "${CURL_CMD} -s -o /dev/null -w '%{http_code}' file:///proc/version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} curl -s -o /dev/null -w '%{http_code}' file:///proc/version 2>&1" || true)"
 assert_match "200|000" "$output" "curl status code extraction (-w '%{http_code}')"
 
 # 5. CA certificates trust directory presence on Android

@@ -48,22 +48,22 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing jq via root: ${TARGET_ROOT}"
-JQ_CMD="${TARGET_ROOT}/env.sh jq"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${JQ_CMD} --version 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} jq --version 2>&1" || true)"
 assert_contains "$output" "jq-" "jq version check (--version)"
 
 # 2. JSON property extraction
-output="$(adb_shell "echo '{\"status\":\"ok\",\"code\":200}' | ${JQ_CMD} -r .status 2>&1" || true)"
+output="$(adb_shell "echo '{\"status\":\"ok\",\"code\":200}' | ${ENV_SH} jq -r .status 2>&1" || true)"
 assert_contains "$output" "ok" "jq JSON property extraction (.status)"
 
 # 3. Array mapping and transformation
-output="$(adb_shell "echo '[1, 2, 3]' | ${JQ_CMD} 'map(. * 2) | .[1]' 2>&1" || true)"
+output="$(adb_shell "echo '[1, 2, 3]' | ${ENV_SH} jq 'map(. * 2) | .[1]' 2>&1" || true)"
 assert_contains "$output" "4" "jq array mapping/transformation (map(. * 2) | .[1])"
 
 # 4. Oniguruma regex matching
-output="$(adb_shell "echo '[\"apple\", \"banana\", \"cherry\"]' | ${JQ_CMD} 'map(test(\"^b\")) | any' 2>&1" || true)"
+output="$(adb_shell "echo '[\"apple\", \"banana\", \"cherry\"]' | ${ENV_SH} jq 'map(test(\"^b\")) | any' 2>&1" || true)"
 assert_contains "$output" "true" "jq Oniguruma regex matching (test(\"^b\"))"
 
 print_summary

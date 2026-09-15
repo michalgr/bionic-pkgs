@@ -48,34 +48,32 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing radare2 via root: ${TARGET_ROOT}"
-R2_CMD="${TARGET_ROOT}/env.sh radare2"
-RASM2_CMD="${TARGET_ROOT}/env.sh rasm2"
-RABIN2_CMD="${TARGET_ROOT}/env.sh rabin2"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${R2_CMD} -v 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} radare2 -v 2>&1" || true)"
 assert_contains "$output" "radare2" "radare2 version check (-v)"
 
 # 2. Assembler/disassembler verification via rasm2
 arch="$(adb_get_arch)"
 if [ "$arch" = "x86_64" ] || [ "$arch" = "i686" ]; then
-  output="$(adb_shell "${RASM2_CMD} -a x86 -b 64 'nop' 2>&1" || true)"
+  output="$(adb_shell "${ENV_SH} rasm2 -a x86 -b 64 'nop' 2>&1" || true)"
   assert_contains "$output" "90" "rasm2 assembly verification (x86_64 nop)"
 else
-  output="$(adb_shell "${RASM2_CMD} -a arm -b 64 'nop' 2>&1" || true)"
+  output="$(adb_shell "${ENV_SH} rasm2 -a arm -b 64 'nop' 2>&1" || true)"
   assert_contains "$output" "1f2003d5" "rasm2 assembly verification (arm64 nop)"
 fi
 
 # 3. Binary inspection via rabin2
-output="$(adb_shell "${RABIN2_CMD} -I /system/bin/sh 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} rabin2 -I /system/bin/sh 2>&1" || true)"
 assert_contains "$output" "elf" "rabin2 binary inspection (-I /system/bin/sh)"
 
 # 4. Headless analysis
-output="$(adb_shell "${R2_CMD} -q -c 'aaa; afl' /system/bin/sh 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} radare2 -q -c 'aaa; afl' /system/bin/sh 2>&1" || true)"
 assert_match "entry|main|sym" "$output" "radare2 headless analysis (aaa; afl /system/bin/sh)"
 
 # 5. Function disassembly
-output="$(adb_shell "${R2_CMD} -q -c 's entry0; pdf' /system/bin/sh 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} radare2 -q -c 's entry0; pdf' /system/bin/sh 2>&1" || true)"
 assert_match "0x|entry" "$output" "radare2 function disassembly (s entry0; pdf)"
 
 print_summary

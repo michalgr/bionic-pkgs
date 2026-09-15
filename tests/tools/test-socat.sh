@@ -48,36 +48,36 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing socat via root: ${TARGET_ROOT}"
-SOCAT_CMD="${TARGET_ROOT}/env.sh socat"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check
-output="$(adb_shell "${SOCAT_CMD} -V 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} socat -V 2>&1" || true)"
 assert_contains "$output" "socat version 1." "socat version check (-V)"
 assert_contains "$output" "features:" "socat features list"
 assert_contains "$output" "OPENSSL" "socat OpenSSL support"
 assert_contains "$output" "READLINE" "socat Readline support"
 
 # 2. Help output
-output="$(adb_shell "${SOCAT_CMD} -h 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} socat -h 2>&1" || true)"
 assert_contains "$output" "Usage:" "socat help usage banner"
 
 # 3. Standard I/O / Pipe bidirectional transfer
-output="$(adb_shell "echo 'socat_pipe_test' | ${SOCAT_CMD} - - 2>&1" || true)"
+output="$(adb_shell "echo 'socat_pipe_test' | ${ENV_SH} socat - - 2>&1" || true)"
 assert_contains "$output" "socat_pipe_test" "socat stdin/stdout pipe transfer"
 
 # 4. TCP loopback relay transfer
 TCP_PORT=19999
-adb_shell "${SOCAT_CMD} TCP4-LISTEN:${TCP_PORT},bind=127.0.0.1,reuseaddr SYSTEM:'echo socat_tcp_relay_ok' >/dev/null 2>&1 &"
+adb_shell "${ENV_SH} socat TCP4-LISTEN:${TCP_PORT},bind=127.0.0.1,reuseaddr SYSTEM:'echo socat_tcp_relay_ok' >/dev/null 2>&1 &"
 sleep 1
-output="$(adb_shell "${SOCAT_CMD} - TCP4:127.0.0.1:${TCP_PORT} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} socat - TCP4:127.0.0.1:${TCP_PORT} 2>&1" || true)"
 assert_contains "$output" "socat_tcp_relay_ok" "socat TCP loopback relay"
 
 # 5. UNIX domain socket relay transfer
 SOCK_PATH="/data/local/tmp/test_socat.sock"
 adb_shell "rm -f ${SOCK_PATH}"
-adb_shell "${SOCAT_CMD} UNIX-LISTEN:${SOCK_PATH},reuseaddr SYSTEM:'echo socat_unix_relay_ok' >/dev/null 2>&1 &"
+adb_shell "${ENV_SH} socat UNIX-LISTEN:${SOCK_PATH},reuseaddr SYSTEM:'echo socat_unix_relay_ok' >/dev/null 2>&1 &"
 sleep 1
-output="$(adb_shell "${SOCAT_CMD} - UNIX-CONNECT:${SOCK_PATH} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} socat - UNIX-CONNECT:${SOCK_PATH} 2>&1" || true)"
 assert_contains "$output" "socat_unix_relay_ok" "socat UNIX domain socket relay"
 adb_shell "rm -f ${SOCK_PATH}"
 

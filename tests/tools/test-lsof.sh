@@ -48,24 +48,24 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing lsof via root: ${TARGET_ROOT}"
-LSOF_CMD="${TARGET_ROOT}/env.sh lsof"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 # 1. Version check (-v prints version and repository URL to stderr)
-output="$(adb_shell "${LSOF_CMD} -v 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lsof -v 2>&1" || true)"
 assert_contains "$output" "4.99." "lsof version check (-v)"
 assert_contains "$output" "revision:" "lsof revision check (-v)"
 
 # 2. Help output (-h prints usage banner to stderr)
-output="$(adb_shell "${LSOF_CMD} -h 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lsof -h 2>&1" || true)"
 assert_contains "$output" "usage:" "lsof usage banner (-h)"
 
 # 3. Process file inspection on PID 1 (init)
-output="$(adb_shell "${LSOF_CMD} -p 1 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lsof -p 1 2>&1" || true)"
 assert_contains "$output" "COMMAND" "lsof process file table header"
 assert_match "init|systemd" "$output" "lsof PID 1 command inspection"
 
 # 4. Terse PID output (-t)
-output="$(adb_shell "${LSOF_CMD} -t -p 1 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} lsof -t -p 1 2>&1" || true)"
 assert_contains "$output" "1" "lsof terse PID output (-t)"
 
 print_summary

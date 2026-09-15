@@ -48,30 +48,28 @@ if [ -z "$TARGET_ROOT" ]; then
 fi
 
 log_info "Testing elfutils via root: ${TARGET_ROOT}"
-READELF_CMD="${TARGET_ROOT}/env.sh eu-readelf"
-NM_CMD="${TARGET_ROOT}/env.sh eu-nm"
-SIZE_CMD="${TARGET_ROOT}/env.sh eu-size"
+ENV_SH="${TARGET_ROOT}/env.sh"
 
 TARGET_ELF="/system/bin/sh"
 
 # 1. ELF header inspection
-output="$(adb_shell "${READELF_CMD} -h ${TARGET_ELF} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} eu-readelf -h ${TARGET_ELF} 2>&1" || true)"
 assert_match "ELF Header|Magic:" "$output" "eu-readelf ELF header inspection (-h /system/bin/sh)"
 
 # 2. Section header inspection
-output="$(adb_shell "${READELF_CMD} -S ${TARGET_ELF} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} eu-readelf -S ${TARGET_ELF} 2>&1" || true)"
 assert_match "Section Headers|\.text" "$output" "eu-readelf section header inspection (-S /system/bin/sh)"
 
 # 3. Dynamic entries inspection
-output="$(adb_shell "${READELF_CMD} -d ${TARGET_ELF} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} eu-readelf -d ${TARGET_ELF} 2>&1" || true)"
 assert_match "Dynamic segment|NEEDED|RUNPATH|RPATH" "$output" "eu-readelf dynamic entries inspection (-d /system/bin/sh)"
 
 # 4. Symbol extraction via eu-nm
-output="$(adb_shell "${NM_CMD} -D ${TARGET_ELF} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} eu-nm -D ${TARGET_ELF} 2>&1" || true)"
 assert_match " [A-Za-z_]" "$output" "eu-nm dynamic symbol extraction (-D /system/bin/sh)"
 
 # 5. Segment sizes via eu-size
-output="$(adb_shell "${SIZE_CMD} ${TARGET_ELF} 2>&1" || true)"
+output="$(adb_shell "${ENV_SH} eu-size ${TARGET_ELF} 2>&1" || true)"
 assert_match "text\s+data\s+bss" "$output" "eu-size segment sizes (/system/bin/sh)"
 
 print_summary
