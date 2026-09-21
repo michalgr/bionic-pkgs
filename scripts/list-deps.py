@@ -167,7 +167,10 @@ def main():
     print_group("BUILD MACHINE PROJECTS", args.system, build_deps)
 
     print("=" * 80)
-    print(f"SUMMARY: {len(target_deps)} target machine projects ({total_target_drvs} derivations), {len(build_deps)} build machine projects ({total_build_drvs} derivations).")
+    print(
+        f"SUMMARY: {len(target_deps)} target machine projects ({total_target_drvs} derivations), "
+        f"{len(build_deps)} build machine projects ({total_build_drvs} derivations)."
+    )
     print("=" * 80)
 
 if __name__ == "__main__":
