@@ -15,7 +15,8 @@
   openssl,
 }:
 
-stdenv.mkDerivation (finalAttrs:
+stdenv.mkDerivation (
+  finalAttrs:
   let
     buildPython = buildPackages.python314 or buildPackages.python3;
   in
@@ -28,72 +29,73 @@ stdenv.mkDerivation (finalAttrs:
       hash = "sha256-O0jayPtZ9i6qZ6yDwesSvaG3oIQG3ShuJSwRpmvif4E=";
     };
 
-  # Native tooling for build machine:
-  # 1. pkg-config: Finds target libffi, libedit, sqlite3 for extension modules.
-  nativeBuildInputs = [
-    pkg-config
-  ];
+    # Native tooling for build machine:
+    # 1. pkg-config: Finds target libffi, libedit, sqlite3 for extension modules.
+    nativeBuildInputs = [
+      pkg-config
+    ];
 
-  # Host C compiler available during build to compile native generators if needed
-  depsBuildBuild = [
-    buildPackages.stdenv.cc
-  ];
+    # Host C compiler available during build to compile native generators if needed
+    depsBuildBuild = [
+      buildPackages.stdenv.cc
+    ];
 
-  # Dependency set: libffi (for ctypes), libedit (interactive REPL history), sqlite (for sqlite3), xz (for lzma), bzip2 (for bz2)
-  propagatedBuildInputs = [
-    libffi
-    libedit
-    sqlite
-    xz
-    bzip2
-    openssl
-  ];
+    # Dependency set: libffi (for ctypes), libedit (interactive REPL history), sqlite (for sqlite3), xz (for lzma), bzip2 (for bz2)
+    propagatedBuildInputs = [
+      libffi
+      libedit
+      sqlite
+      xz
+      bzip2
+      openssl
+    ];
 
-  postPatch = ''
-    substituteInPlace Makefile.pre.in \
-      --replace-warn 'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY))' \
-                     'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY)) -Wl,-rpath,\$$ORIGIN/../..'
-  '';
+    postPatch = ''
+      substituteInPlace Makefile.pre.in \
+        --replace-warn 'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY))' \
+                       'MODULE_LDFLAGS_SHARED=$(if $(LIBPYTHON),$(BLDLIBRARY)) -Wl,-rpath,\$$ORIGIN/../..'
+    '';
 
-  # Bionic Porting Notes & Dependency Exclusions:
-  # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.14).
-  # 2. Shared libpython (--enable-shared, --without-static-libpython) is required on Android.
-  # 3. Interactive REPL navigation & database support enabled via libedit (--with-readline=editline) and sqlite3.
-  # 4. OpenSSL enablement (--with-openssl): Enables cryptographic hash and SSL/TLS support (_ssl, _hashlib).
-  # 5. Native Android logging: Uses <android/log.h> and liblog.so from android-prebuilts.
-  configureFlags = [
-    "--with-build-python=${buildPython}/bin/python3.14"
-    "--enable-shared"
-    "--without-static-libpython"
-    "--without-ensurepip"
-    "--with-system-ffi"
-    "--with-readline=editline"
-    "--without-curses"
-    "--with-sqlite3"
-    "--without-gdbm"
-    "--without-dbm"
-    "--without-tkinter"
-    "--disable-test-modules"
-    "--with-openssl=${openssl.dev or openssl}"
-    "ac_cv_file__dev_ptmx=yes"
-    "ac_cv_file__dev_ptc=no"
-  ];
+    # Bionic Porting Notes & Dependency Exclusions:
+    # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.14).
+    # 2. Shared libpython (--enable-shared, --without-static-libpython) is required on Android.
+    # 3. Interactive REPL navigation & database support enabled via libedit (--with-readline=editline) and sqlite3.
+    # 4. OpenSSL enablement (--with-openssl): Enables cryptographic hash and SSL/TLS support (_ssl, _hashlib).
+    # 5. Native Android logging: Uses <android/log.h> and liblog.so from android-prebuilts.
+    configureFlags = [
+      "--with-build-python=${buildPython}/bin/python3.14"
+      "--enable-shared"
+      "--without-static-libpython"
+      "--without-ensurepip"
+      "--with-system-ffi"
+      "--with-readline=editline"
+      "--without-curses"
+      "--with-sqlite3"
+      "--without-gdbm"
+      "--without-dbm"
+      "--without-tkinter"
+      "--disable-test-modules"
+      "--with-openssl=${openssl.dev or openssl}"
+      "ac_cv_file__dev_ptmx=yes"
+      "ac_cv_file__dev_ptc=no"
+    ];
 
-  # Android Bionic environment:
-  # - -lm: Bionic libm math library linkage.
-  env = {
-    NIX_LDFLAGS = "-lm";
-  };
+    # Android Bionic environment:
+    # - -lm: Bionic libm math library linkage.
+    env = {
+      NIX_LDFLAGS = "-lm";
+    };
 
-  enableParallelBuilding = true;
-  doCheck = false;
+    enableParallelBuilding = true;
+    doCheck = false;
 
-  meta = {
-    description = "High-level programming language with dynamic typing (minimal build with libffi, libedit, sqlite3, lzma, bz2)";
-    homepage = "https://www.python.org/";
-    license = lib.licenses.psfl;
-    platforms = lib.platforms.linux;
-    maintainers = [ ];
-    mainProgram = "python3";
-  };
-})
+    meta = {
+      description = "High-level programming language with dynamic typing (minimal build with libffi, libedit, sqlite3, lzma, bz2)";
+      homepage = "https://www.python.org/";
+      license = lib.licenses.psfl;
+      platforms = lib.platforms.linux;
+      maintainers = [ ];
+      mainProgram = "python3";
+    };
+  }
+)
