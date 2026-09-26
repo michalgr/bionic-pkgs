@@ -119,8 +119,8 @@ stdenv.mkDerivation (finalAttrs: {
                 cat > "$pyHelper" << 'EOF'
           #!/bin/sh
           case "$*" in
-            *--includes*) echo "-I${python3}/include/python3.13" ;;
-            *--ldflags*) echo "-L${python3}/lib -lpython3.13" ;;
+            *--includes*) echo "-I${python3}/include/python${lib.versions.majorMinor python3.version}" ;;
+            *--ldflags*) echo "-L${python3}/lib -lpython${lib.versions.majorMinor python3.version}" ;;
             *--exec-prefix*) echo "${python3}" ;;
             *) exit 1 ;;
           esac
