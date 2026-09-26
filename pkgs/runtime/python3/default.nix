@@ -15,14 +15,18 @@
   openssl,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "python3";
-  version = "3.13.15";
+stdenv.mkDerivation (finalAttrs:
+  let
+    buildPython = buildPackages.python314 or buildPackages.python3;
+  in
+  {
+    pname = "python3";
+    version = "3.14.7";
 
-  src = fetchurl {
-    url = "https://www.python.org/ftp/python/${finalAttrs.version}/Python-${finalAttrs.version}.tar.xz";
-    hash = "sha256-HmanlFpIOQ7kwqQmig5BhYhAWaE8SqttFIqiCN7qSnY=";
-  };
+    src = fetchurl {
+      url = "https://www.python.org/ftp/python/${finalAttrs.version}/Python-${finalAttrs.version}.tar.xz";
+      hash = "sha256-O0jayPtZ9i6qZ6yDwesSvaG3oIQG3ShuJSwRpmvif4E=";
+    };
 
   # Native tooling for build machine:
   # 1. pkg-config: Finds target libffi, libedit, sqlite3 for extension modules.
@@ -52,13 +56,13 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   # Bionic Porting Notes & Dependency Exclusions:
-  # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.13).
+  # 1. Cross-compilation requires --with-build-python matching the major.minor version (3.14).
   # 2. Shared libpython (--enable-shared, --without-static-libpython) is required on Android.
   # 3. Interactive REPL navigation & database support enabled via libedit (--with-readline=editline) and sqlite3.
   # 4. OpenSSL enablement (--with-openssl): Enables cryptographic hash and SSL/TLS support (_ssl, _hashlib).
   # 5. Native Android logging: Uses <android/log.h> and liblog.so from android-prebuilts.
   configureFlags = [
-    "--with-build-python=${buildPackages.python313}/bin/python3.13"
+    "--with-build-python=${buildPython}/bin/python3.14"
     "--enable-shared"
     "--without-static-libpython"
     "--without-ensurepip"

@@ -213,10 +213,10 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - **Resolution**: `<android/log.h>` and `liblog.so` are supplied by `lib/sysroot` (provided transparently by `stdenv`), linking cleanly against Android's system `liblog.so`.
 5. **Dynamic Page Sizes & 16 KB Kernel Compatibility**:
    - `bionicFlags` automatically passes `-D__BIONIC_NO_PAGE_SIZE_MACRO` in `NIX_CFLAGS_COMPILE` to avoid static page size assumptions across all packages.
-   - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.13.so`.
+   - `bionicFixupHook` enforces 16 KB page alignment across all `.so` C-extension modules (`lib-dynload/*.so`) and `libpython3.14.so`.
 6. **Runtime Standard Library Resolution (`PYTHONHOME`) & Scoped Extension RPATH**:
    - When deployed via ADB to `/data/local/tmp/bionic-pkgs/python3`, the generated launcher wrapper script sets `export PYTHONHOME="$SCRIPT_DIR"`.
-   - CPython extension modules located in `prefix/lib/python3.13/lib-dynload/` require an additional `$ORIGIN/../..` runpath to locate `libpython3.13.so` and `libffi.so` in `prefix/lib`.
+   - CPython extension modules located in `prefix/lib/python3.14/lib-dynload/` require an additional `$ORIGIN/../..` runpath to locate `libpython3.14.so` and `libffi.so` in `prefix/lib`.
    - In `pkgs/runtime/python3/default.nix`, `Makefile.pre.in` is patched via `postPatch` to append `-Wl,-rpath,\$ORIGIN/../..` strictly to `MODULE_LDFLAGS_SHARED`, ensuring `$ORIGIN/../..` remains strictly confined within `prefix/lib`.
 
 ### Case Study 3: `openssl` (OpenSSL Cryptographic & SSL/TLS Toolkit)
@@ -302,9 +302,9 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - `libbcc.pc.in` defined `libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@`. Because Nix CMake sets `CMAKE_INSTALL_LIBDIR` to an absolute `/nix/store/...` path, this created invalid double slashes (`//`).
    - Rewritten to `libdir=''${prefix}/lib` in `postPatch`.
 5. **Decoupled Python Module & Hardened Runtime Resolution**:
-   - Rather than embedding a duplicate target Python 3 interpreter and standard library inside BCC's output `$out`, `bcc` installs its pure Python module into `$out/lib/python3.13/site-packages/bcc/`.
+   - Rather than embedding a duplicate target Python 3 interpreter and standard library inside BCC's output `$out`, `bcc` installs its pure Python module into `$out/lib/python3.14/site-packages/bcc/`.
    - Tool wrappers in `$out/bin/` (`execsnoop`, `opensnoop`, etc.) strictly enforce fail-closed Python interpreter resolution confined strictly to `$BASE_DIR`: checking explicit `BCC_PYTHON_BIN` administrative override or staged sysroot Python (`$BASE_DIR/bin/python3`). Sibling directory traversal (`$BASE_DIR/../python3/bin/python3`), fallbacks to mutable `run.sh`, or untrusted ambient `PATH` (`python3`) are completely eliminated (CWE-426/CWE-427). Disjoint push deployments (separate `/data/local/tmp/bionic-pkgs/bcc` and `.../python3` directories) require explicit intent via setting `BCC_PYTHON_BIN=/path/to/python3`. If no valid interpreter is found, wrappers exit with status 1 and write a clear error message to stderr.
-   - Wrappers set `PYTHONPATH="$BASE_DIR/lib/python3.13/site-packages"` hermetically without appending ambient `${PYTHONPATH}`, preventing untrusted module injection during elevated execution (root / CAP_BPF).
+   - Wrappers set `PYTHONPATH="$BASE_DIR/lib/python3.14/site-packages"` hermetically without appending ambient `${PYTHONPATH}`, preventing untrusted module injection during elevated execution (root / CAP_BPF).
    - To prevent untrusted library traversal and dynamic linker search path injection vulnerabilities (CWE-426), ambient `LD_LIBRARY_PATH` environment variable exports have been completely eliminated across all wrapper scripts, launcher generators, and test runners in favor of hermetic relative `DT_RUNPATH` resolution.
 6. **Hermetic `libbcc.so` Dynamic Loading via `ctypes`**:
    - In `src/python/bcc/libbcc.py`, `libbcc.so` loading was patched via `postPatch` to resolve `libbcc.so` relative to `__file__`:
@@ -368,12 +368,12 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - Passing `-DCMAKE_SKIP_RPATH=ON` suppresses CMake's internal build-tree RPATH generation and install-time RPATH rewriting, eliminating malformed leading colons (`[:$ORIGIN/../lib]`) and ensuring the binary cleanly relies on the pure link-time `-rpath $ORIGIN/../lib` passed by `bionicFlags.ldflags`.
 6. **Python Scripting Enablement & Cross-Compilation Variables**:
    - Enabling Python scripting (`-DLLDB_ENABLE_PYTHON=ON`) requires SWIG (`buildPackages.swig`) to generate `LLDBWrapPython.cpp` at build time.
-   - Target Python headers and shared library paths (`Python3_INCLUDE_DIR`, `Python3_LIBRARY`, `Python3_LIBRARIES`) are supplied to CMake's `FindPython3` module so `liblldb.so` dynamically links against target `libpython3.13.so`.
+   - Target Python headers and shared library paths (`Python3_INCLUDE_DIR`, `Python3_LIBRARY`, `Python3_LIBRARIES`) are supplied to CMake's `FindPython3` module so `liblldb.so` dynamically links against target `libpython3.14.so`.
    - Upstream LLDB cross-compilation checks require setting three mandatory CMake path variables:
-     - `-DLLDB_PYTHON_RELATIVE_PATH=lib/python3.13/site-packages`
+     - `-DLLDB_PYTHON_RELATIVE_PATH=lib/python3.14/site-packages`
      - `-DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3`
-     - `-DLLDB_PYTHON_EXT_SUFFIX=.cpython-313-<arch>-linux-android.so`
-   - Adding `python3` to LLDB's `buildInputs` ensures `adb-push.sh` and sysroot bundles automatically aggregate `libpython3.13.so` and Python standard library paths into the device deployment directory.
+     - `-DLLDB_PYTHON_EXT_SUFFIX=.cpython-314-<arch>-linux-android.so`
+   - Adding `python3` to LLDB's `buildInputs` ensures `adb-push.sh` and sysroot bundles automatically aggregate `libpython3.14.so` and Python standard library paths into the device deployment directory.
 
 ### Case Study 9: `gdb` & `gdbserver` (GNU Debugger & Companion Remote Server)
 `gdb` provides GNU interactive debugging, breakpoint management, thread inspection, core analysis, and remote server connectivity on Android (Bionic libc) alongside companion `gdbserver`.
@@ -394,7 +394,7 @@ Python 3 on Android provides a standalone CLI scripting runtime, C interoperabil
    - **Resolution**: Wrap `CC_FOR_BUILD` with a localized shell script in `preConfigure` that empties `NIX_CFLAGS_COMPILE` and `NIX_LDFLAGS`, keeping host compiler flags pristine without touching global stdenv overlays.
 4. **Python 3 Cross-Compilation Integration**:
    - GDB configure expects `--with-python=<path>`. Passing host Python causes host glibc library leakage, while passing target `python3-config` fails because it is an Android ELF binary that cannot run on the host.
-   - **Resolution**: In `preConfigure`, generate a lightweight helper script (`python-config-cross.sh`) returning target includes (`-I${python3}/include/python3.13`), linker flags (`-L${python3}/lib -lpython3.13`), and prefix, passed via `--with-python=$PWD/python-config-cross.sh`.
+   - **Resolution**: In `preConfigure`, generate a lightweight helper script (`python-config-cross.sh`) returning target includes (`-I${python3}/include/python${lib.versions.majorMinor python3.version}`), linker flags (`-L${python3}/lib -lpython${lib.versions.majorMinor python3.version}`), and prefix, passed via `--with-python=$PWD/python-config-cross.sh`.
 5. **Signal Disposition & Non-Root Process Control**:
    - Bionic reserves `SIGRTMIN` through `SIGRTMIN + 7` for internal thread lifecycle management. GDB warns about preinstalled signal handlers. Guard the warning loop with `#ifndef __ANDROID__` in `gdbsupport/signals-state-save-restore.cc`.
    - Replace `setpgid(getpid(), getpid())` with `setpgid(0, 0)` in `gdbsupport/job-control.cc` to allow non-root inferior debugging.
