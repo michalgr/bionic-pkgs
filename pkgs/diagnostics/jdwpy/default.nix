@@ -34,5 +34,6 @@ stdenvNoCC.mkDerivation {
     license = lib.licenses.mit;
     platforms = lib.platforms.all;
     maintainers = [ ];
+    skipElfCheck = true;
   };
 }
