@@ -46,6 +46,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
   iperf3 = self.callPackage ./diagnostics/iperf3 { };
   lsof = self.callPackage ./diagnostics/lsof { };
   nmap = self.callPackage ./diagnostics/nmap { };
+  jdwpy = self.callPackage ./diagnostics/jdwpy { };
 
   # Tracing & Kernel Diagnostics
   libbpf = self.callPackage ./tracing/libbpf { };
@@ -88,6 +89,7 @@ targetPkgs.lib.makeScope targetPkgs.newScope (self: {
       self.nmap
       self.tmux
       self.jq
+      self.jdwpy
     ];
   };
 
