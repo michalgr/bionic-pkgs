@@ -61,18 +61,19 @@ adb_wait_and_root
 adb_mount_tracefs
 
 echo "Cleaning up previous test deployments..."
+adb shell "chmod -R u+w /data/local/tmp/test-bpftrace-static /data/local/tmp/test-sysroot 2>/dev/null || true"
 adb shell "rm -rf /data/local/tmp/test-bpftrace-static /data/local/tmp/test-sysroot"
 adb shell "mkdir -p /data/local/tmp/test-bpftrace-static /data/local/tmp/test-sysroot"
 
 echo "Deploying bpftrace-static-x86_64.tar.gz..."
 adb push "$BPFTRACE_TAR" /data/local/tmp/
 adb shell "cd /data/local/tmp/test-bpftrace-static && tar xzf /data/local/tmp/bpftrace-static-x86_64.tar.gz && rm -f /data/local/tmp/bpftrace-static-x86_64.tar.gz"
-adb shell "chmod -R 755 /data/local/tmp/test-bpftrace-static 2>/dev/null || true"
+adb shell "chmod -R a-w /data/local/tmp/test-bpftrace-static"
 
 echo "Deploying sysroot-x86_64.tar.gz..."
 adb push "$SYSROOT_TAR" /data/local/tmp/
 adb shell "cd /data/local/tmp/test-sysroot && tar xzf /data/local/tmp/sysroot-x86_64.tar.gz && rm -f /data/local/tmp/sysroot-x86_64.tar.gz"
-adb shell "chmod -R 755 /data/local/tmp/test-sysroot 2>/dev/null || true"
+adb shell "chmod -R a-w /data/local/tmp/test-sysroot"
 
 echo "============================================================"
 echo "==> 1. Testing Standalone bpftrace-static"

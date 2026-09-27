@@ -170,13 +170,13 @@ DEST_DIR_ESC="$(shell_escape "$DEST_DIR")"
 RUN_SH_REMOTE_ESC="$(shell_escape "$DEST_DIR/run.sh")"
 
 echo "==> Creating staging directory on device ($DEST_DIR)..."
-run_adb shell "rm -rf ${DEST_DIR_ESC} && mkdir -p ${DEST_DIR_ESC}"
+run_adb shell "chmod -R u+w ${DEST_DIR_ESC} 2>/dev/null || true; rm -rf ${DEST_DIR_ESC} && mkdir -p ${DEST_DIR_ESC}"
 
 echo "==> Pushing package archive (${PAYLOAD_SIZE})..."
 run_adb push "$ARCHIVE_PATH" "$DEST_DIR/stage.tar.gz"
 
 echo "==> Unpacking payload on device..."
-run_adb shell "cd ${DEST_DIR_ESC} && tar xzf stage.tar.gz && rm -f stage.tar.gz && chmod 755 ${RUN_SH_REMOTE_ESC} 2>/dev/null || true"
+run_adb shell "cd ${DEST_DIR_ESC} && tar xzf stage.tar.gz && rm -f stage.tar.gz && chmod -R a-w ."
 
 echo ""
 echo "==> Deployment complete!"

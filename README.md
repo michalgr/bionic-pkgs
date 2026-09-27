@@ -54,7 +54,7 @@ Follow these step-by-step instructions to push, extract, and execute tools on yo
 adb push sysroot-aarch64.tar.gz /data/local/tmp/
 
 # 3. Extract to /data/local/tmp/sysroot
-adb shell "mkdir -p /data/local/tmp/sysroot && tar -xzf /data/local/tmp/sysroot-aarch64.tar.gz -C /data/local/tmp/sysroot"
+adb shell "mkdir -p /data/local/tmp/sysroot && tar -xzf /data/local/tmp/sysroot-aarch64.tar.gz -C /data/local/tmp/sysroot && chmod -R a-w /data/local/tmp/sysroot"
 
 # 4. Run tools via the environment launcher wrapper
 adb shell "/data/local/tmp/sysroot/env.sh tmux"
