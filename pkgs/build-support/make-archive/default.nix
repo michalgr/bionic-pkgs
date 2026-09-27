@@ -46,7 +46,7 @@ stdenv.mkDerivation {
     mkdir -p "$out"
     stageDir=$(mktemp -d)
     if ! cp -al "$src/." "$stageDir/" 2>/dev/null; then
-      chmod -R u+w "$stageDir" 2>/dev/null || true
+      find "$stageDir" -type d -exec chmod u+w {} + 2>/dev/null || true
       rm -rf "$stageDir"/*
       cp -a "$src/." "$stageDir/"
     fi

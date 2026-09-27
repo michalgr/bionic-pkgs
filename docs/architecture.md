@@ -228,6 +228,7 @@ Every testable CLI package implements a dedicated test script under `tests/tools
    - **Location**: `scripts/stage-runtime.sh`
    - **Role**: Accepts a target staging directory and package store paths to aggregate binaries (`bin/`), shared libraries (`lib/`), and share assets (`share/`).
    - **Pruning & Cleaning**: Strips non-runtime build artifacts (`*.a`, `*.la`, `*.o`, `pkgconfig/`, `cmake/`, `doc`, `man`, `info`, `locale`).
+   - **Permission Management**: Restricts write permission changes strictly to directory nodes (`-type d`), preserving original permission bits on non-directory files.
    - **Fixups & Launchers**: Copies `scripts/env.sh` directly into `$STAGE_DIR/env.sh` and optionally generates entrypoint launchers that delegate to `$STAGE_DIR/env.sh`.
 
 3. **Layer 3: High-Level Runtime Bundle Builder (`runtime-archive`)**

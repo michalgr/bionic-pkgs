@@ -91,7 +91,7 @@ for pkg in "${PKG_PATHS[@]}"; do
     done
   fi
 
-  chmod -R u+w "$STAGE_DIR" 2>/dev/null || true
+  find "$STAGE_DIR" -type d -exec chmod u+w {} + 2>/dev/null || true
 done
 
 # Clean up unwanted static archives or pkgconfig/cmake inside staging
