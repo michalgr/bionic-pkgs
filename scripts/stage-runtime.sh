@@ -60,7 +60,7 @@ for pkg in "${PKG_PATHS[@]}"; do
   [ -d "$pkg" ] || continue
 
   if [ -d "$pkg/bin" ]; then
-    cp -a "$pkg/bin/." "$STAGE_DIR/bin/"
+    cp -af "$pkg/bin/." "$STAGE_DIR/bin/"
   fi
 
   if [ -d "$pkg/lib" ]; then
@@ -71,7 +71,7 @@ for pkg in "${PKG_PATHS[@]}"; do
         *.a|*.la|*.o|pkgconfig|cmake)
           ;;
         *)
-          cp -a "$item" "$STAGE_DIR/lib/"
+          cp -af "$item" "$STAGE_DIR/lib/"
           ;;
       esac
     done
@@ -85,7 +85,7 @@ for pkg in "${PKG_PATHS[@]}"; do
         man|doc|info|locale|aclocal|pkgconfig)
           ;;
         *)
-          cp -a "$item" "$STAGE_DIR/share/"
+          cp -af "$item" "$STAGE_DIR/share/"
           ;;
       esac
     done
