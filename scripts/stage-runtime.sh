@@ -60,7 +60,7 @@ for pkg in "${PKG_PATHS[@]}"; do
   [ -d "$pkg" ] || continue
 
   if [ -d "$pkg/bin" ]; then
-    cp -a "$pkg/bin/." "$STAGE_DIR/bin/"
+    cp -af "$pkg/bin/." "$STAGE_DIR/bin/"
   fi
 
   if [ -d "$pkg/lib" ]; then
@@ -71,7 +71,7 @@ for pkg in "${PKG_PATHS[@]}"; do
         *.a|*.la|*.o|pkgconfig|cmake)
           ;;
         *)
-          cp -a "$item" "$STAGE_DIR/lib/"
+          cp -af "$item" "$STAGE_DIR/lib/"
           ;;
       esac
     done
@@ -85,13 +85,13 @@ for pkg in "${PKG_PATHS[@]}"; do
         man|doc|info|locale|aclocal|pkgconfig)
           ;;
         *)
-          cp -a "$item" "$STAGE_DIR/share/"
+          cp -af "$item" "$STAGE_DIR/share/"
           ;;
       esac
     done
   fi
 
-  chmod -R u+w "$STAGE_DIR" 2>/dev/null || true
+  find "$STAGE_DIR" -type d -exec chmod u+w {} + 2>/dev/null || true
 done
 
 # Clean up unwanted static archives or pkgconfig/cmake inside staging
